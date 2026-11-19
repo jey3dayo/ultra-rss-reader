@@ -63,6 +63,7 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "import_opml",
   "import_settings_profile",
   "list_articles_by_tag",
+  "preview_settings_profile_import",
   "rename_account",
   "rename_feed",
   "rename_folder",

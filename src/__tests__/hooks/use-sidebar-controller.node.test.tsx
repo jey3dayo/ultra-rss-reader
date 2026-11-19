@@ -104,7 +104,6 @@ function createRuntime(overrides: Partial<SidebarRuntimeResult> = {}): SidebarRu
     isAddFeedDialogOpen: false,
     openAddFeedDialog: vi.fn(),
     closeAddFeedDialog: vi.fn(),
-    openSettingsAccount: vi.fn(),
     openSettingsAddAccount: vi.fn(),
     syncProgress: {
       active: false,

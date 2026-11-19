@@ -1,4 +1,5 @@
 import { type Dispatch, type SetStateAction, useCallback } from "react";
+import { executeAction } from "@/lib/actions";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
 export type SidebarSetSelectedAccountPreference = (accountId: string) => void;
@@ -9,7 +10,6 @@ export type SidebarUiActionsParams = {
   setSelectedAccountPreference: SidebarSetSelectedAccountPreference;
   openSettings: (category?: SettingsCategory) => void;
   openSubscriptionsIndex: () => void;
-  openSettingsAccount: (accountId: string) => void;
   openSettingsAddAccount: () => void;
   openAddFeedDialog: () => void;
   closeAddFeedDialog: () => void;
@@ -35,7 +35,6 @@ export function useSidebarUiActions({
   setSelectedAccountPreference,
   openSettings,
   openSubscriptionsIndex,
-  openSettingsAccount,
   openSettingsAddAccount,
   openAddFeedDialog,
   closeAddFeedDialog,
@@ -71,13 +70,8 @@ export function useSidebarUiActions({
   }, [openSettings]);
 
   const handleOpenAccountSettings = useCallback(() => {
-    if (selectedAccountId) {
-      openSettingsAccount(selectedAccountId);
-      return;
-    }
-
-    openSettingsAddAccount();
-  }, [openSettingsAccount, openSettingsAddAccount, selectedAccountId]);
+    executeAction("open-current-account-settings");
+  }, []);
 
   const handleAddFeed = useCallback(() => {
     if (selectedAccountId) {
@@ -85,8 +79,8 @@ export function useSidebarUiActions({
       return;
     }
 
-    handleOpenAccountSettings();
-  }, [handleOpenAccountSettings, openAddFeedDialog, selectedAccountId]);
+    openSettingsAddAccount();
+  }, [openSettingsAddAccount, openAddFeedDialog, selectedAccountId]);
 
   const handleAddFeedDialogOpenChange = useCallback(
     (open: boolean) => {

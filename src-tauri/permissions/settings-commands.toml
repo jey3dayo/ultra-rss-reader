@@ -13,5 +13,6 @@ commands.allow = [
   "export_settings_profile",
   "export_settings_profile_to_file",
   "import_settings_profile",
+  "preview_settings_profile_import",
   "get_platform_info",
 ]

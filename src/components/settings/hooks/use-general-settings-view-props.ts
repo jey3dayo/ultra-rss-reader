@@ -97,19 +97,6 @@ export function useGeneralSettingsViewProps({
           },
         ],
       },
-      {
-        id: "sync",
-        heading: t("general.sync"),
-        controls: [
-          {
-            id: "sync-on-startup",
-            type: "switch",
-            label: t("general.sync_on_startup"),
-            checked: resolvePreferenceValue(prefs, "sync_on_startup") === "true",
-            onChange: (checked) => setPref("sync_on_startup", String(checked)),
-          },
-        ],
-      },
     ],
   };
 }

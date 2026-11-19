@@ -48,6 +48,7 @@ export const TAURI_COMMAND_NAMES = [
   "import_local_account_sync_operations",
   "import_opml",
   "import_settings_profile",
+  "preview_settings_profile_import",
   "list_account_articles",
   "list_accounts",
   "list_articles",

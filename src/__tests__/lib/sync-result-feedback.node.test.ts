@@ -4,13 +4,8 @@ import i18n from "@/lib/i18n";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
   buildSyncFeedbackToast,
-  getSyncIssueDiagnosticsDetails,
-  getSyncWarningAccountNames,
   getSyncWarningDetailTranslationKey,
   resolveSyncFeedbackMessage,
-  resolveSyncFeedbackSeverity,
-  type SyncFeedback,
-  type SyncFeedbackPublicCopy,
   summarizeSyncResult,
   summarizeSyncWarnings,
 } from "@/lib/sync/sync-result-feedback";
@@ -22,7 +17,7 @@ const jaPublicCopy = {
     feed: "フィード",
     scheduler: "スケジューラー",
   },
-} satisfies SyncFeedbackPublicCopy;
+};
 
 describe("sync-result-feedback", () => {
   it("summarizes an already-running sync", () => {
@@ -87,6 +82,7 @@ describe("sync-result-feedback", () => {
     expect(feedback).toEqual({
       kind: "partial-failure",
       accounts: "FreshRSS",
+      accountSettingsAccountId: "remote-1",
       localFeedSyncFailureCount: 2,
       localFeedSyncFailureAccountId: "local-1",
       otherWarningCount: 1,
@@ -344,6 +340,8 @@ describe("sync-result-feedback", () => {
     ).toEqual({
       kind: "warnings",
       accounts: "FreshRSS (feed), FreshRSS (credentials), Scheduler (scheduler)",
+      requiresAccountSettings: true,
+      accountSettingsAccountId: "acc-1",
       detail: null,
       remainingWarningCount: 0,
     });
@@ -380,6 +378,7 @@ describe("sync-result-feedback", () => {
     ).toEqual({
       kind: "partial-failure",
       accounts: "FreshRSS (feed), FreshRSS (credentials)",
+      accountSettingsAccountId: "acc-1",
     });
   });
 
@@ -407,6 +406,8 @@ describe("sync-result-feedback", () => {
     ).toEqual({
       kind: "warnings",
       accounts: "Account 1, Account 2 (feed), Account 3, Account 4 (credentials) +1 more",
+      requiresAccountSettings: true,
+      accountSettingsAccountId: "acc-4",
       detail: null,
       remainingWarningCount: 0,
     });
@@ -488,58 +489,6 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "retry-pending", accounts: "FreshRSS", detail: null, remainingWarningCount: 0 });
   });
 
-  it("extracts distinct warning account names", () => {
-    expect(
-      getSyncWarningAccountNames([
-        { account_id: "acc-1", detail: null, account_name: "FreshRSS", message: "warn 1" },
-        { account_id: "acc-2", detail: null, account_name: "FreshRSS", message: "warn 2" },
-        { account_id: "acc-3", detail: null, account_name: "Local", message: "warn 3" },
-      ]),
-    ).toBe("FreshRSS, Local");
-  });
-
-  it("uses public fallback copy for blank warning account names", () => {
-    expect(
-      getSyncWarningAccountNames([
-        { account_id: "acc-1", detail: null, account_name: "", message: "warn 1" },
-        { account_id: "acc-2", detail: null, account_name: "  ", message: "warn 2" },
-        { account_id: "acc-3", detail: null, account_name: "Local", message: "warn 3" },
-      ]),
-    ).toBe("Unknown account, Local");
-  });
-
-  it("keeps blank account ids out of public feedback while retaining diagnostics details", () => {
-    const warnings = [
-      {
-        account_id: "acc-deleted-1",
-        detail: null,
-        account_name: "",
-        message: "Deleted account cannot be synced",
-      },
-      {
-        account_id: "scheduler",
-        detail: null,
-        account_name: "   ",
-        action_owner: "scheduler",
-        message: "Scheduler skipped",
-      },
-    ] as const;
-
-    expect(getSyncWarningAccountNames([...warnings])).toBe("Unknown account, Unknown account (scheduler)");
-    expect(getSyncIssueDiagnosticsDetails([...warnings])).toEqual([
-      {
-        accountId: "acc-deleted-1",
-        accountName: null,
-        actionOwner: "account",
-      },
-      {
-        accountId: "scheduler",
-        accountName: null,
-        actionOwner: "scheduler",
-      },
-    ]);
-  });
-
   it("keeps provider remote entry ids out of public warning copy", () => {
     expect(
       summarizeSyncWarnings([
@@ -591,6 +540,8 @@ describe("sync-result-feedback", () => {
     ).toEqual({
       kind: "warnings",
       accounts: "不明なアカウント (認証情報), FreshRSS (フィード), Scheduler (スケジューラー)",
+      requiresAccountSettings: true,
+      accountSettingsAccountId: "acc-1",
       detail: null,
       remainingWarningCount: 0,
     });
@@ -1068,49 +1019,31 @@ describe("sync_warning_detail locale rendering", () => {
   );
 });
 
-describe("resolveSyncFeedbackSeverity", () => {
-  const retryDetail = { detail: null, remainingWarningCount: 0 };
-
-  it.each<[string, SyncFeedback, "error" | "warning" | "info" | undefined]>([
-    ["already-in-progress", { kind: "already-in-progress" }, "info"],
-    ["partial-failure", { kind: "partial-failure", accounts: "Local" }, "error"],
-    [
-      "partial-failure with local feed failures",
-      { kind: "partial-failure", accounts: "Local", localFeedSyncFailureCount: 1 },
-      "error",
-    ],
-    ["retry-scheduled", { kind: "retry-scheduled", accounts: "FreshRSS", ...retryDetail }, "warning"],
-    ["retry-pending", { kind: "retry-pending", accounts: "FreshRSS", ...retryDetail }, "warning"],
-    ["warnings", { kind: "warnings", accounts: "FreshRSS", ...retryDetail }, "warning"],
-    ["success", { kind: "success" }, undefined],
-  ])("maps %s", (_name, feedback, expected) => {
-    expect(resolveSyncFeedbackSeverity(feedback)).toBe(expected);
-  });
-});
-
 describe("buildSyncFeedbackToast", () => {
   const action = { label: "View details", onClick: () => undefined };
 
   it("keeps a clean result without an action as a plain string", () => {
-    expect(buildSyncFeedbackToast({ kind: "success" }, "done", null)).toBe("done");
+    expect(buildSyncFeedbackToast({ kind: "success" }, "done")).toBe("done");
   });
 
-  it("adds the severity only when the feedback has one", () => {
-    expect(buildSyncFeedbackToast({ kind: "partial-failure", accounts: "Local" }, "failed", null)).toEqual({
+  it("keeps a failed sync visible until dismissed", () => {
+    expect(buildSyncFeedbackToast({ kind: "partial-failure", accounts: "Local" }, "failed")).toEqual({
       message: "failed",
       severity: "error",
+      persistent: true,
+      variant: "sync-recovery",
     });
   });
 
   it("marks already-running feedback as informational", () => {
-    expect(buildSyncFeedbackToast({ kind: "already-in-progress" }, "syncing", null)).toEqual({
+    expect(buildSyncFeedbackToast({ kind: "already-in-progress" }, "syncing")).toEqual({
       message: "syncing",
       severity: "info",
     });
   });
 
   it("keeps the action on a result without a severity", () => {
-    expect(buildSyncFeedbackToast({ kind: "success" }, "done", action)).toEqual({
+    expect(buildSyncFeedbackToast({ kind: "success" }, "done", [action])).toEqual({
       message: "done",
       actions: [action],
     });
@@ -1121,7 +1054,7 @@ describe("buildSyncFeedbackToast", () => {
       buildSyncFeedbackToast(
         { kind: "warnings", accounts: "FreshRSS", detail: null, remainingWarningCount: 0 },
         "warn",
-        action,
+        [action],
       ),
     ).toEqual({ message: "warn", actions: [action], severity: "warning" });
   });

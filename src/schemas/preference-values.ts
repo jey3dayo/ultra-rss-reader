@@ -86,7 +86,6 @@ type PreferenceValueMap = {
   open_first_article_on_feed_selection: (typeof booleanStringPreferenceValues)[number];
   recent_articles_history_enabled: (typeof booleanStringPreferenceValues)[number];
   sort_subscriptions: SortSubscriptions;
-  sync_on_startup: (typeof booleanStringPreferenceValues)[number];
   developer_mode: (typeof booleanStringPreferenceValues)[number];
   action_copy_link: (typeof booleanStringPreferenceValues)[number];
   action_open_browser: (typeof booleanStringPreferenceValues)[number];
@@ -151,7 +150,6 @@ const knownPreferenceKeys = [
   "open_first_article_on_feed_selection",
   "recent_articles_history_enabled",
   "sort_subscriptions",
-  "sync_on_startup",
   "developer_mode",
   "action_copy_link",
   "action_open_browser",
@@ -244,7 +242,6 @@ const corePreferenceDefaults = {
   open_first_article_on_feed_selection: "false",
   recent_articles_history_enabled: "true",
   sort_subscriptions: "folders_first",
-  sync_on_startup: "true",
   developer_mode: "false",
   action_copy_link: "true",
   action_open_browser: "true",
@@ -375,7 +372,6 @@ const picklistPreferenceValues: Record<PicklistPreferenceKey, readonly string[]>
   open_first_article_on_feed_selection: booleanStringPreferenceValues,
   recent_articles_history_enabled: booleanStringPreferenceValues,
   sort_subscriptions: sortSubscriptionsPreferenceValues,
-  sync_on_startup: booleanStringPreferenceValues,
   developer_mode: booleanStringPreferenceValues,
   action_copy_link: booleanStringPreferenceValues,
   action_open_browser: booleanStringPreferenceValues,

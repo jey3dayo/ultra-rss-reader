@@ -137,6 +137,7 @@ const expectedCommandOwnerAllowlists = {
     "export_settings_profile",
     "export_settings_profile_to_file",
     "import_settings_profile",
+    "preview_settings_profile_import",
     "get_platform_info",
   ],
   "share-commands": ["copy_to_clipboard", "add_to_reading_list"],

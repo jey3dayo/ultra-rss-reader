@@ -107,6 +107,12 @@ fn export_profile_omits_credentials_and_article_dependent_data() {
         .unwrap();
     db.writer()
         .execute(
+            "INSERT INTO preferences (key, value) VALUES ('sync_on_startup', 'false')",
+            [],
+        )
+        .unwrap();
+    db.writer()
+        .execute(
             "INSERT INTO feeds (id, account_id, title, url) VALUES ('feed-1', 'acc-1', 'Feed', 'https://example.com/feed.xml')",
             [],
         )
@@ -126,7 +132,9 @@ fn export_profile_omits_credentials_and_article_dependent_data() {
         profile.preferences.get("theme").map(String::as_str),
         Some("dark")
     );
+    assert!(!profile.preferences.contains_key("sync_on_startup"));
     assert_eq!(profile.accounts.len(), 1);
+    assert!(profile.accounts[0].sync_on_startup);
     assert!(!exported.contains("secret-cursor"));
     assert!(!exported.contains("connection_verification"));
     assert!(!exported.contains("feeds"));
@@ -169,7 +177,26 @@ fn import_updates_matching_freshrss_account_without_preserving_verification() {
         keep_read_items_days: 7,
     });
 
-    let (result, _) = import_settings_profile_into_db(&db, &profile_json(profile)).unwrap();
+    let json = profile_json(profile);
+    let before = serde_json::to_value(
+        SqliteAccountRepository::new(db.reader())
+            .find_all()
+            .unwrap(),
+    )
+    .unwrap();
+    let (preview, _) =
+        process_settings_profile(&db, &json, SettingsProfileImportMode::Preview).unwrap();
+    assert_eq!(
+        serde_json::to_value(
+            SqliteAccountRepository::new(db.reader())
+                .find_all()
+                .unwrap()
+        )
+        .unwrap(),
+        before
+    );
+    let (result, _) = import_settings_profile_into_db(&db, &json).unwrap();
+    assert_eq!(preview, result);
     let accounts = SqliteAccountRepository::new(db.reader())
         .find_all()
         .unwrap();
@@ -285,7 +312,7 @@ fn import_local_accounts_match_by_name_without_collapsing_different_local_accoun
 }
 
 #[test]
-fn import_maps_selected_account_id_from_source_to_target() {
+fn import_maps_selected_account_id_and_skips_retired_global_startup_sync() {
     let db = test_db();
     let mut profile = empty_profile();
     profile.accounts.push(SettingsProfileAccount {
@@ -303,6 +330,9 @@ fn import_maps_selected_account_id_from_source_to_target() {
         SELECTED_ACCOUNT_ID_KEY.to_string(),
         "source-fresh".to_string(),
     );
+    profile
+        .preferences
+        .insert("sync_on_startup".to_string(), "false".to_string());
 
     let (result, _) = import_settings_profile_into_db(&db, &profile_json(profile)).unwrap();
     let accounts = SqliteAccountRepository::new(db.reader())
@@ -313,6 +343,12 @@ fn import_maps_selected_account_id_from_source_to_target() {
         .unwrap();
 
     assert_eq!(result.preferences_imported, 1);
+    assert_eq!(result.preferences_skipped, 1);
+    assert!(accounts[0].sync_on_startup);
+    assert!(!SqlitePreferenceRepository::new(db.reader())
+        .get_all()
+        .unwrap()
+        .contains_key("sync_on_startup"));
     assert_eq!(selected.as_deref(), Some(accounts[0].id.as_ref()));
 }
 
@@ -387,7 +423,25 @@ fn import_merges_tags_and_mute_keywords_without_duplicates() {
         scope: MuteKeywordScope::Body,
     });
 
-    let (result, _) = import_settings_profile_into_db(&db, &profile_json(profile)).unwrap();
+    let json = profile_json(profile);
+    let (preview, _) =
+        process_settings_profile(&db, &json, SettingsProfileImportMode::Preview).unwrap();
+    assert_eq!(
+        SqliteTagRepository::new(db.reader())
+            .find_all()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        SqliteMuteKeywordRepository::new(db.reader())
+            .find_all()
+            .unwrap()
+            .len(),
+        1
+    );
+    let (result, _) = import_settings_profile_into_db(&db, &json).unwrap();
+    assert_eq!(preview, result);
     let tags = SqliteTagRepository::new(db.reader()).find_all().unwrap();
     let rules = SqliteMuteKeywordRepository::new(db.reader())
         .find_all()

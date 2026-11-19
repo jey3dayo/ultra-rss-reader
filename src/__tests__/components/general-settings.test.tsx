@@ -37,17 +37,13 @@ describe("GeneralSettings", () => {
     expect(usePreferencesStore.getState().prefs.show_sidebar_starred).toBeUndefined();
   });
 
-  it("renders sync on startup enabled by default and updates the preference", async () => {
-    const user = userEvent.setup();
-
+  it("does not expose the retired global startup sync control even when its value is stored", () => {
+    usePreferencesStore.setState({ prefs: { sync_on_startup: "true" } });
     render(<GeneralSettings />, { wrapper: createWrapper() });
 
-    const syncOnStartup = screen.getByRole("switch", { name: "Sync when the app starts" });
-    expect(syncOnStartup).toBeChecked();
-
-    await user.click(syncOnStartup);
-
-    expect(usePreferencesStore.getState().prefs.sync_on_startup).toBe("false");
+    expect(
+      screen.queryByRole("switch", { name: /Sync when the app starts|general\.sync_on_startup/u }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders startup folder expansion in the sidebar section and updates the preference", async () => {

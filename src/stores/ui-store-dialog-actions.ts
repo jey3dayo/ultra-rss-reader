@@ -26,14 +26,19 @@ export function createUiStoreDialogActions(
     showToast: (message) => {
       toastRuntime.clearToastDismissTimer();
       const data: ToastData = typeof message === "string" ? { message } : message;
-      set((state) => ({
-        toastMessage: data,
-        toastAnnouncements:
-          state.toastAnnouncements.at(-1)?.message === data.message
-            ? state.toastAnnouncements
-            : [...state.toastAnnouncements, { id: toastRuntime.nextToastAnnouncementId(), message: data.message }],
-      }));
-      toastRuntime.scheduleToastDismiss(data, set);
+      let canReplace = true;
+      set((state) => {
+        const isRoutineToast = !data.persistent && data.severity !== "warning" && data.severity !== "error";
+        canReplace = !(state.toastMessage?.variant === "sync-recovery" && isRoutineToast);
+        return {
+          toastMessage: canReplace ? data : state.toastMessage,
+          toastAnnouncements:
+            state.toastAnnouncements.at(-1)?.message === data.message
+              ? state.toastAnnouncements
+              : [...state.toastAnnouncements, { id: toastRuntime.nextToastAnnouncementId(), message: data.message }],
+        };
+      });
+      if (canReplace) toastRuntime.scheduleToastDismiss(data, set);
     },
     clearToast: () => {
       toastRuntime.clearToastDismissTimer();

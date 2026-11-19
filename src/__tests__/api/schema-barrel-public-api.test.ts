@@ -120,6 +120,7 @@ const commandArgExportNameOverrides = new Map<string, string>([
   ["mark_account_starred_read", "markAccountReadArgs"],
   ["mark_old_unread_read", "oldUnreadArticlesArgs"],
   ["plugin:opener|open_url", "openExternalUrlArgs"],
+  ["preview_settings_profile_import", "importSettingsProfileArgs"],
   ["trigger_startup_sync", "startupSyncArgs"],
   ["trigger_sync_account", "syncAccountArgs"],
   ["trigger_sync_feed", "syncFeedArgs"],

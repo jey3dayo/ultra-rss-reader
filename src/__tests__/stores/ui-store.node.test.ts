@@ -2191,16 +2191,17 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().toastAnnouncements.map((announcement) => announcement.message)).toEqual(["Second"]);
   });
 
-  it("does not schedule dismiss timers for persistent toasts", () => {
+  it("preserves actionable sync feedback through routine toasts and displays a newer error", () => {
     vi.useFakeTimers();
 
-    useUiStore.getState().showToast({ message: "Downloading", persistent: true });
+    const failure = { message: "Account A needs access", persistent: true, variant: "sync-recovery" } as const;
+    useUiStore.getState().showToast(failure);
+    useUiStore.getState().showToast("Copied");
     vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS * 2);
 
-    expect(useUiStore.getState().toastMessage).toEqual({
-      message: "Downloading",
-      persistent: true,
-    });
+    expect(useUiStore.getState().toastMessage).toBe(failure);
+    useUiStore.getState().showToast({ message: "Retry failed", severity: "error" });
+    expect(useUiStore.getState().toastMessage?.message).toBe("Retry failed");
   });
 
   it("clears pending toast dismiss timers when manually clearing a toast", () => {

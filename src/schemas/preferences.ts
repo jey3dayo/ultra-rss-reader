@@ -133,7 +133,6 @@ export const preferenceSchemas = {
   open_first_article_on_feed_selection: booleanStringSchema,
   recent_articles_history_enabled: booleanStringSchema,
   sort_subscriptions: sortSubscriptionsSchema,
-  sync_on_startup: persistedBooleanPreferenceSchema,
   developer_mode: developerModeSchema,
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,

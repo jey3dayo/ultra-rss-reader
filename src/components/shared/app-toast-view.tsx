@@ -16,7 +16,6 @@ type AppToastViewProps = {
   position?: "fixed" | "static";
   placement?: AppToastPlacement;
   testId?: string;
-  syncActionState?: boolean;
   ending?: boolean;
   hideClose?: boolean;
 };
@@ -65,7 +64,6 @@ export function AppToastView({
   position = "fixed",
   placement = APP_TOAST_PLACEMENTS.bottomRight,
   testId = "app-toast",
-  syncActionState = false,
   ending = false,
   hideClose = false,
 }: AppToastViewProps) {
@@ -77,10 +75,9 @@ export function AppToastView({
   const showInBrowserRail = position === "fixed" && placement === APP_TOAST_PLACEMENTS.browserRail;
   // A decision toast (primary + trailing dismiss action) uses the form action-pair pattern:
   // right-aligned, quiet secondary first, primary-filled CTA last, and no duplicate corner ×.
-  const isDecision = (actions?.length ?? 0) >= 2;
+  const isDecision = (actions?.length ?? 0) >= 2 && variant !== "sync-recovery";
   const showClose = !isDecision && !hideClose;
   const orderedActions = isDecision && actions ? [...actions.slice(1), actions[0]] : (actions ?? []);
-  void syncActionState;
 
   return (
     <div

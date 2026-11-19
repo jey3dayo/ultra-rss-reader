@@ -15,6 +15,7 @@ import {
 import {
   buildSyncFeedbackToast,
   getSyncWarningDetailTranslationKey,
+  isActionableSyncFeedback,
   resolveSyncFeedbackMessage,
   summarizeSyncResult,
 } from "@/lib/sync/sync-result-feedback";
@@ -272,13 +273,18 @@ export function useAccountDetailSyncControls({
             success: t("account.sync_complete"),
             detailLine: resolveAccountDetailSyncWarningDetailLine(t),
           });
+          if (isActionableSyncFeedback(feedback)) {
+            setSyncSectionErrorMessage(message);
+          }
           const action = feedback.localFeedSyncFailureAccountId
             ? createFetchErrorsToastAction(
                 feedback.localFeedSyncFailureAccountId,
                 t("account.sync_local_feed_failures_details"),
               )
             : null;
-          useUiStore.getState().showToast(buildSyncFeedbackToast(feedback, message, action));
+          useUiStore
+            .getState()
+            .showToast(buildSyncFeedbackToast(feedback, message, action ? [action] : [], { hasInlineMessage: true }));
         }),
         Result.inspectError(showSyncError),
       );

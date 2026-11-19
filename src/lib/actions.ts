@@ -7,15 +7,18 @@ import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { getFeedFolderId, moveSelectionHistory } from "@/lib/reader/selection-history-navigation";
 import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
-import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { logRuntimeDiagnostic, redactProviderRuntimeDiagnosticText } from "@/lib/runtime/diagnostics";
+import { getSettingsDirtyStateSnapshot } from "@/lib/settings/settings-dirty-state-registry";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import {
   buildSyncFeedbackToast,
   getSyncWarningDetailTranslationKey,
   resolveSyncFeedbackMessage,
+  type SyncFeedback,
   summarizeSyncResult,
 } from "@/lib/sync/sync-result-feedback";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastAction, ToastData } from "@/lib/ui/toast.types";
 import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/tauri-window";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
@@ -30,6 +33,46 @@ export type { AppAction } from "@/lib/app-actions";
 export { isAppAction } from "@/lib/app-actions";
 export { flushPendingBrowserCloseAction } from "./browser-close-action-buffer";
 export { createFetchErrorsToastAction } from "./fetch-errors-navigation";
+
+function createAccountSettingsToastAction(label: string, accountId?: string | null): ToastAction {
+  return {
+    label,
+    onClick: () => {
+      const store = useUiStore.getState();
+      const dirtyState = getSettingsDirtyStateSnapshot();
+      if (store.settingsOpen && (dirtyState.dirty || dirtyState.pending)) return;
+      if (accountId) store.openSettingsAccount(accountId);
+      else store.openSettings("accounts");
+    },
+  };
+}
+
+export function createSyncFeedbackToastActions(
+  feedback: SyncFeedback,
+  labels: { accountSettings: string; localFeedErrors: string },
+): ToastAction[] {
+  const actions: ToastAction[] = [];
+  if (feedback.kind === "partial-failure" || feedback.requiresAccountSettings) {
+    actions.push(createAccountSettingsToastAction(labels.accountSettings, feedback.accountSettingsAccountId));
+  }
+  if (feedback.localFeedSyncFailureAccountId) {
+    const action = createFetchErrorsToastAction(feedback.localFeedSyncFailureAccountId, labels.localFeedErrors);
+    if (action) actions.push(action);
+  }
+  return actions;
+}
+
+export function buildManualSyncFailureToast(message: string, accountId?: string | null): ToastData {
+  return {
+    message: i18n.t("sidebar:sync_failed_with_message", {
+      message: redactProviderRuntimeDiagnosticText(localizeUserVisibleAppErrorMessage(message)),
+    }),
+    severity: "error",
+    persistent: true,
+    variant: "sync-recovery",
+    actions: [createAccountSettingsToastAction(i18n.t("sidebar:account_settings"), accountId)],
+  };
+}
 
 type GlobalActionRuntimeError = {
   type: "UserVisible";
@@ -75,11 +118,15 @@ function runGlobalActionBoundary(
   void Promise.resolve(operation()).catch((error: unknown) => {
     const actionError = toGlobalActionRuntimeError(error);
     logGlobalActionFailure(action, category, actionError);
-    useUiStore.getState().showToast({
-      message: localizeUserVisibleAppErrorMessage(actionError.message),
-      severity: "error",
-      persistent: true,
-    });
+    useUiStore.getState().showToast(
+      category === "sync"
+        ? buildManualSyncFailureToast(actionError.message)
+        : {
+            message: localizeUserVisibleAppErrorMessage(actionError.message),
+            severity: "error",
+            persistent: true,
+          },
+    );
   });
 }
 
@@ -323,20 +370,15 @@ function runSyncAllAction(action: AppAction, store: UiStoreState): void {
               : detailText;
           },
         });
-        const action = feedback.localFeedSyncFailureAccountId
-          ? createFetchErrorsToastAction(
-              feedback.localFeedSyncFailureAccountId,
-              i18n.t("sidebar:sync_local_feed_failures_details"),
-            )
-          : null;
-        store.showToast(buildSyncFeedbackToast(feedback, message, action));
+        const actions = createSyncFeedbackToastActions(feedback, {
+          accountSettings: i18n.t("sidebar:account_settings"),
+          localFeedErrors: i18n.t("sidebar:sync_local_feed_failures_details"),
+        });
+        store.showToast(buildSyncFeedbackToast(feedback, message, actions));
       },
       onError: (e) => {
         logGlobalActionFailure(action, "sync", e);
-        store.showToast({
-          message: i18n.t("sidebar:sync_failed_with_message", { message: e.message }),
-          severity: "error",
-        });
+        store.showToast(buildManualSyncFailureToast(e.message));
       },
     }),
   );

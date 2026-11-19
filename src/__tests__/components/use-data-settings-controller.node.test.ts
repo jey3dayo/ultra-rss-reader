@@ -11,18 +11,16 @@ import {
   getDatabaseInfo,
   importSettingsProfile,
   openLogDir,
+  previewSettingsProfileImport,
   vacuumDatabase,
 } from "@/api/tauri-commands";
-import type { DatabaseRecoveryActionSafety } from "@/components/settings/hooks/use-data-settings-controller";
-import {
-  classifyDatabaseRuntimeRecoverySurface,
-  formatBytes,
-  reconcileDatabaseRestoreFrontendState,
-  useDataSettingsController,
-} from "@/components/settings/hooks/use-data-settings-controller";
+import { classifyDatabaseRuntimeRecoverySurface, formatBytes } from "@/components/settings/hooks/recovery";
+import { reconcileDatabaseRestoreFrontendState } from "@/components/settings/hooks/restore-reconciliation";
+import { useDataSettingsController } from "@/components/settings/hooks/use-data-settings-controller";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { showSaveDialog } from "@/lib/platform/save-dialog";
 import type { ToastData } from "@/lib/ui/toast.types";
+import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
 
@@ -42,18 +40,8 @@ vi.mock("@/api/tauri-commands", () => ({
   ),
   openLogDir: vi.fn(async () => Result.succeed(null)),
   backupDatabase: vi.fn(async () => Result.succeed(null)),
-  importSettingsProfile: vi.fn(async () =>
-    Result.succeed({
-      accounts_created: 0,
-      accounts_updated: 0,
-      preferences_imported: 0,
-      preferences_skipped: 0,
-      tags_created: 0,
-      tags_updated: 0,
-      mute_keywords_created: 0,
-      mute_keywords_skipped: 0,
-    }),
-  ),
+  importSettingsProfile: vi.fn(),
+  previewSettingsProfileImport: vi.fn(),
   vacuumDatabase: vi.fn(async () =>
     Result.succeed({
       db_size_bytes: 512,
@@ -70,6 +58,7 @@ vi.mock("@/lib/platform/save-dialog", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useUiStore.getState().closeConfirm();
   vi.mocked(getDatabaseInfo).mockResolvedValue(
     Result.succeed({
       db_size_bytes: 1024,
@@ -80,18 +69,18 @@ beforeEach(() => {
   );
   vi.mocked(exportSettingsProfileToFile).mockResolvedValue(Result.succeed(null));
   vi.mocked(showSaveDialog).mockResolvedValue("/tmp/ultra-rss-reader-settings-profile.json");
-  vi.mocked(importSettingsProfile).mockResolvedValue(
-    Result.succeed({
-      accounts_created: 0,
-      accounts_updated: 0,
-      preferences_imported: 0,
-      preferences_skipped: 0,
-      tags_created: 0,
-      tags_updated: 0,
-      mute_keywords_created: 0,
-      mute_keywords_skipped: 0,
-    }),
-  );
+  const emptyImport = Result.succeed({
+    accounts_created: 0,
+    accounts_updated: 0,
+    preferences_imported: 0,
+    preferences_skipped: 0,
+    tags_created: 0,
+    tags_updated: 0,
+    mute_keywords_created: 0,
+    mute_keywords_skipped: 0,
+  });
+  vi.mocked(importSettingsProfile).mockResolvedValue(emptyImport);
+  vi.mocked(previewSettingsProfileImport).mockResolvedValue(emptyImport);
 });
 
 describe("formatBytes", () => {
@@ -106,18 +95,6 @@ describe("formatBytes", () => {
     expect(formatBytes(-1)).toBe("0 B");
     expect(formatBytes(Number.NaN)).toBe("0 B");
     expect(formatBytes(Number.POSITIVE_INFINITY)).toBe("0 B");
-  });
-});
-
-describe("data recovery safety contract", () => {
-  it("keeps dry-run safety representable in the settings data recovery contract", () => {
-    const safety: readonly DatabaseRecoveryActionSafety[] = [
-      "read_only",
-      "requires_dry_run",
-      "requires_explicit_confirmation",
-    ];
-
-    expect(safety).toContain("requires_dry_run");
   });
 });
 
@@ -571,19 +548,18 @@ describe("useDataSettingsController", () => {
     expect(result.current.actionFailures.exportProfile).toBeNull();
   });
 
-  it("imports settings profile files and reports merged counts", async () => {
-    vi.mocked(importSettingsProfile).mockResolvedValue(
-      Result.succeed({
-        accounts_created: 1,
-        accounts_updated: 2,
-        preferences_imported: 3,
-        preferences_skipped: 4,
-        tags_created: 5,
-        tags_updated: 6,
-        mute_keywords_created: 7,
-        mute_keywords_skipped: 8,
-      }),
-    );
+  it("reports merged counts after importing a confirmed settings profile", async () => {
+    const mergeCounts = Result.succeed({
+      accounts_created: 1,
+      accounts_updated: 2,
+      preferences_imported: 3,
+      preferences_skipped: 4,
+      tags_created: 5,
+      tags_updated: 6,
+      mute_keywords_created: 7,
+      mute_keywords_skipped: 8,
+    });
+    vi.mocked(importSettingsProfile).mockResolvedValue(mergeCounts);
     const showToast = vi.fn();
     const { result } = renderHook(() =>
       useDataSettingsController({
@@ -601,6 +577,10 @@ describe("useDataSettingsController", () => {
 
     await act(async () => {
       await result.current.handleImportSettingsProfileFile(new File(['{"version":1}'], "profile.json"));
+    });
+
+    await act(async () => {
+      await useUiStore.getState().confirmDialog.onConfirm?.();
     });
 
     expect(importSettingsProfile).toHaveBeenCalledWith('{"version":1}');
@@ -1215,7 +1195,10 @@ describe("useDataSettingsController action failures", () => {
     {
       operation: "importProfile",
       failureKey: "data.settings_profile_import_failed",
-      run: (controller) => controller.handleImportSettingsProfileFile(profileFile()),
+      run: async (controller) => {
+        await controller.handleImportSettingsProfileFile(profileFile());
+        await useUiStore.getState().confirmDialog.onConfirm?.();
+      },
       failOnce: (error) => vi.mocked(importSettingsProfile).mockResolvedValueOnce(Result.fail(error)),
       rejectOnce: (error) => vi.mocked(importSettingsProfile).mockRejectedValueOnce(error),
       succeedOnce: () => vi.mocked(importSettingsProfile).mockResolvedValueOnce(importSuccess),

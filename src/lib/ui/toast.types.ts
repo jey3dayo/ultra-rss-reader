@@ -11,6 +11,6 @@ export type ToastData = {
   persistent?: boolean;
   progress?: number | null;
   actions?: ToastAction[];
-  variant?: "update";
+  variant?: "update" | "sync-recovery";
   severity?: ToastSeverity;
 };

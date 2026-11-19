@@ -35,9 +35,11 @@ export type SyncFeedback = (
   localFeedSyncFailureCount?: number;
   localFeedSyncFailureAccountId?: string;
   otherWarningCount?: number;
+  requiresAccountSettings?: true;
+  accountSettingsAccountId?: string;
 };
 
-export type SyncFeedbackMessages = {
+type SyncFeedbackMessages = {
   alreadyInProgress: string;
   partialFailure: (accounts: string) => string;
   retryScheduled: (accounts: string, retryAt?: string, retryInSeconds?: number) => string;
@@ -65,7 +67,7 @@ export type SyncFeedbackMessages = {
  * (fail-open, same policy as the rest of this module) rather than throwing or
  * showing a missing-key placeholder.
  */
-export type SyncWarningDetailLabelResolver = (labelType: "mutation" | "operation", rawValue: string) => string;
+type SyncWarningDetailLabelResolver = (labelType: "mutation" | "operation", rawValue: string) => string;
 
 const identitySyncWarningDetailLabelResolver: SyncWarningDetailLabelResolver = (_labelType, rawValue) => rawValue;
 
@@ -137,15 +139,9 @@ export function getSyncWarningDetailTranslationKey(
   }
 }
 
-export type SyncFeedbackPublicCopy = {
+type SyncFeedbackPublicCopy = {
   unknownAccountLabel: string;
   actionOwnerLabels: Record<Exclude<SyncIssueOwner, "account">, string>;
-};
-
-export type SyncIssueDiagnosticsDetail = {
-  accountId: string;
-  accountName: string | null;
-  actionOwner: SyncIssueOwner;
 };
 
 const DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY: SyncFeedbackPublicCopy = {
@@ -157,18 +153,11 @@ const DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY: SyncFeedbackPublicCopy = {
   },
 };
 
-const DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY;
-
 const MAX_SYNC_FEEDBACK_ACCOUNT_LABELS = 4;
 
 function getIssueAccountName(item: AccountSyncError | AccountSyncWarning, copy: SyncFeedbackPublicCopy): string {
   const accountName = item.account_name.trim();
   return accountName.length > 0 ? accountName : copy.unknownAccountLabel;
-}
-
-function getIssueDiagnosticsAccountName(item: AccountSyncError | AccountSyncWarning): string | null {
-  const accountName = item.account_name.trim();
-  return accountName.length > 0 ? accountName : null;
 }
 
 function getIssueOwner(item: AccountSyncError | AccountSyncWarning): SyncIssueOwner {
@@ -199,16 +188,6 @@ function getDistinctAccountNames(
     return visibleLabels.join(", ");
   }
   return `${visibleLabels.join(", ")} +${omittedCount} more`;
-}
-
-export function getSyncIssueDiagnosticsDetails(
-  items: Array<AccountSyncError | AccountSyncWarning>,
-): SyncIssueDiagnosticsDetail[] {
-  return items.map((item) => ({
-    accountId: item.account_id,
-    accountName: getIssueDiagnosticsAccountName(item),
-    actionOwner: getIssueOwner(item),
-  }));
 }
 
 function hasRetryPendingWarnings(warnings: AccountSyncWarning[]): boolean {
@@ -248,9 +227,11 @@ function getRepresentativeWarningDetail(warnings: AccountSyncWarning[]): {
   detail: AccountSyncWarningDetail | null;
   remainingWarningCount: number;
 } {
-  const withDetail = warnings.find(
-    (warning) => warning.detail !== null && warning.detail !== undefined && !isLocalFeedSyncFailureWarning(warning),
-  );
+  const withDetail =
+    warnings.find((warning) => warning.detail?.type === "credential_access_required") ??
+    warnings.find(
+      (warning) => warning.detail !== null && warning.detail !== undefined && !isLocalFeedSyncFailureWarning(warning),
+    );
   if (!withDetail || withDetail.detail === null) {
     return { detail: null, remainingWarningCount: 0 };
   }
@@ -291,9 +272,27 @@ function getLocalFeedSyncFailureSummary(warnings: AccountSyncWarning[]): LocalFe
   };
 }
 
+function getAccountSettingsSummary(
+  warnings: AccountSyncWarning[],
+  failures: AccountSyncError[] = [],
+): Pick<SyncFeedback, "requiresAccountSettings" | "accountSettingsAccountId"> {
+  const credentialWarnings = warnings.filter(
+    (warning) => warning.detail?.type === "credential_access_required" || warning.action_owner === "credential",
+  );
+  const issues = [...failures, ...credentialWarnings];
+  const accountIds = new Set(issues.map((issue) => issue.account_id));
+  const accountId = accountIds.size === 1 ? accountIds.values().next().value : undefined;
+  return {
+    ...(credentialWarnings.length > 0 ? { requiresAccountSettings: true } : {}),
+    ...(accountId && issues.every((issue) => issue.action_owner !== "scheduler")
+      ? { accountSettingsAccountId: accountId }
+      : {}),
+  };
+}
+
 export function summarizeSyncResult(
   result: SyncResultDto,
-  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
+  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY,
 ): SyncFeedback {
   if (!result.synced) {
     return { kind: "already-in-progress" };
@@ -304,6 +303,7 @@ export function summarizeSyncResult(
       kind: "partial-failure",
       accounts: getDistinctAccountNames(result.failed, copy),
       ...getLocalFeedSyncFailureSummary(result.warnings),
+      ...getAccountSettingsSummary(result.warnings, result.failed),
     };
   }
 
@@ -314,19 +314,13 @@ export function summarizeSyncResult(
   return { kind: "success" };
 }
 
-export function getSyncWarningAccountNames(
-  warnings: AccountSyncWarning[],
-  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
-): string {
-  return getDistinctAccountNames(warnings, copy);
-}
-
 export function summarizeSyncWarnings(
   warnings: AccountSyncWarning[],
-  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
+  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY,
 ): Extract<SyncFeedback, { kind: "retry-scheduled" | "retry-pending" | "warnings" }> {
   const { detail, remainingWarningCount } = getRepresentativeWarningDetail(warnings);
   const localFeedFailureSummary = getLocalFeedSyncFailureSummary(warnings);
+  const accountSettingsSummary = getAccountSettingsSummary(warnings);
   const scheduledRetry = getEarliestRetryWarning(warnings);
   if (scheduledRetry) {
     return {
@@ -337,6 +331,7 @@ export function summarizeSyncWarnings(
       detail,
       remainingWarningCount,
       ...localFeedFailureSummary,
+      ...accountSettingsSummary,
     };
   }
 
@@ -346,6 +341,7 @@ export function summarizeSyncWarnings(
     detail,
     remainingWarningCount,
     ...localFeedFailureSummary,
+    ...accountSettingsSummary,
   };
 }
 
@@ -416,7 +412,7 @@ export function resolveSyncFeedbackMessage(feedback: SyncFeedback, messages: Syn
   return appendLocalFeedSyncFailureSummary(message, feedback, messages);
 }
 
-export function resolveSyncFeedbackSeverity(
+function resolveSyncFeedbackSeverity(
   feedback: SyncFeedback,
 ): Extract<ToastSeverity, "error" | "warning" | "info"> | undefined {
   switch (feedback.kind) {
@@ -433,18 +429,30 @@ export function resolveSyncFeedbackSeverity(
   }
 }
 
+export function isActionableSyncFeedback(feedback: SyncFeedback): boolean {
+  return (
+    feedback.kind === "partial-failure" ||
+    feedback.requiresAccountSettings === true ||
+    (feedback.localFeedSyncFailureCount ?? 0) > 0
+  );
+}
+
 export function buildSyncFeedbackToast(
   feedback: SyncFeedback,
   message: string,
-  action: ToastAction | null,
+  actions: ToastAction[] = [],
+  options?: { hasInlineMessage: boolean },
 ): string | ToastData {
   const severity = resolveSyncFeedbackSeverity(feedback);
-  if (!action && !severity) {
+  if (actions.length === 0 && !severity) {
     return message;
   }
   return {
     message,
-    ...(action ? { actions: [action] } : {}),
+    ...(actions.length > 0 ? { actions } : {}),
     ...(severity ? { severity } : {}),
+    ...(isActionableSyncFeedback(feedback) && !options?.hasInlineMessage
+      ? { persistent: true, variant: "sync-recovery" }
+      : {}),
   };
 }

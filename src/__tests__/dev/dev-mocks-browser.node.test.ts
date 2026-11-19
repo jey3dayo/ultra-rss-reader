@@ -28,7 +28,6 @@ import {
   MuteKeywordDtoSchema,
   PlatformInfoSchema,
   PreferencesDtoSchema,
-  SettingsProfileImportResultSchema,
   SettingsProfileSchema,
   SyncResultSchema,
   TagArticleCountsSchema,
@@ -84,6 +83,7 @@ import {
   markOldUnreadRead,
   openExternalUrl,
   openInBrowser,
+  previewSettingsProfileImport,
   recordArticleView,
   reloadBrowserWebview,
   searchArticles,
@@ -556,42 +556,42 @@ describe("setupDevMocks", () => {
   it("merges settings profile imports in browser-only mode like the backend contract", async () => {
     setupDevMocks();
 
-    const result = Result.unwrap(
-      await importSettingsProfile(
-        JSON.stringify({
-          version: 1,
-          exported_at: "2026-01-01T00:00:00.000Z",
-          content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
-          preferences: {
-            selected_account_id: "source-freshrss",
-            theme: "dark",
-          },
-          accounts: [
-            {
-              source_id: "source-freshrss",
-              kind: "FreshRss",
-              name: "Imported FreshRSS",
-              server_url: "https://freshrss.example.com/?ignored=true",
-              username: "user",
-              sync_interval_secs: 7200,
-              sync_on_startup: false,
-              sync_on_wake: true,
-              keep_read_items_days: 14,
-            },
-          ],
-          tags: [
-            { name: "important", color: "#00FF00" },
-            { name: "Profile", color: null },
-          ],
-          mute_keywords: [
-            { keyword: "browser-only", scope: "body" },
-            { keyword: " BROWSER-ONLY ", scope: "body" },
-          ],
-        }),
-      ),
-    );
+    const profileJson = JSON.stringify({
+      version: 1,
+      exported_at: "2026-01-01T00:00:00.000Z",
+      content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
+      preferences: {
+        selected_account_id: "source-freshrss",
+        theme: "dark",
+      },
+      accounts: [
+        {
+          source_id: "source-freshrss",
+          kind: "FreshRss",
+          name: "Imported FreshRSS",
+          server_url: "https://freshrss.example.com/?ignored=true",
+          username: "user",
+          sync_interval_secs: 7200,
+          sync_on_startup: false,
+          sync_on_wake: true,
+          keep_read_items_days: 14,
+        },
+      ],
+      tags: [
+        { name: "important", color: "#00FF00" },
+        { name: "Profile", color: null },
+      ],
+      mute_keywords: [
+        { keyword: "browser-only", scope: "body" },
+        { keyword: " BROWSER-ONLY ", scope: "body" },
+      ],
+    });
+    const preview = Result.unwrap(await previewSettingsProfileImport(profileJson));
+    expect(Result.unwrap(await listAccounts()).find((account) => account.id === "acc-freshrss")?.name).toBe("FreshRSS");
+    const result = Result.unwrap(await importSettingsProfile(profileJson));
+    expect(result).toEqual(preview);
 
-    expect(parse(SettingsProfileImportResultSchema, result)).toEqual({
+    expect(result).toEqual({
       accounts_created: 0,
       accounts_updated: 1,
       preferences_imported: 2,

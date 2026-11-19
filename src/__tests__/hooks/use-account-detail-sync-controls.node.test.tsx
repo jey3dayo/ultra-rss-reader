@@ -396,6 +396,8 @@ describe("useAccountDetailSyncControls", () => {
     const toast = useUiStore.getState().toastMessage;
     expect(toast?.severity).toBe(expectedSeverity);
     expect(toast).not.toBeNull();
+    expect(toast?.persistent).toBeUndefined();
+    expect(result.current.syncSectionErrorMessage).toBe(syncResult.failed.length > 0 ? toast?.message : null);
   });
 
   it("shows the local feed count and opens fetch errors while preserving in-progress review decisions", async () => {
@@ -453,6 +455,7 @@ describe("useAccountDetailSyncControls", () => {
     });
 
     const toast = useUiStore.getState().toastMessage;
+    expect(result.current.syncSectionErrorMessage).toBe(toast?.message);
     expect(toast).toMatchObject({
       message: "Sync completed. Some feeds could not be updated (1).",
       actions: [{ label: "View details" }],

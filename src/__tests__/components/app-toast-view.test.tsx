@@ -192,21 +192,30 @@ describe("AppToastView", () => {
   it("keeps recovery toast actions and dismiss reachable from the keyboard", async () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
+    const onAccountSettings = vi.fn();
     const onClose = vi.fn();
 
     render(
       <AppToastView
         toastMessage={{
           message: "Sync failed",
-          actions: [{ label: "Retry", onClick: onRetry }],
+          persistent: true,
+          variant: "sync-recovery",
+          actions: [
+            { label: "Account settings", onClick: onAccountSettings },
+            { label: "Feed errors", onClick: onRetry },
+          ],
         }}
         onClose={onClose}
       />,
     );
 
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-8");
-    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8");
+    expect(screen.getByRole("button", { name: "Feed errors" })).toHaveClass("min-h-8");
+    expect(screen.queryByTestId("app-toast-action-pair")).toBeNull();
 
+    await user.tab();
+    await user.keyboard("{Enter}");
     await user.tab();
     await user.keyboard("{Enter}");
     await user.tab();
@@ -214,6 +223,7 @@ describe("AppToastView", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(onAccountSettings).toHaveBeenCalledTimes(1);
   });
 
   it("renders disabled toast actions as disabled buttons", async () => {

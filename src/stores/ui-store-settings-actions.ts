@@ -71,18 +71,21 @@ function canApplySettingsAccountTransition(
 export function createUiStoreSettingsActions(set: UiStoreSet): UiStoreSettingsActions {
   return {
     openSettings: (tab?: SettingsCategory) =>
-      set((state) => ({
-        settingsOpen: true,
-        settingsCategory: isSettingsSetupLocked(state) ? state.settingsCategory : (tab ?? state.settingsCategory),
-      })),
+      set((state) =>
+        tab === undefined || isSettingsSetupLocked(state)
+          ? { settingsOpen: true }
+          : {
+              settingsOpen: true,
+              settingsCategory: tab,
+              ...getSettingsAccountsViewState(null, false),
+            },
+      ),
     closeSettings: () =>
       set((state) =>
         isSettingsSetupLocked(state)
           ? state
           : {
               settingsOpen: false,
-              settingsCategory: "general",
-              settingsAccountId: null,
               settingsAddAccount: false,
               settingsAddAccountInitialKind: null,
               settingsLoading: false,

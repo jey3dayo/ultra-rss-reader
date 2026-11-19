@@ -2,7 +2,7 @@ import { sampleAccounts } from "@tests/helpers/fixtures";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resolveSidebarSyncFeedbackMessage } from "@/components/reader/sidebar-sync-feedback";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
-import { createFetchErrorsToastAction } from "@/lib/actions";
+import { createFetchErrorsToastAction, createSyncFeedbackToastActions } from "@/lib/actions";
 import i18n from "@/lib/i18n";
 import { queryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -83,11 +83,25 @@ describe("sidebar-sync-feedback", () => {
     );
   });
 
-  it("does not offer the fetch-error action for a remote account", () => {
+  it("keeps account recovery alongside local feed recovery without offering remote fetch errors", () => {
     const account = { ...sampleAccounts[1], kind: "FreshRss" };
     queryClient.setQueryData(queryKeys.accounts.root, [account]);
 
     expect(createFetchErrorsToastAction(account.id, "View details")).toBeNull();
+
+    const localAccount = { ...sampleAccounts[0], id: "local-account", kind: "Local" };
+    queryClient.setQueryData(queryKeys.accounts.root, [account, localAccount]);
+    expect(
+      createSyncFeedbackToastActions(
+        {
+          kind: "partial-failure",
+          accounts: account.name,
+          localFeedSyncFailureCount: 1,
+          localFeedSyncFailureAccountId: localAccount.id,
+        },
+        { accountSettings: "Account settings", localFeedErrors: "View details" },
+      ).map((action) => action.label),
+    ).toEqual(["Account settings", "View details"]);
   });
 
   it("formats partial failure feedback with the affected account list", () => {

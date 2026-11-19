@@ -43,6 +43,13 @@ export const importSettingsProfile = (profileJson: string) =>
     { profileJson },
   );
 
+export const previewSettingsProfileImport = (profileJson: string) =>
+  safeInvoke(
+    "preview_settings_profile_import",
+    { response: SettingsProfileImportResultSchema, args: importSettingsProfileArgs },
+    { profileJson },
+  );
+
 export const listTags = () => safeInvoke("list_tags", { response: TagDtoListSchema });
 
 export const createTag = (name: string, color?: string) =>

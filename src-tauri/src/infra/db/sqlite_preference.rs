@@ -174,13 +174,14 @@ mod tests {
     }
 
     #[test]
-    fn get_all_quarantines_corrupted_preference_rows_without_failing() {
+    fn get_all_quarantines_corrupted_and_retired_preference_rows_without_failing() {
         let db = test_db();
         db.writer()
             .execute(
                 "INSERT INTO preferences (key, value) VALUES
                     ('theme', 'dark'),
                     ('unknown_preference', 'ignored'),
+                    ('sync_on_startup', 'false'),
                     ('debug_browser_hud', 'TRUE'),
                     ('shortcut_next_article', char(10)),
                     ('debug_web_preview_url', ?1),

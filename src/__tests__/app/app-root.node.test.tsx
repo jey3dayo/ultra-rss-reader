@@ -165,8 +165,7 @@ describe("App", () => {
     expect(view.queryByTestId("agentation-toolbar")).toBeNull();
   });
 
-  it("triggers one full sync on mount when startup sync is enabled", async () => {
-    preferencesState.prefs = { sync_on_startup: "true" };
+  it("delegates startup sync to account settings once preferences load", async () => {
     uiState.selectedAccountId = "acc-2";
 
     render(<App />);
@@ -181,7 +180,7 @@ describe("App", () => {
     expect(syncAccountMock).not.toHaveBeenCalled();
   });
 
-  it("still checks startup sync on mount when startup sync is disabled", async () => {
+  it("checks account startup sync when the retired global preference is disabled", async () => {
     preferencesState.prefs = { sync_on_startup: "false" };
 
     render(<App />);
@@ -195,7 +194,6 @@ describe("App", () => {
   });
 
   it("does not trigger startup sync while any dev intent is active", async () => {
-    preferencesState.prefs = { sync_on_startup: "true" };
     devIntentState.intent = "open-web-preview-url";
 
     render(<App />);
@@ -209,7 +207,6 @@ describe("App", () => {
   it("does not trigger startup sync when a startup sync ran within the last 90 seconds", async () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
-    preferencesState.prefs = { sync_on_startup: "true" };
     uiState.selectedAccountId = "acc-2";
     localStorage.setItem(`${STORAGE_KEYS.startupSyncLastTriggeredAt}:acc-2`, String(now - 89_000));
 
@@ -225,7 +222,6 @@ describe("App", () => {
   it("triggers startup sync again once the 90-second cooldown has passed", async () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
-    preferencesState.prefs = { sync_on_startup: "true" };
     uiState.selectedAccountId = "acc-2";
     localStorage.setItem(`${STORAGE_KEYS.startupSyncLastTriggeredAt}:acc-2`, String(now - 90_001));
 
@@ -241,7 +237,6 @@ describe("App", () => {
   it("keeps startup sync throttle scoped to the selected account", async () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
-    preferencesState.prefs = { sync_on_startup: "true" };
     uiState.selectedAccountId = "acc-2";
     localStorage.setItem(`${STORAGE_KEYS.startupSyncLastTriggeredAt}:acc-1`, String(now - 1_000));
 
@@ -256,7 +251,6 @@ describe("App", () => {
   });
 
   it("cleans an invalid startup sync timestamp and runs startup sync", async () => {
-    preferencesState.prefs = { sync_on_startup: "true" };
     uiState.selectedAccountId = "acc-2";
     localStorage.setItem(`${STORAGE_KEYS.startupSyncLastTriggeredAt}:acc-2`, "not-a-timestamp");
 
@@ -271,7 +265,6 @@ describe("App", () => {
   it("cleans a future startup sync timestamp and runs startup sync", async () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
-    preferencesState.prefs = { sync_on_startup: "true" };
     uiState.selectedAccountId = "acc-2";
     localStorage.setItem(`${STORAGE_KEYS.startupSyncLastTriggeredAt}:acc-2`, String(now + 1_000));
 
@@ -288,7 +281,6 @@ describe("App", () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    preferencesState.prefs = { sync_on_startup: "true" };
     uiState.selectedAccountId = "acc-2";
     triggerStartupSyncMock.mockResolvedValueOnce(Result.fail(testUserVisibleAppError("sync failed")));
 
@@ -306,7 +298,6 @@ describe("App", () => {
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const error = new Error("runtime rejected");
-    preferencesState.prefs = { sync_on_startup: "true" };
     uiState.selectedAccountId = "acc-2";
     triggerStartupSyncMock.mockRejectedValueOnce(error);
 
