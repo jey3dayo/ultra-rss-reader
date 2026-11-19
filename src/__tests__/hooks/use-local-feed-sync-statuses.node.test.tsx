@@ -215,6 +215,7 @@ describe("useLocalFeedSyncStatuses", () => {
         : Result.fail({ type: "UserVisible", message: "status refresh failed" });
     });
     vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.succeed(successfulSync));
+    const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
     const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
 
     await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
@@ -222,6 +223,8 @@ describe("useLocalFeedSyncStatuses", () => {
 
     await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
     expect(result.current.retryOutcomeFor("feed-1")).toBe("refresh-failed");
+    // The refreshed statuses may drop the error card, so the refresh failure is also surfaced outside it and stays.
+    expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ severity: "error", persistent: true }));
   });
 
   it("clears the previous outcome when a new retry starts", async () => {
@@ -283,8 +286,10 @@ describe("useLocalFeedSyncStatuses", () => {
       if (accountId !== "acc-1") return Result.succeed([failedStatus]);
       acc1StatusReads += 1;
       // The status read after the retry carries a newer attempt time than the one the outcome was created against.
+      const lastAttemptAt =
+        ["2026-04-04T12:00:00Z", "2026-11-20T12:00:00Z"][acc1StatusReads - 1] ?? "2026-11-21T12:00:00Z";
       return Result.succeed([
-        acc1StatusReads === 1 ? failedStatus : { ...failedStatus, last_attempt_at: "2026-11-20T12:00:00Z" },
+        acc1StatusReads === 1 ? failedStatus : { ...failedStatus, last_attempt_at: lastAttemptAt },
       ]);
     });
     const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
@@ -315,6 +320,13 @@ describe("useLocalFeedSyncStatuses", () => {
     rerender({ accountId: "acc-1" });
     await waitFor(() => expect(result.current.statusQuery.data?.[0]?.last_attempt_at).toBe("2026-11-20T12:00:00Z"));
     expect(result.current.retryOutcomeFor("feed-1")).toBe("incomplete");
+
+    // The outcome settled while its status query was inactive, so the first status read after reopening anchors it.
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: localFeedSyncStatusesQueryKey("acc-1") });
+    });
+    await waitFor(() => expect(result.current.statusQuery.data?.[0]?.last_attempt_at).toBe("2026-11-21T12:00:00Z"));
+    expect(result.current.retryOutcomeFor("feed-1")).toBeNull();
   });
 
   it("prevents duplicate requests for one pending account/feed pair", async () => {

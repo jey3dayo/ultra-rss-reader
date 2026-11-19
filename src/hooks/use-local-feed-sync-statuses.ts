@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import type { SyncResultDto } from "@/api/schemas";
 import { getLocalFeedSyncStatuses, type LocalFeedSyncStatusDto, syncFeed } from "@/api/tauri-commands";
@@ -19,6 +19,8 @@ export type FeedRetryOutcomeKind = "succeeded" | "busy" | "incomplete" | "failed
 
 // settledAttemptAt is undefined until the post-retry status refresh settles, then pins the outcome to the status it explains.
 type FeedRetryOutcome = {
+  accountId: string;
+  feedId: string;
   attempt: number;
   kind: FeedRetryOutcomeKind;
   settledAttemptAt?: string | null;
@@ -63,7 +65,12 @@ function resolveRetryOutcomeKind(result: SyncResultDto): FeedRetryOutcomeKind {
 }
 
 function recordFeedRetryOutcome(variables: FeedRetryVariables, kind: FeedRetryOutcomeKind): void {
-  feedRetryOutcomes.set(getPendingFeedRetryKey(variables), { attempt: variables.attempt, kind });
+  feedRetryOutcomes.set(getPendingFeedRetryKey(variables), {
+    accountId: variables.accountId,
+    feedId: variables.feedId,
+    attempt: variables.attempt,
+    kind,
+  });
   notifyPendingFeedRetryChange();
 }
 
@@ -71,20 +78,32 @@ function settleFeedRetryOutcome(
   variables: FeedRetryVariables,
   refreshed: boolean,
   settledAttemptAt: string | null | undefined,
-): void {
+): FeedRetryOutcomeKind | null {
   const key = getPendingFeedRetryKey(variables);
   const outcome = feedRetryOutcomes.get(key);
-  if (outcome?.attempt !== variables.attempt) return;
+  if (outcome?.attempt !== variables.attempt) return null;
   if (refreshed && outcome.kind === "succeeded") {
     feedRetryOutcomes.delete(key);
-    return;
+    return outcome.kind;
   }
   const stale = !refreshed && (outcome.kind === "succeeded" || outcome.kind === "incomplete");
   feedRetryOutcomes.set(key, {
-    attempt: outcome.attempt,
+    ...outcome,
     kind: stale ? "refresh-failed" : outcome.kind,
     settledAttemptAt,
   });
+  return outcome.kind;
+}
+
+// An outcome settled while its status query was inactive has no anchor; the first post-retry status read supplies it.
+function anchorDeferredRetryOutcomes(accountId: string, statuses: LocalFeedSyncStatusDto[]): void {
+  for (const [key, outcome] of feedRetryOutcomes) {
+    if (outcome.accountId !== accountId || outcome.settledAttemptAt !== undefined || pendingFeedRetryKeys.has(key)) {
+      continue;
+    }
+    const lastAttemptAt = statuses.find((status) => status.feed_id === outcome.feedId)?.last_attempt_at ?? null;
+    feedRetryOutcomes.set(key, { ...outcome, settledAttemptAt: lastAttemptAt });
+  }
 }
 
 export function useLocalFeedSyncStatuses(accountId: string | null) {
@@ -107,6 +126,14 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
     },
     enabled: Boolean(normalizedAccountId && isLocalAccount),
   });
+
+  const statusesFresh = !statusQuery.isFetching && statusQuery.data !== undefined;
+  useEffect(() => {
+    if (!normalizedAccountId || !statusesFresh || !statusQuery.data) return;
+    const statusKey = localFeedSyncStatusesQueryKey(normalizedAccountId);
+    if (queryClient.getQueryState(statusKey)?.isInvalidated !== false) return;
+    anchorDeferredRetryOutcomes(normalizedAccountId, statusQuery.data);
+  }, [normalizedAccountId, statusesFresh, statusQuery.data, queryClient]);
 
   const retryMutation = useMutation({
     mutationFn: async ({ feedId }: FeedRetryVariables) => Result.unwrap(await syncFeed(feedId)),
@@ -131,7 +158,15 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
         const settledAttemptAt = statusRefetched
           ? (statuses?.find((status) => status.feed_id === variables.feedId)?.last_attempt_at ?? null)
           : undefined;
-        settleFeedRetryOutcome(variables, refreshed, settledAttemptAt);
+        const resolvedKind = settleFeedRetryOutcome(variables, refreshed, settledAttemptAt);
+        // The refreshed statuses can drop the error card that would hold a refresh failure, so it needs its own surface.
+        if (
+          !refreshed &&
+          resolvedKind === "succeeded" &&
+          useUiStore.getState().subscriptionsWorkspace?.accountId === variables.accountId
+        ) {
+          showToast({ message: t("fetch_error_refresh_failed"), severity: "error", persistent: true });
+        }
       } finally {
         pendingFeedRetryKeys.delete(getPendingFeedRetryKey(variables));
         notifyPendingFeedRetryChange();
