@@ -30,7 +30,6 @@ export function buildSubscriptionDetailCandidate(params: {
   selectedCandidate: SubscriptionReviewCandidate | null;
   labels: {
     statusLabel: (labelKey: SubscriptionRowStatus["labelKey"]) => string;
-    normalReason: string;
     summaryText: (summaryKey: ReturnType<typeof summarizeSubscriptionReviewCandidate>["summaryKey"]) => string;
     reasonFact: (fact: { key: "stale_days" | "unread_count"; value: number }) => string;
     reasonLabel: (reasonKey: SubscriptionReviewCandidate["reasonKeys"][number], staleDays: number | null) => string;
@@ -46,9 +45,7 @@ export function buildSubscriptionDetailCandidate(params: {
       candidate: null,
       tone: "neutral",
       statusLabel: labels.statusLabel("normal"),
-      summary: labels.normalReason,
-      reasonBoxBody: labels.normalReason,
-      reasonLabels: [],
+      reasonBoxBody: null,
     };
   }
 
@@ -64,14 +61,15 @@ export function buildSubscriptionDetailCandidate(params: {
     candidate: selectedCandidate,
     tone: summary.tone,
     statusLabel: labels.statusLabel(selectedRow.status.labelKey),
-    summary: summaryText,
+    // Every feed has a candidate record; only one with reasons has anything to explain.
     reasonBoxBody:
-      reasonFacts.length > 0
-        ? [primaryReasonLabel, ...reasonFacts.map((fact) => labels.reasonFact(fact))]
-            .filter((value): value is string => value !== null)
-            .join(" / ")
-        : summaryText,
-    reasonLabels,
+      selectedCandidate.reasonKeys.length === 0
+        ? null
+        : reasonFacts.length > 0
+          ? [primaryReasonLabel, ...reasonFacts.map((fact) => labels.reasonFact(fact))]
+              .filter((value): value is string => value !== null)
+              .join(" / ")
+          : summaryText,
   };
 }
 

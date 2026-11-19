@@ -13,6 +13,8 @@ type DeleteFeedArgs = {
   title: string;
   /** Set when the caller has no in-place surface for the failure, so a 4s toast would be missed. */
   persistentFailureToast?: boolean;
+  /** Set when the caller shows the failure in place, so a toast would duplicate it. */
+  suppressFailureToast?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
 };
@@ -58,11 +60,13 @@ export function useDeleteFeed() {
       }
     },
     onError: (error, variables) => {
-      showToast({
-        message: t("failed_to_unsubscribe", { message: localizeUserVisibleAppErrorMessage(error.message) }),
-        severity: "error",
-        ...(variables.persistentFailureToast ? { persistent: true } : {}),
-      });
+      if (!variables.suppressFailureToast) {
+        showToast({
+          message: t("failed_to_unsubscribe", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+          severity: "error",
+          ...(variables.persistentFailureToast ? { persistent: true } : {}),
+        });
+      }
       const callbackErrorMessage = callOptionalCallback(variables.onError, "Delete feed error callback failed");
       if (callbackErrorMessage !== null) {
         showToast({

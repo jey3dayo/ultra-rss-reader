@@ -16,7 +16,12 @@ type UpdateFeedFolderContext = {
   previousFeedsQueries: Array<readonly [readonly unknown[], FeedDto[] | undefined]>;
 };
 
-export function useUpdateFeedFolder() {
+type UseUpdateFeedFolderOptions = {
+  /** Set to false when the caller shows the failure itself, so the toast would duplicate it. */
+  notifyOnError?: boolean;
+};
+
+export function useUpdateFeedFolder({ notifyOnError = true }: UseUpdateFeedFolderOptions = {}) {
   const { t } = useTranslation("reader");
   const qc = useQueryClient();
   const showToast = useUiStore((state) => state.showToast);
@@ -60,10 +65,12 @@ export function useUpdateFeedFolder() {
           });
         });
       }
-      showToast({
-        message: t("failed_to_update_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }),
-        severity: "error",
-      });
+      if (notifyOnError) {
+        showToast({
+          message: t("failed_to_update_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+          severity: "error",
+        });
+      }
     },
   });
 }

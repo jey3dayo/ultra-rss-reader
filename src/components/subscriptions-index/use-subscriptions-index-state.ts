@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addFeedIdToSet,
   buildListLayoutGeneration,
   findSelectedSubscriptionRow,
   removeFeedIdFromSet,
+  removeFeedIdsFromSet,
   resolveGroupExpansion,
   resolveInitialListScrollState,
+  resolveSelectionAfterRowsChange,
   sanitizeExpandedGroups,
   toggleExpandedGroup,
+  type VisibleRowsSnapshot,
 } from "@/components/subscriptions-index/lib/subscriptions-index-state-model";
 import { resolveBulkSelectableFeedIds, resolveBulkUnsubscribeTargets } from "@/lib/subscriptions/bulk-unsubscribe";
-import { buildVisibleSubscriptionRows } from "@/lib/subscriptions/subscriptions-index";
+import { buildSubscriptionListGroups, buildVisibleSubscriptionRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type {
   SubscriptionsWorkspaceExpandedGroupKey,
@@ -27,6 +30,7 @@ type SubscriptionsIndexStateOptions = {
   initialExpandedGroups?: Record<string, boolean>;
   initialKeptFeedIds?: string[];
   initialSearchQuery?: string;
+  noFolderLabel?: string;
   initialListScrollState?: SubscriptionsWorkspaceListScrollState;
   viewportHeight?: number;
   viewportWidth?: number;
@@ -172,6 +176,15 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   }, [listLayoutGeneration, listLayoutReady, listScrollState, viewportHeight, viewportWidth]);
 
   const selectedRow = findSelectedSubscriptionRow(visibleRows, selectedFeedId);
+  const displayedFeedIds = useMemo(
+    () =>
+      buildSubscriptionListGroups(visibleRows, options?.noFolderLabel ?? "").flatMap((group) =>
+        group.rows.map((row) => row.feed.id),
+      ),
+    [visibleRows, options?.noFolderLabel],
+  );
+  const viewKey = `${activeSummaryFilter}\n${searchQuery}`;
+  const previousVisibleRowsRef = useRef<VisibleRowsSnapshot | null>(null);
 
   useEffect(() => {
     if (options?.selectionReady === false) return;
@@ -184,9 +197,20 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     }
 
     if (selectedRow === null) {
-      setSelectedFeedId(visibleRows[0]?.feed.id ?? null);
+      setSelectedFeedId(
+        resolveSelectionAfterRowsChange({
+          previous: previousVisibleRowsRef.current,
+          visibleFeedIds: displayedFeedIds,
+          viewKey,
+          selectedFeedId,
+        }),
+      );
     }
-  }, [selectedFeedId, selectedRow, visibleRows, options?.selectionReady]);
+  }, [selectedFeedId, selectedRow, visibleRows, displayedFeedIds, viewKey, options?.selectionReady]);
+
+  useEffect(() => {
+    previousVisibleRowsRef.current = { feedIds: displayedFeedIds, viewKey };
+  }, [displayedFeedIds, viewKey]);
 
   return {
     activeSummaryFilter,
@@ -224,6 +248,11 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       setKeptFeedIds((current) => addFeedIdToSet(current, selectedFeedId));
       uncheckSelectedFeed();
     },
+    unkeepFeed: (feedId: string) => setKeptFeedIds((current) => removeFeedIdFromSet(current, feedId)),
+    purgeUnsubscribedFeed: (feedId: string) => {
+      setKeptFeedIds((current) => removeFeedIdFromSet(current, feedId));
+      setStoredCheckedFeedIds((current) => removeFeedIdFromSet(current, feedId));
+    },
     startBulkSelection: () => setBulkSelectionMode(true),
     endBulkSelection: () => {
       setStoredCheckedFeedIds(clearCheckedFeedIds);
@@ -251,13 +280,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     applyBulkUnsubscribeResult: (succeededFeedIds: readonly string[]) => {
       const succeeded = new Set(succeededFeedIds);
       const remainingCount = [...checkedFeedIds].filter((feedId) => !succeeded.has(feedId)).length;
-      const withoutSucceeded = (current: ReadonlySet<string>) => {
-        const next = new Set(current);
-        for (const feedId of succeeded) {
-          next.delete(feedId);
-        }
-        return next;
-      };
+      const withoutSucceeded = (current: ReadonlySet<string>) => removeFeedIdsFromSet(current, succeeded);
       setKeptFeedIds(withoutSucceeded);
       if (remainingCount === 0) {
         setStoredCheckedFeedIds(clearCheckedFeedIds);

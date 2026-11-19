@@ -53,7 +53,5 @@ export type SubscriptionDetailCandidate = {
   candidate: SubscriptionReviewCandidate | null;
   tone: SubscriptionReviewTone | "neutral";
   statusLabel: string;
-  summary: string | null;
   reasonBoxBody: string | null;
-  reasonLabels: string[];
 };

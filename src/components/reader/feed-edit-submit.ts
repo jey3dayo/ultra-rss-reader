@@ -3,7 +3,7 @@ import { renameFeed } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
 import { invalidateFeedEditQueries } from "@/lib/query/query-invalidation";
-import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./feed-edit-dialog.types";
+import type { FeedEditDisplayPreset, FeedEditTitleError, SubmitFeedEditsParams } from "./feed-edit-dialog.types";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
 
 export type { SubmitFeedEditsParams } from "./feed-edit-dialog.types";
@@ -16,13 +16,17 @@ type FeedMutationEditorState<ExtraState extends object = object> = {
 
 export type FeedEditorState<ExtraState extends object = object> = FeedMutationEditorState<ExtraState>;
 
+export function validateFeedEditTitle(title: string): FeedEditTitleError | null {
+  return normalizeRenameInput(title) === "" ? "required" : null;
+}
+
 export async function submitFeedEdits({
   feed,
   title,
   displayPreset,
   folderSelection,
   queryClient,
-  showToast,
+  reportError,
   createFolderErrorMessage,
   renameErrorMessage,
   updateFeedFolder,
@@ -38,7 +42,7 @@ export async function submitFeedEdits({
   });
 
   if (Result.isFailure(folderResult)) {
-    showToast({ message: createFolderErrorMessage(Result.unwrapError(folderResult)), severity: "error" });
+    reportError(createFolderErrorMessage(Result.unwrapError(folderResult)));
     return false;
   }
 
@@ -59,7 +63,7 @@ export async function submitFeedEdits({
       }),
       Result.inspectError((error) => {
         renameSucceeded = false;
-        showToast({ message: renameErrorMessage(error), severity: "error" });
+        reportError(renameErrorMessage(error));
       }),
     );
   }

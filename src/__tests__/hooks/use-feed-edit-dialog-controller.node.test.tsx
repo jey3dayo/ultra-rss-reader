@@ -6,6 +6,7 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { FeedDto } from "@/api/tauri-commands";
 import { useFeedEditDialogController } from "@/components/reader/hooks/feed-dialogs/use-feed-edit-dialog-controller";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
@@ -188,5 +189,149 @@ describe("useFeedEditDialogController copy action", () => {
     expect(renameFeedMock).toHaveBeenCalledWith(sampleFeeds[0].id, "Snapshot café");
     expect(renameFeedMock).not.toHaveBeenCalledWith(sampleFeeds[1].id, "Snapshot café");
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  describe("form initialization", () => {
+    const feed: FeedDto = { ...sampleFeeds[0], id: "feed-init", folder_id: "folder-1", title: "Original" };
+
+    function renderController(initialProps: { feed: FeedDto; open: boolean }) {
+      const { wrapper } = createQueryWrapper();
+      return renderHook(
+        (props: { feed: FeedDto; open: boolean }) =>
+          useFeedEditDialogController({ ...props, onOpenChange: vi.fn(), ...createOperationClaim() }),
+        { wrapper, initialProps },
+      );
+    }
+
+    it("keeps in-progress edits when a refetch hands back the same feed as a new object", () => {
+      const { result, rerender } = renderController({ feed, open: true });
+
+      act(() => {
+        result.current.setTitle("Typed title");
+        result.current.folderSelectProps.handleFolderChange("folder-2");
+      });
+      rerender({ feed: { ...feed, title: "Renamed elsewhere", folder_id: "folder-3" }, open: true });
+
+      expect(result.current.title).toBe("Typed title");
+      expect(result.current.folderSelectProps.folderSelectValue).toBe("folder-2");
+    });
+
+    it("compares edits with the refetched feed, so reverting a title the server already changed is saved", async () => {
+      const { result, rerender } = renderController({ feed, open: true });
+
+      rerender({ feed: { ...feed, title: "Renamed elsewhere" }, open: true });
+      act(() => {
+        result.current.setTitle("Original");
+      });
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+
+      expect(renameFeedMock).toHaveBeenCalledWith(feed.id, "Original");
+    });
+
+    it("re-initializes the form when the dialog is reopened", () => {
+      const { result, rerender } = renderController({ feed, open: true });
+
+      act(() => {
+        result.current.setTitle("Typed title");
+      });
+      rerender({ feed, open: false });
+      rerender({ feed: { ...feed, title: "Latest title", folder_id: "folder-3" }, open: true });
+
+      expect(result.current.title).toBe("Latest title");
+      expect(result.current.folderSelectProps.folderSelectValue).toBe("folder-3");
+    });
+
+    it("re-initializes the form when a different feed is shown", () => {
+      const { result, rerender } = renderController({ feed, open: true });
+
+      act(() => {
+        result.current.setTitle("Typed title");
+      });
+      rerender({ feed: { ...feed, id: "feed-other", title: "Other feed", folder_id: null }, open: true });
+
+      expect(result.current.title).toBe("Other feed");
+      expect(result.current.folderSelectProps.folderSelectValue).toBe("");
+    });
+  });
+
+  describe("failure display", () => {
+    function renderOpenController(onOpenChange = vi.fn()) {
+      const { wrapper } = createQueryWrapper();
+      return renderHook(
+        () =>
+          useFeedEditDialogController({ feed: sampleFeeds[0], open: true, onOpenChange, ...createOperationClaim() }),
+        { wrapper },
+      );
+    }
+
+    it("flags a blank title on the field without a toast, and clears it on the next edit", async () => {
+      const { result } = renderOpenController();
+
+      act(() => {
+        result.current.setTitle("   ");
+      });
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+
+      expect(result.current.titleError).toBe("required");
+      expect(showToast).not.toHaveBeenCalled();
+      expect(renameFeedMock).not.toHaveBeenCalled();
+
+      act(() => {
+        result.current.setTitle("Fixed");
+      });
+
+      expect(result.current.titleError).toBeNull();
+    });
+
+    it("keeps the dialog open and shows a rename failure in the dialog instead of a toast", async () => {
+      renameFeedMock.mockResolvedValue(Result.fail({ type: "UserVisible", message: "Name already exists" }));
+      const onOpenChange = vi.fn();
+      const { result } = renderOpenController(onOpenChange);
+
+      act(() => {
+        result.current.setTitle("Renamed");
+      });
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+
+      expect(result.current.saveErrorMessages).toEqual(["Failed to rename: Name already exists"]);
+      expect(onOpenChange).not.toHaveBeenCalled();
+      expect(showToast).not.toHaveBeenCalled();
+    });
+
+    it("clears the save failure when the user edits again or saves again", async () => {
+      renameFeedMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "Name already exists" }));
+      const { result } = renderOpenController();
+
+      act(() => {
+        result.current.setTitle("Renamed");
+      });
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+      expect(result.current.saveErrorMessages).toHaveLength(1);
+
+      act(() => {
+        result.current.setDisplayPreset("preview");
+      });
+      expect(result.current.saveErrorMessages).toEqual([]);
+
+      renameFeedMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "Still failing" }));
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+      expect(result.current.saveErrorMessages).toEqual(["Failed to rename: Still failing"]);
+
+      renameFeedMock.mockResolvedValueOnce(Result.succeed(null));
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+      expect(result.current.saveErrorMessages).toEqual([]);
+    });
   });
 });

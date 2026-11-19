@@ -779,7 +779,7 @@ describe("SubscriptionsIndexPage", () => {
       name: /^(残す|decision_keep)$/,
     });
     const deleteButton = within(detailPane).getByRole("button", {
-      name: /^(削除|delete)$/,
+      name: /^(購読解除|unsubscribe_action)$/,
     });
     expect(keepButton).toBeVisible();
     expect(deleteButton).toBeVisible();
@@ -808,7 +808,7 @@ describe("SubscriptionsIndexPage", () => {
     });
     expect(within(editDialog).getByDisplayValue("Fresh Feed")).toBeInTheDocument();
     await user.click(within(editDialog).getByRole("button", { name: /^(キャンセル|cancel)$/ }));
-    expect(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ })).toBeInTheDocument();
+    expect(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ })).toBeInTheDocument();
   });
 
   it("removes kept feeds from the active stale filter and clears the detail pane", async () => {
@@ -1454,7 +1454,7 @@ describe("SubscriptionsIndexPage", () => {
       accountId: "acc-1",
     });
 
-    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     await user.keyboard("{Escape}");
     await waitFor(() => {
@@ -1464,6 +1464,87 @@ describe("SubscriptionsIndexPage", () => {
       kind: "index",
       accountId: "acc-1",
     });
+  });
+
+  it("restores a kept feed to the stale filter from the toast's undo action", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    await user.click(within(screen.getByTestId("subscriptions-detail-pane")).getByRole("button", { name: "残す" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
+    });
+
+    await user.click(within(screen.getByTestId("test-toast-host")).getByRole("button", { name: "元に戻す" }));
+
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    expect(screen.queryByTestId("test-toast-host")).not.toBeInTheDocument();
+  });
+
+  it("drops an unsubscribed feed from the remembered kept feeds", async () => {
+    const user = userEvent.setup();
+    deleteFeedHandler = () => {
+      feedRows = feedRows.filter((feed) => feed.id !== "feed-1");
+      return null;
+    };
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(within(detailPane).getByRole("button", { name: "残す" }));
+    await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
+    const unsubscribeDialog = await screen.findByRole("dialog");
+    await user.click(within(unsubscribeDialog).getByRole("button", { name: /^「Example Feed」の購読を解除します/ }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "閉じる" }));
+
+    expect(useUiStore.getState().subscriptionsIndexReturnStates.get("acc-1")?.keptFeedIds).toEqual([]);
+  });
+
+  it("shows a failed unsubscribe in the dialog instead of a toast, and clears it when retrying", async () => {
+    const user = userEvent.setup();
+    deleteFeedHandler = () => Promise.reject(new Error("boom"));
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    await user.click(
+      within(screen.getByTestId("subscriptions-detail-pane")).getByRole("button", {
+        name: /^(購読解除|unsubscribe_action)$/,
+      }),
+    );
+    const unsubscribeDialog = await screen.findByRole("dialog");
+    const confirmButton = within(unsubscribeDialog).getByRole("button", {
+      name: /^「Example Feed」の購読を解除します/,
+    });
+
+    await user.click(confirmButton);
+
+    expect(await within(unsubscribeDialog).findByRole("alert")).toHaveTextContent("購読解除に失敗しました: boom");
+    expect(screen.queryByTestId("test-toast-host")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    const retry = createDeferred<null>();
+    deleteFeedHandler = () => retry.promise;
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(within(unsubscribeDialog).queryByRole("alert")).not.toBeInTheDocument();
+    });
+    retry.resolve(null);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId("test-toast-host")).toHaveTextContent("Example Feed の購読を解除しました");
   });
 
   it("guards unsubscribe confirmation while the delete mutation is pending", async () => {
@@ -1478,7 +1559,7 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
     const unsubscribeDialog = await screen.findByRole("dialog");
     const confirmButton = within(unsubscribeDialog).getByRole("button", {
       name: /^(「Example Feed」の購読を解除します。元に戻せません。|Unsubscribe from "Example Feed"\. This cannot be undone\.)$/,
@@ -1510,7 +1591,7 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
     await screen.findByRole("dialog");
 
     useUiStore.setState({
@@ -1537,7 +1618,7 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
     const unsubscribeDialog = await screen.findByRole("dialog");
     const confirmButton = within(unsubscribeDialog).getByRole("button", {
       name: /^(「Example Feed」の購読を解除します。元に戻せません。|Unsubscribe from "Example Feed"\. This cannot be undone\.)$/,
@@ -1574,7 +1655,7 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
     await screen.findByRole("dialog");
 
     feedRows = feedRows.filter((feed) => feed.id !== "feed-1");

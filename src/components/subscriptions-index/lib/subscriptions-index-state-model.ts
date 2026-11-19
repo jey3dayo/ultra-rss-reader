@@ -17,10 +17,42 @@ export function addFeedIdToSet(current: ReadonlySet<string>, feedId: string): Se
   return new Set(current).add(feedId);
 }
 
-export function removeFeedIdFromSet(current: ReadonlySet<string>, feedId: string): Set<string> {
+export function removeFeedIdsFromSet(current: ReadonlySet<string>, feedIds: Iterable<string>): Set<string> {
   const next = new Set(current);
-  next.delete(feedId);
+  for (const feedId of feedIds) {
+    next.delete(feedId);
+  }
   return next;
+}
+
+export function removeFeedIdFromSet(current: ReadonlySet<string>, feedId: string): Set<string> {
+  return removeFeedIdsFromSet(current, [feedId]);
+}
+
+export type VisibleRowsSnapshot = {
+  feedIds: readonly string[];
+  viewKey: string;
+};
+
+// A row that left the list under an unchanged filter/search hands the selection to its neighbour
+// (next, else previous). Any other loss of the selection restarts from the first visible row.
+export function resolveSelectionAfterRowsChange(params: {
+  previous: VisibleRowsSnapshot | null;
+  visibleFeedIds: readonly string[];
+  viewKey: string;
+  selectedFeedId: string | null;
+}): string | null {
+  const { previous, visibleFeedIds, viewKey, selectedFeedId } = params;
+  if (previous !== null && previous.viewKey === viewKey && selectedFeedId !== null) {
+    const removedIndex = previous.feedIds.indexOf(selectedFeedId);
+    if (removedIndex >= 0) {
+      const visible = new Set(visibleFeedIds);
+      const next = previous.feedIds.slice(removedIndex + 1).find((feedId) => visible.has(feedId));
+      const earlier = previous.feedIds.slice(0, removedIndex).findLast((feedId) => visible.has(feedId));
+      return next ?? earlier ?? visibleFeedIds[0] ?? null;
+    }
+  }
+  return visibleFeedIds[0] ?? null;
 }
 
 export function applySelectedFeedDecision(params: {

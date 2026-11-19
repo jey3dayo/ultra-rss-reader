@@ -56,7 +56,6 @@ const baseProps = {
   unreadCountLabel: "Unread",
   starredCountLabel: "Starred",
   reasonHeading: "Reason",
-  reasonHint: "No review needed",
   recentArticlesHeading: "Recent articles",
   feedUrlLabel: "Open RSS feed",
   contentUrlLabel: "Content URL",
@@ -164,9 +163,7 @@ describe("SubscriptionDetailPane", () => {
           candidate: null,
           tone: "neutral",
           statusLabel: "対応不要",
-          summary: "最近も動きがあります。今はそのままでよさそうです。",
-          reasonBoxBody: "最近も動きがあります。今はそのままでよさそうです。",
-          reasonLabels: ["最近も更新"],
+          reasonBoxBody: null,
         }}
         fetchError={{
           feed_id: "feed-1",
@@ -192,8 +189,6 @@ describe("SubscriptionDetailPane", () => {
     expect(screen.getByTestId("feed-detail-status")).toHaveTextContent("取得エラー");
     expect(screen.getByTestId("feed-detail-status")).toHaveAttribute("data-label-chip", "danger");
     expect(screen.queryByText("対応不要")).not.toBeInTheDocument();
-    expect(screen.queryByText("最近も動きがあります。今はそのままでよさそうです。")).not.toBeInTheDocument();
-    expect(screen.queryByText("最近も更新")).not.toBeInTheDocument();
   });
 
   it("does not treat a healthy status DTO as a fetch failure", () => {
@@ -204,9 +199,7 @@ describe("SubscriptionDetailPane", () => {
           candidate: null,
           tone: "neutral",
           statusLabel: "対応不要",
-          summary: "最近も動きがあります。今はそのままでよさそうです。",
-          reasonBoxBody: "最近も動きがあります。今はそのままでよさそうです。",
-          reasonLabels: [],
+          reasonBoxBody: null,
         }}
         fetchError={{
           feed_id: "feed-1",
@@ -230,7 +223,6 @@ describe("SubscriptionDetailPane", () => {
     );
 
     expect(screen.getByTestId("feed-detail-status")).toHaveTextContent("対応不要");
-    expect(screen.getByText("最近も動きがあります。今はそのままでよさそうです。")).toBeInTheDocument();
     expect(screen.queryByTestId("subscriptions-fetch-error-detail")).not.toBeInTheDocument();
   });
 
@@ -243,9 +235,7 @@ describe("SubscriptionDetailPane", () => {
           candidate: null,
           tone: "medium",
           statusLabel: "90日以上未更新",
-          summary: "更新が止まっています。",
           reasonBoxBody: "最終更新から120日です。",
-          reasonLabels: ["90日以上"],
         }}
         fetchError={{
           feed_id: "feed-1",
@@ -271,6 +261,37 @@ describe("SubscriptionDetailPane", () => {
     expect(screen.getByTestId("feed-detail-status")).toHaveTextContent("取得エラー");
     expect(screen.getByText("最終更新から120日です。")).toBeInTheDocument();
     expect(screen.getByText("通信に失敗しました。")).toBeInTheDocument();
+  });
+
+  it("shows the review reason box only for review candidates", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        row={{ ...buildRow(), status: { tone: "medium", labelKey: "stale_90d" } }}
+        detailCandidate={{
+          candidate: null,
+          tone: "medium",
+          statusLabel: "90日以上未更新",
+          reasonBoxBody: "最終更新から120日です。",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-reason-box")).toHaveTextContent("Reason");
+    expect(screen.getByTestId("feed-detail-reason-box")).toHaveTextContent("最終更新から120日です。");
+  });
+
+  it("omits the review reason box when the feed is not a review candidate", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        detailCandidate={{ candidate: null, tone: "neutral", statusLabel: "対応不要", reasonBoxBody: null }}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-status")).toHaveTextContent("対応不要");
+    expect(screen.queryByTestId("feed-detail-reason-box")).not.toBeInTheDocument();
+    expect(screen.queryByText("Reason")).not.toBeInTheDocument();
   });
 
   it("disables a feed retry while its request is in flight", () => {

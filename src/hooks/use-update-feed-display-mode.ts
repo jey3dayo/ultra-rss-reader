@@ -8,6 +8,11 @@ import { invalidateFeedRootQueries, queryKeys } from "@/lib/query/query-invalida
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
+type UpdateFeedDisplaySettingsOptions = {
+  /** Receives the failure instead of the toast, for callers that show it in their own surface. */
+  onError?: (error: { message: string }) => void;
+};
+
 export function useUpdateFeedDisplaySettings() {
   const { t } = useTranslation("reader");
   const qc = useQueryClient();
@@ -15,7 +20,12 @@ export function useUpdateFeedDisplaySettings() {
   const latestRequestIdRef = useRef(0);
 
   return useCallback(
-    async (feedId: string, readerMode: TriStateDisplayMode, webPreviewMode: TriStateDisplayMode): Promise<boolean> => {
+    async (
+      feedId: string,
+      readerMode: TriStateDisplayMode,
+      webPreviewMode: TriStateDisplayMode,
+      { onError }: UpdateFeedDisplaySettingsOptions = {},
+    ): Promise<boolean> => {
       const requestId = latestRequestIdRef.current + 1;
       latestRequestIdRef.current = requestId;
       await qc.cancelQueries({ queryKey: queryKeys.feeds.root });
@@ -35,12 +45,17 @@ export function useUpdateFeedDisplaySettings() {
         for (const [queryKey, previousFeeds] of previousFeedsQueries) {
           qc.setQueryData(queryKey, previousFeeds);
         }
-        showToast({
-          message: t("failed_to_update_display_settings", {
-            message: localizeUserVisibleAppErrorMessage(Result.unwrapError(result).message),
-          }),
-          severity: "error",
-        });
+        const error = Result.unwrapError(result);
+        if (onError) {
+          onError(error);
+        } else {
+          showToast({
+            message: t("failed_to_update_display_settings", {
+              message: localizeUserVisibleAppErrorMessage(error.message),
+            }),
+            severity: "error",
+          });
+        }
         return false;
       }
 

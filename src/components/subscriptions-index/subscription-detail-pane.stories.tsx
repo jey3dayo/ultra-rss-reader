@@ -93,9 +93,7 @@ const detailCandidate = {
   candidate: null,
   tone: "medium",
   statusLabel: "Needs review",
-  summary: null,
   reasonBoxBody: "90+ days without a new article / Updated 94 days ago / Unread 0",
-  reasonLabels: ["90+ days without a new article", "60+ days without a new article and no unread"],
 } satisfies SubscriptionDetailCandidate;
 
 const meta = {
@@ -117,7 +115,6 @@ const meta = {
     unreadCountLabel: "Unread",
     starredCountLabel: "Starred",
     reasonHeading: "Review reason",
-    reasonHint: "No review reason available.",
     recentArticlesHeading: "Recent articles",
     feedUrlLabel: "Open RSS feed",
     contentUrlLabel: "Content URL",
@@ -126,7 +123,7 @@ const meta = {
     dateLocale: "en-US",
     decisionActions: {
       keepLabel: "Keep",
-      deleteLabel: "Delete",
+      deleteLabel: "Unsubscribe",
       onKeep: fn(),
       onDelete: fn(),
     },
@@ -161,7 +158,25 @@ export const WithoutDecisionActions: Story = {
     decisionActions: null,
     managementActions: {
       editLabel: "Edit",
-      deleteLabel: "Delete",
+      deleteLabel: "Unsubscribe",
+      onEdit: fn(),
+      onDelete: fn(),
+    },
+  },
+};
+
+export const NotReviewCandidate: Story = {
+  args: {
+    detailCandidate: {
+      candidate: null,
+      tone: "neutral",
+      statusLabel: "No review needed",
+      reasonBoxBody: null,
+    },
+    decisionActions: null,
+    managementActions: {
+      editLabel: "Edit",
+      deleteLabel: "Unsubscribe",
       onEdit: fn(),
       onDelete: fn(),
     },

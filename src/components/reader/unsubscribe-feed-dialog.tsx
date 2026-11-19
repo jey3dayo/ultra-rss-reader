@@ -8,6 +8,7 @@ type UnsubscribeDialogProps = {
   pending?: boolean;
   confirmDisabled?: boolean;
   confirmDisabledReason?: string;
+  errorMessage?: string | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 };
@@ -18,6 +19,7 @@ export function UnsubscribeDialog({
   pending,
   confirmDisabled,
   confirmDisabledReason,
+  errorMessage,
   onOpenChange,
   onConfirm,
 }: UnsubscribeDialogProps) {
@@ -42,6 +44,7 @@ export function UnsubscribeDialog({
       })}
       confirmDisabled={confirmDisabled}
       confirmDisabledReason={confirmDisabledReason}
+      errorMessage={errorMessage}
       pending={pending}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}
