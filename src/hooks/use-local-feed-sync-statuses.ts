@@ -97,11 +97,12 @@ function settleFeedRetryOutcome(
 
 // An outcome settled while its status query was inactive has no anchor; the first post-retry status read supplies it.
 function anchorDeferredRetryOutcomes(accountId: string, statuses: LocalFeedSyncStatusDto[]): void {
+  const lastAttemptByFeedId = new Map(statuses.map((status) => [status.feed_id, status.last_attempt_at]));
   for (const [key, outcome] of feedRetryOutcomes) {
     if (outcome.accountId !== accountId || outcome.settledAttemptAt !== undefined || pendingFeedRetryKeys.has(key)) {
       continue;
     }
-    const lastAttemptAt = statuses.find((status) => status.feed_id === outcome.feedId)?.last_attempt_at ?? null;
+    const lastAttemptAt = lastAttemptByFeedId.get(outcome.feedId) ?? null;
     feedRetryOutcomes.set(key, { ...outcome, settledAttemptAt: lastAttemptAt });
   }
 }
