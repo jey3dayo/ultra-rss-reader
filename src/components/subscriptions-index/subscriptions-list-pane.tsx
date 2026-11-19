@@ -13,17 +13,14 @@ import {
 import { Button, Input } from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import { resolveListPaneDisplay } from "./hooks/subscriptions-index-load-state";
 import {
   SubscriptionsBulkActionBar,
   SubscriptionsBulkSelectAllRow,
   type SubscriptionsBulkSelection,
 } from "./subscriptions-bulk-selection";
 import { SubscriptionsListRow } from "./subscriptions-list-row";
-import {
-  resolveListPaneDisplay,
-  type SubscriptionsListLoadState,
-  SubscriptionsListLoadStatus,
-} from "./subscriptions-load-status";
+import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
 const READY_LOAD_STATE: SubscriptionsListLoadState = { status: "ready" };
@@ -144,13 +141,13 @@ type SubscriptionGroupSectionProps = Pick<
   | "bulkSelection"
   | "statusLabels"
   | "reasonTooltipLabels"
-  | "fetchErrorLabel"
   | "formatUnreadCountLabel"
   | "formatLatestArticleLabel"
   | "onSelectFeed"
   | "onToggleGroup"
 > & {
   group: SubscriptionsListPaneProps["groups"][number];
+  fetchErrorLabel: string;
   expanded: boolean;
   selecting: boolean;
 };

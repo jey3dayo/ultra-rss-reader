@@ -55,3 +55,10 @@ export function resolveListLoadState(params: {
   }
   return accountSelected && rowsPending ? { status: "loading", label: labels.loading } : { status: "ready" };
 }
+
+export function resolveListPaneDisplay(loadState: SubscriptionsListLoadState, hasRows: boolean) {
+  const loading = loadState.status === "loading";
+  const listUnavailable = loadState.status === "error" && !loadState.hasData;
+  const showEmptyState = !hasRows && !loading && !listUnavailable;
+  return { loading, listUnavailable, showRows: hasRows && !loading, showEmptyState };
+}

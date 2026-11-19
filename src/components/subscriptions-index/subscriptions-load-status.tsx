@@ -20,13 +20,6 @@ const SKELETON_ROWS = [
   { id: "fifth", titleWidthClassName: "w-2/5", metaWidthClassName: "w-40" },
 ] as const;
 
-export function resolveListPaneDisplay(loadState: SubscriptionsListLoadState, hasRows: boolean) {
-  const loading = loadState.status === "loading";
-  const listUnavailable = loadState.status === "error" && !loadState.hasData;
-  const showEmptyState = !hasRows && !loading && !listUnavailable;
-  return { loading, listUnavailable, showRows: hasRows && !loading, showEmptyState };
-}
-
 export function SubscriptionsLoadFailureBanner({
   failure,
   testId,
