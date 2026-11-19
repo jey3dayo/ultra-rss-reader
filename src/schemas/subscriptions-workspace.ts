@@ -46,6 +46,7 @@ export const SubscriptionsWorkspaceReturnStateSchema = s.strictObject({
   listScrollTop: SubscriptionsWorkspaceListScrollStateSchema,
   keptFeedIds: v.array(subscriptionsWorkspaceIdentitySchema),
   deferredFeedIds: v.array(subscriptionsWorkspaceIdentitySchema),
+  searchQuery: v.optional(v.string()),
 });
 
 export type SubscriptionsWorkspaceReturnState = v.InferOutput<typeof SubscriptionsWorkspaceReturnStateSchema>;

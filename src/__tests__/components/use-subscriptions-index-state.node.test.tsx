@@ -305,60 +305,6 @@ describe("useSubscriptionsIndexState", () => {
     expect(result.current.listScrollTop).toBe(0);
   });
 
-  it("keeps search and sort as local state and resets scroll when sort changes", () => {
-    const { result } = renderHook(() => useSubscriptionsIndexState([makeRow("feed-first")]));
-
-    expect(result.current.searchQuery).toBe("");
-    expect(result.current.sortKey).toBe("title");
-
-    act(() => {
-      result.current.setSearchQuery("first");
-      result.current.setSortKey("updated_at");
-      result.current.setListScrollTop(72);
-    });
-
-    expect(result.current.searchQuery).toBe("first");
-    expect(result.current.sortKey).toBe("updated_at");
-    expect(result.current.listScrollTop).toBe(72);
-
-    act(() => {
-      result.current.setSortKey("unread_count");
-    });
-
-    expect(result.current.sortKey).toBe("unread_count");
-    expect(result.current.listScrollTop).toBe(0);
-  });
-
-  it("does not restore search and sort from return state across hook remounts", () => {
-    const firstRow = makeRow("feed-first");
-    const secondRow = makeRow("feed-second");
-    const { result, unmount } = renderHook(() => useSubscriptionsIndexState([secondRow, firstRow]));
-
-    act(() => {
-      result.current.setSearchQuery("second");
-      result.current.setSortKey("updated_at");
-    });
-
-    expect(result.current.searchQuery).toBe("second");
-    expect(result.current.sortKey).toBe("updated_at");
-    expect(result.current.visibleRows.map((row) => row.feed.id)).toEqual(["feed-second"]);
-
-    unmount();
-
-    const restored = renderHook(() =>
-      useSubscriptionsIndexState([secondRow, firstRow], {
-        initialSelectedFeedId: "feed-second",
-      }),
-    );
-
-    expect(restored.result.current.searchQuery).toBe("");
-    expect(restored.result.current.sortKey).toBe("title");
-    expect(restored.result.current.visibleRows.map((row) => row.feed.id)).toEqual(["feed-first", "feed-second"]);
-    expect(restored.result.current.selectedFeedId).toBe("feed-second");
-
-    restored.unmount();
-  });
-
   it("keeps kept and deferred decisions mutually exclusive for the selected row", () => {
     const reviewRow = makeRow("feed-review", {
       tone: "medium",
@@ -385,44 +331,5 @@ describe("useSubscriptionsIndexState", () => {
 
     expect(result.current.keptFeedIds.has("feed-review")).toBe(true);
     expect(result.current.deferredFeedIds.has("feed-review")).toBe(false);
-  });
-
-  it("resets account-scoped decisions when the active account changes", async () => {
-    const reviewRow = makeRow("feed-review", {
-      tone: "medium",
-      labelKey: "review",
-    });
-    const { result, rerender } = renderHook(
-      ({ accountId }: { accountId: string }) =>
-        useSubscriptionsIndexState([reviewRow], {
-          accountId,
-          initialSummaryFilter: "review",
-          initialSelectedFeedId: "feed-review",
-          initialKeptFeedIds: ["feed-review"],
-          initialDeferredFeedIds: [],
-          initialListScrollState: {
-            scrollTop: 64,
-            layoutGeneration: "feed-review",
-            viewportHeight: 640,
-          },
-          viewportHeight: 640,
-        }),
-      {
-        initialProps: { accountId: "acc-1" },
-      },
-    );
-
-    expect(result.current.visibleRows).toEqual([]);
-    expect(result.current.keptFeedIds.has("feed-review")).toBe(true);
-
-    rerender({ accountId: "acc-2" });
-
-    await waitFor(() => {
-      expect(result.current.activeSummaryFilter).toBe("all");
-      expect(result.current.keptFeedIds.size).toBe(0);
-      expect(result.current.deferredFeedIds.size).toBe(0);
-      expect(result.current.listScrollTop).toBe(0);
-      expect(result.current.selectedFeedId).toBe("feed-review");
-    });
   });
 });

@@ -71,21 +71,12 @@ export function useArticleListController(): UseArticleListViewPropsResult {
   const { feeds, isLoadingArticles, fetchNextPage, hasNextPage, isFetchingNextPage } = source;
   const onManageSelectedFeed =
     selectedAccountId !== null && selectedFeed
-      ? () => {
-          openSubscriptionsIndex({
+      ? () =>
+          openSubscriptionsIndex(undefined, {
             accountId: selectedAccountId,
-            activeSummaryFilter: "all",
+            summaryFilter: "all",
             selectedFeedId: selectedFeed.id,
-            expandedGroups: {},
-            listScrollTop: {
-              scrollTop: 0,
-              layoutGeneration: "reader-feed-manage-link",
-              viewportHeight: 0,
-            },
-            keptFeedIds: [],
-            deferredFeedIds: [],
-          });
-        }
+          })
       : null;
 
   return useArticleListPresentation({

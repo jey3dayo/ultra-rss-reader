@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { ChevronDown, Folder, Search } from "lucide-react";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
+import { type RefObject, useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
@@ -38,6 +38,7 @@ type SubscriptionsListPaneProps = {
   formatLatestArticleLabel: (value: string | null) => string;
   isGroupExpanded: (groupKey: string) => boolean;
   initialScrollTop?: number;
+  scrollRegionRef?: RefObject<HTMLDivElement | null>;
   scrollResetKey?: number;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
@@ -111,6 +112,7 @@ export function SubscriptionsListPane({
   formatLatestArticleLabel,
   isGroupExpanded,
   initialScrollTop = 0,
+  scrollRegionRef: providedScrollRegionRef,
   scrollResetKey = 0,
   onSelectFeed,
   onListScrollTopChange,
@@ -118,7 +120,8 @@ export function SubscriptionsListPane({
   onToggleGroup,
 }: SubscriptionsListPaneProps) {
   const headingId = useId();
-  const scrollRegionRef = useRef<HTMLDivElement | null>(null);
+  const internalScrollRegionRef = useRef<HTMLDivElement | null>(null);
+  const scrollRegionRef = providedScrollRegionRef ?? internalScrollRegionRef;
   const restoredScrollStateRef = useRef<{
     scrollTop: number;
     resetKey: number;
@@ -155,7 +158,7 @@ export function SubscriptionsListPane({
 
   useEffect(() => {
     const scrollRegion = scrollRegionRef.current;
-    if (!scrollRegion) {
+    if (!scrollRegion || !hasRows) {
       return;
     }
     const restoredScrollState = restoredScrollStateRef.current;
@@ -171,7 +174,7 @@ export function SubscriptionsListPane({
       resetKey: scrollResetKey,
     };
     committedScrollTopRef.current = initialScrollTop;
-  }, [clearPendingScrollTopCommit, initialScrollTop, scrollResetKey]);
+  }, [clearPendingScrollTopCommit, hasRows, initialScrollTop, scrollRegionRef, scrollResetKey]);
 
   useEffect(() => {
     return () => {

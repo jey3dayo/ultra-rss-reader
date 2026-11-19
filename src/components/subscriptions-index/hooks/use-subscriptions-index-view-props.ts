@@ -74,7 +74,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   onEditFeed: (feedId: string) => void;
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
-  closeSubscriptionsWorkspace: () => void;
+  closeSubscriptionsWorkspace: (returnState: SubscriptionsWorkspaceReturnState) => void;
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
 };
@@ -135,15 +135,32 @@ export function useSubscriptionsIndexViewProps({
   );
 
   const state = useSubscriptionsIndexState(rows, {
-    accountId: selectedAccountId,
     initialSummaryFilter: scopedNavigationRequest?.summaryFilter ?? scopedIndexReturnState?.activeSummaryFilter,
-    initialSelectedFeedId: scopedNavigationRequest ? null : scopedIndexReturnState?.selectedFeedId,
+    initialSelectedFeedId: scopedNavigationRequest
+      ? scopedNavigationRequest.selectedFeedId
+      : scopedIndexReturnState?.selectedFeedId,
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
+    initialSearchQuery: scopedNavigationRequest ? "" : scopedIndexReturnState?.searchQuery,
     initialListScrollState: scopedNavigationRequest ? undefined : scopedIndexReturnState?.listScrollTop,
     viewportHeight,
   });
+  const scrollRegionRef = useRef<HTMLDivElement | null>(null);
+  const closeWithCurrentState = () =>
+    closeSubscriptionsWorkspace({
+      accountId: selectedAccountId,
+      activeSummaryFilter: state.activeSummaryFilter,
+      selectedFeedId: state.selectedFeedId,
+      expandedGroups: state.expandedGroups,
+      listScrollTop: {
+        ...state.listScrollState,
+        scrollTop: scrollRegionRef.current?.scrollTop ?? state.listScrollState.scrollTop,
+      },
+      keptFeedIds: [...state.keptFeedIds],
+      deferredFeedIds: [...state.deferredFeedIds],
+      searchQuery: state.searchQuery,
+    });
   const consumedNavigationRequest = useRef(scopedNavigationRequest);
   const consumeNavigationRequest = useEffectEvent(() => {
     const currentStore = useUiStore.getState();
@@ -160,7 +177,7 @@ export function useSubscriptionsIndexViewProps({
       return;
     }
     consumedNavigationRequest.current = request;
-    state.navigateToSummaryFilter(request.summaryFilter);
+    state.navigateToSummaryFilter(request.summaryFilter, request.selectedFeedId);
   });
 
   useEffect(() => {
@@ -364,6 +381,7 @@ export function useSubscriptionsIndexViewProps({
     folderLabel: t("folder"),
     listScrollResetKey: state.listScrollResetKey,
     listScrollTop: state.listScrollTop,
+    scrollRegionRef,
     latestArticleLabel: t("latest_article"),
     latestArticleEmptyLabel: t("meta_latest_article_none"),
     updateFrequencyLabel: t("update_frequency"),
@@ -390,7 +408,6 @@ export function useSubscriptionsIndexViewProps({
     displayModeValue: selectedDisplayModeLabel,
     decisionActions,
     managementActions,
-    backLabel: tc("back"),
     closeLabel: tc("close"),
     isGroupExpanded: state.isGroupExpanded,
     onSelectSummaryFilter: state.setActiveSummaryFilter,
@@ -398,7 +415,6 @@ export function useSubscriptionsIndexViewProps({
     onListScrollTopChange: state.setListScrollTop,
     onSearchQueryChange: state.setSearchQuery,
     onToggleGroup: state.toggleGroup,
-    onBack: () => closeSubscriptionsWorkspace(),
-    onClose: () => closeSubscriptionsWorkspace(),
+    onClose: closeWithCurrentState,
   } satisfies SubscriptionsIndexPageViewProps;
 }

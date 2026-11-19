@@ -432,21 +432,33 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
         isTagsSectionOpen: typeof open === "function" ? open(state.isTagsSectionOpen) : open,
       })),
     openSubscriptionsIndex: (returnState, navigationRequest) =>
-      set({
-        accountPaneOpen: false,
-        subscriptionsWorkspace: {
-          kind: "index",
-          ...(returnState ? { returnState: runtime.parseSubscriptionsWorkspaceReturnState(returnState) } : {}),
-          ...(navigationRequest
-            ? { navigationRequest: { ...navigationRequest } satisfies SubscriptionsIndexNavigationRequest }
-            : {}),
-        },
-        focusedPane: "content",
+      set((state) => {
+        const retainedReturnState =
+          returnState ??
+          (state.subscriptionsIndexReturnState?.accountId === state.selectedAccountId
+            ? state.subscriptionsIndexReturnState
+            : undefined);
+        return {
+          accountPaneOpen: false,
+          subscriptionsWorkspace: {
+            kind: "index",
+            ...(retainedReturnState
+              ? { returnState: runtime.parseSubscriptionsWorkspaceReturnState(retainedReturnState) }
+              : {}),
+            ...(navigationRequest
+              ? { navigationRequest: { ...navigationRequest } satisfies SubscriptionsIndexNavigationRequest }
+              : {}),
+          },
+          focusedPane: "content",
+        };
       }),
-    closeSubscriptionsWorkspace: () =>
+    closeSubscriptionsWorkspace: (returnState) =>
       set((state) => ({
         accountPaneOpen: false,
         subscriptionsWorkspace: null,
+        ...(returnState
+          ? { subscriptionsIndexReturnState: runtime.parseSubscriptionsWorkspaceReturnState(returnState) }
+          : {}),
         focusedPane: state.selectedArticleId ? "content" : "list",
       })),
     addRecentlyRead: (id) =>

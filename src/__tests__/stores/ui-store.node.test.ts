@@ -1393,9 +1393,8 @@ describe("useUiStore", () => {
         keptFeedIds: [],
         deferredFeedIds: [],
         searchQuery: "do-not-restore",
-        sortKey: "updated_at",
       }).success,
-    ).toBe(false);
+    ).toBe(true);
 
     expect(() =>
       useUiStore.getState().openSubscriptionsIndex({

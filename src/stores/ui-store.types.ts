@@ -33,6 +33,7 @@ type ToastAnnouncement = {
 export type SubscriptionsIndexNavigationRequest = Readonly<{
   accountId: string | null;
   summaryFilter: SubscriptionSummaryFilterKey;
+  selectedFeedId?: string;
 }>;
 
 type SubscriptionsWorkspace = {
@@ -91,6 +92,7 @@ export type UiState = {
   settingsAddAccountInitialKind: AddAccountProviderKind | null;
   settingsLoading: boolean;
   subscriptionsWorkspace: SubscriptionsWorkspace | null;
+  subscriptionsIndexReturnState: SubscriptionsWorkspaceReturnState | null;
   syncProgress: SyncProgressUiState;
   accountSetupSession: AccountSetupSession | null;
   commandPaletteOpen: boolean;
@@ -174,7 +176,7 @@ export type UiActions = {
     state?: SubscriptionsWorkspaceReturnState,
     navigationRequest?: SubscriptionsIndexNavigationRequest,
   ) => void;
-  closeSubscriptionsWorkspace: () => void;
+  closeSubscriptionsWorkspace: (returnState?: SubscriptionsWorkspaceReturnState) => void;
   applySyncProgress: (event: SyncProgressEventDto) => void;
   clearSyncProgress: () => void;
   startAccountSetupVerification: () => void;
