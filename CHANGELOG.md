@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.32] - 2026-11-19
+
 ### Features
 
 - 購読一覧で管理するアカウントを切り替えられるようにしました。取得エラーから開いた場合も読書中のアカウントを維持します。 (#708)
