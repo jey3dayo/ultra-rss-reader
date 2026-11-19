@@ -4,9 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.31] - 2026-11-19
+
 ### Bug Fixes
 
-- Microsoft Store 版で、アプリメニューに無効化されたまま「アップデートを確認」が残っていたのを、項目自体を表示しないようにしました。更新は Store 経由で行われます。
+- Microsoft Store 版で、アプリメニューに無効化されたまま「アップデートを確認」が残っていたのを、項目自体を表示しないようにしました。更新は Store 経由で行われます。 (#698)
 
 ## [0.67.30] - 2026-11-19
 
