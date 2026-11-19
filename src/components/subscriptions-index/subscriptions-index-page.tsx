@@ -201,6 +201,7 @@ function SubscriptionsIndexPageForAccount({
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkDialogSession, setBulkDialogSession] = useState(0);
   const bulkToggleRef = useRef<HTMLButtonElement>(null);
   const focusBulkToggleAfterCloseRef = useRef(false);
   const reviewClock = useSubscriptionsReviewClock();
@@ -242,7 +243,10 @@ function SubscriptionsIndexPageForAccount({
     },
     setDeleteTargetFeed,
     setEditTargetFeed,
-    onRequestBulkUnsubscribe: () => setBulkDialogOpen(true),
+    onRequestBulkUnsubscribe: () => {
+      setBulkDialogSession((session) => session + 1);
+      setBulkDialogOpen(true);
+    },
     bulkToggleRef,
   });
   const hasOpenDialog = editTargetFeed !== null || deleteTargetFeed !== null || bulkDialogOpen;
@@ -282,6 +286,7 @@ function SubscriptionsIndexPageForAccount({
       ) : null}
 
       <BulkUnsubscribeDialog
+        key={bulkDialogSession}
         open={bulkDialogOpen}
         accountId={selectedAccountId}
         targets={viewProps.bulk.targets}

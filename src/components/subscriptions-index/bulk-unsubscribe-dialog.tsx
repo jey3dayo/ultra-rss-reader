@@ -26,8 +26,6 @@ import {
 import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 import { readMatchMedia } from "@/lib/runtime/match-media-listener";
 
-export type { BulkUnsubscribeTarget };
-
 export type BulkUnsubscribeDialogProps = {
   open: boolean;
   accountId: string | null;

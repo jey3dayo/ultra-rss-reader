@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { Result } from "@praha/byethrow";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
@@ -6,10 +7,9 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
-import {
-  BulkUnsubscribeDialog,
-  type BulkUnsubscribeTarget,
-} from "@/components/subscriptions-index/bulk-unsubscribe-dialog";
+import * as tauriCommands from "@/api/tauri-commands";
+import { BulkUnsubscribeDialog } from "@/components/subscriptions-index/bulk-unsubscribe-dialog";
+import type { BulkUnsubscribeTarget } from "@/components/subscriptions-index/hooks/use-bulk-unsubscribe-feeds";
 import { buildSubscriptionListRows } from "@/lib/subscriptions/subscriptions-index";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -90,8 +90,8 @@ function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>) {
     );
   }
 
-  render(<Harness />, { wrapper });
-  return { onSettled, onClose, queryClient };
+  const { unmount } = render(<Harness />, { wrapper });
+  return { onSettled, onClose, queryClient, unmount };
 }
 
 describe("BulkUnsubscribeDialog", () => {
@@ -244,5 +244,82 @@ describe("BulkUnsubscribeDialog", () => {
 
     expect(await screen.findByRole("button", { name: /Unsubscribe from 2 feeds/ })).toBeInTheDocument();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("drops the run when unmounted mid-way: cache is refreshed but no settle callback or toast fires", async () => {
+    const user = userEvent.setup();
+    const inFlight = createDeferred<null>();
+    const started = createDeferred<void>();
+    const { calls } = setupDeleteFeed({
+      b: () => {
+        started.resolve();
+        return inFlight.promise;
+      },
+    });
+    const { onSettled, onClose, queryClient, unmount } = renderDialog([
+      makeTarget("a"),
+      makeTarget("b"),
+      makeTarget("c"),
+    ]);
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await started.promise;
+    unmount();
+    inFlight.resolve(null);
+
+    await waitFor(() => expect(invalidateQueries).toHaveBeenCalled());
+    expect(calls).toEqual(["a", "b"]);
+    expect(onSettled).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("stops before the next feed when the displayed account changes, leaving the rest unrun", async () => {
+    const user = userEvent.setup();
+    const inFlight = createDeferred<null>();
+    const started = createDeferred<void>();
+    const { calls } = setupDeleteFeed({
+      b: () => {
+        started.resolve();
+        return inFlight.promise;
+      },
+    });
+    const { onSettled } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
+
+    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await started.promise;
+    act(() => {
+      useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: "acc-2" } });
+    });
+    inFlight.resolve(null);
+
+    expect(await screen.findByText("Stopped. Unsubscribed from 2; 1 not run.")).toBeInTheDocument();
+    expect(calls).toEqual(["a", "b"]);
+    expect(screen.getByText("Feed c").closest("li")).toHaveTextContent("Not run");
+    expect(onSettled).toHaveBeenCalledWith(["a", "b"]);
+    expect(screen.queryByRole("button", { name: /Retry/ })).toBeNull();
+  });
+
+  it("finishes the run and releases the dialog when a delete throws unexpectedly", async () => {
+    const user = userEvent.setup();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const deleteFeedSpy = vi.spyOn(tauriCommands, "deleteFeed").mockImplementation((feedId) => {
+      if (feedId === "b") {
+        return Promise.reject(new Error("unexpected boom"));
+      }
+      return Promise.resolve(Result.succeed(null));
+    });
+    const { onSettled } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
+
+    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Feed b: unexpected boom");
+    expect(screen.getByRole("button", { name: "Retry (2)" })).toBeInTheDocument();
+    expect(deleteFeedSpy.mock.calls.map(([feedId]) => feedId)).toEqual(["a", "b"]);
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(onSettled).toHaveBeenCalledWith(["a"]);
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("unexpected error"), expect.any(Error));
   });
 });

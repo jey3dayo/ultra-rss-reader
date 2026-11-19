@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { deleteFeed } from "@/api/tauri-commands";
 import { invalidateDeleteFeedQueries } from "@/lib/query/query-invalidation";
 import type { resolveBulkUnsubscribeTargets } from "@/lib/subscriptions/bulk-unsubscribe";
+import { getErrorMessage } from "@/lib/ui/errors";
 import {
   isDatabaseMaintenanceBusyMessage,
   localizeUserVisibleAppErrorMessage,
@@ -12,9 +13,9 @@ import {
 import { useUiStore } from "@/stores/ui-store";
 
 export type BulkUnsubscribeTarget = ReturnType<typeof resolveBulkUnsubscribeTargets>[number];
-export type BulkUnsubscribePhase = "confirm" | "running" | "result";
+type BulkUnsubscribePhase = "confirm" | "running" | "result";
 export type BulkUnsubscribeRowStatus = "waiting" | "running" | "done" | "failed" | "skipped";
-export type BulkUnsubscribeRowState = { status: BulkUnsubscribeRowStatus; reason: string | null };
+type BulkUnsubscribeRowState = { status: BulkUnsubscribeRowStatus; reason: string | null };
 export type BulkUnsubscribeOutcome = "completed" | "partial" | "busy" | "cancelled";
 
 type RunState = {
@@ -145,56 +146,67 @@ export function useBulkUnsubscribeFeeds({ open, accountId, onSettled, onClose }:
     let failureCount = 0;
     let halt: "busy" | "cancelled" | null = null;
     let position = 0;
-    while (position < queue.length && isCurrent()) {
-      const stoppedByUser = stopRequestedRef.current;
-      const accountChanged = useUiStore.getState().subscriptionsWorkspace?.accountId !== accountId;
-      if (stoppedByUser || accountChanged) {
-        halt = "cancelled";
-        break;
-      }
-
-      const index = queue[position];
-      const feedId = snapshot[index].row.feed.id;
-      dispatch({ type: "rowRunning", index });
-      const failureMessage = await unsubscribeFeed(feedId);
-      position += 1;
-
-      if (failureMessage === null) {
-        succeededFeedIds.push(feedId);
-        if (isCurrent()) {
-          dispatch({ type: "rowDone", index });
+    let inFlightIndex: number | null = null;
+    try {
+      while (position < queue.length && isCurrent()) {
+        const stoppedByUser = stopRequestedRef.current;
+        const accountChanged = useUiStore.getState().subscriptionsWorkspace?.accountId !== accountId;
+        if (stoppedByUser || accountChanged) {
+          halt = "cancelled";
+          break;
         }
-        continue;
-      }
 
+        const index = queue[position];
+        const feedId = snapshot[index].row.feed.id;
+        inFlightIndex = index;
+        dispatch({ type: "rowRunning", index });
+        const failureMessage = await unsubscribeFeed(feedId);
+        position += 1;
+        inFlightIndex = null;
+
+        if (failureMessage === null) {
+          succeededFeedIds.push(feedId);
+          if (isCurrent()) {
+            dispatch({ type: "rowDone", index });
+          }
+          continue;
+        }
+
+        failureCount += 1;
+        if (isCurrent()) {
+          dispatch({ type: "rowFailed", index, reason: localizeUserVisibleAppErrorMessage(failureMessage) });
+        }
+        if (isDatabaseMaintenanceBusyMessage(failureMessage)) {
+          halt = "busy";
+          break;
+        }
+      }
+    } catch (error) {
+      console.error("Bulk unsubscribe stopped on an unexpected error.", error);
       failureCount += 1;
+      if (inFlightIndex !== null) {
+        position += 1;
+        if (isCurrent()) {
+          dispatch({ type: "rowFailed", index: inFlightIndex, reason: getErrorMessage(error) });
+        }
+      }
+    } finally {
+      let outcome: BulkUnsubscribeOutcome | null = null;
       if (isCurrent()) {
-        dispatch({ type: "rowFailed", index, reason: localizeUserVisibleAppErrorMessage(failureMessage) });
+        runActiveRef.current = false;
+        outcome = halt ?? (failureCount > 0 ? "partial" : "completed");
+        dispatch({ type: "finish", outcome, skipped: queue.slice(position) });
       }
-      if (isDatabaseMaintenanceBusyMessage(failureMessage)) {
-        halt = "busy";
-        break;
+      if (succeededFeedIds.length > 0) {
+        invalidateDeleteFeedQueries(queryClient, { accountId });
       }
-    }
-
-    if (succeededFeedIds.length > 0) {
-      invalidateDeleteFeedQueries(queryClient, { accountId });
-    }
-
-    if (!isCurrent()) {
       if (mountedRef.current) {
         callbacksRef.current.onSettled(succeededFeedIds);
       }
-      return;
-    }
-
-    runActiveRef.current = false;
-    const outcome: BulkUnsubscribeOutcome = halt ?? (failureCount > 0 ? "partial" : "completed");
-    dispatch({ type: "finish", outcome, skipped: queue.slice(position) });
-    callbacksRef.current.onSettled(succeededFeedIds);
-    if (outcome === "completed") {
-      showToast(t("bulk_toast_done", { count: snapshot.length }));
-      callbacksRef.current.onClose({ allSucceeded: true });
+      if (outcome === "completed") {
+        showToast(t("bulk_toast_done", { count: snapshot.length }));
+        callbacksRef.current.onClose({ allSucceeded: true });
+      }
     }
   };
 
