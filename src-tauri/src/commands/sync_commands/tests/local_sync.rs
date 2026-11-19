@@ -341,6 +341,20 @@ async fn local_sync_account_with_missing_settings_leaves_sync_folder_untouched()
     let outcome = sync_account(&db, &account).await.unwrap();
 
     assert!(outcome.warnings.is_empty());
+
+    // Folder sync runs only from stored settings; with none stored, sync must
+    // not invent them (which would silently pick a folder to touch).
+    let settings_count: i64 = db
+        .lock()
+        .unwrap()
+        .reader()
+        .query_row(
+            "SELECT COUNT(*) FROM local_account_sync_settings WHERE account_id = ?1",
+            rusqlite::params![account.id.as_ref()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(settings_count, 0);
 }
 
 #[tokio::test]

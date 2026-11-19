@@ -124,10 +124,28 @@ fn v24_allows_duplicate_feed_icon_url_column_only() {
     migrate_to_v29(&conn);
     set_schema_version(&conn, 23).unwrap();
 
+    let feeds_columns_before = table_column_names(&conn, "feeds");
+    let schema_before = schema_snapshot(&conn);
+
     let result = run_migrations(&mut conn).unwrap();
     assert_eq!(result.from_version, 23);
     assert_eq!(result.to_version, LATEST_VERSION);
     assert!(conn.prepare("SELECT icon_url FROM feeds LIMIT 0").is_ok());
+
+    // V24 goes through add_column_if_missing, so re-running it against a
+    // schema that already has feeds.icon_url must tolerate the duplicate:
+    // exactly one icon_url column afterwards, and the re-run must leave the
+    // rest of the schema untouched.
+    let feeds_columns_after = table_column_names(&conn, "feeds");
+    assert_eq!(
+        feeds_columns_after
+            .iter()
+            .filter(|name| name.as_str() == "icon_url")
+            .count(),
+        1
+    );
+    assert_eq!(feeds_columns_after, feeds_columns_before);
+    assert_eq!(schema_snapshot(&conn), schema_before);
 }
 
 #[test]
@@ -675,4 +693,31 @@ fn v29_feed_url_change_restamps_recorded_article_times_and_every_tag_link() {
         Some("2020-01-01T00:00:00.000Z"),
         "articles of other feeds are untouched"
     );
+}
+
+fn table_column_names(conn: &rusqlite::Connection, table: &str) -> Vec<String> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})")).unwrap();
+    stmt.query_map([], |row| row.get::<_, String>(1))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn schema_snapshot(
+    conn: &rusqlite::Connection,
+) -> Vec<(String, String, String, Option<String>)> {
+    let mut stmt = conn
+        .prepare("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY type, name")
+        .unwrap();
+    stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, Option<String>>(3)?,
+        ))
+    })
+    .unwrap()
+    .collect::<Result<Vec<_>, _>>()
+    .unwrap()
 }

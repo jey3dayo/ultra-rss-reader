@@ -488,15 +488,6 @@ mod tests {
     }
 
     #[test]
-    fn classify_sqlite_error_code_never_needs_the_error_message() {
-        // Regression guard: classification must be derivable without ever formatting the error,
-        // which would risk leaking raw SQL/bind-value text into a diagnostic log.
-        let error = rusqlite::Error::QueryReturnedNoRows;
-        let _ = classify_sqlite_error_code(error.sqlite_error_code());
-        let _ = error.to_string(); // Display still works; classification just never calls it.
-    }
-
-    #[test]
     fn timing_classification_uses_named_thresholds_as_the_boundary() {
         let just_under = classify_mark_article_read_timing(
             Duration::from_millis(LOCK_WAIT_WARN_THRESHOLD_MS - 1),
