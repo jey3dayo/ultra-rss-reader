@@ -160,7 +160,7 @@ describe("fetch error toast navigation", () => {
   it("applies fetch errors in place without losing review decisions or group disclosure", async () => {
     const user = userEvent.setup();
     await mountSubscriptionsPage();
-    await user.click(screen.getByRole("button", { name: /見直し候補/ }));
+    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     await user.click(await screen.findByRole("button", { name: /A Keep Feed/ }));
     await user.click(screen.getByRole("button", { name: "残す" }));
     await user.click(await screen.findByRole("button", { name: /A Later Feed/ }));
@@ -178,7 +178,7 @@ describe("fetch error toast navigation", () => {
     expect(screen.getByRole("button", { name: /A Error Feed/ })).toBeInTheDocument();
     await user.click(group);
 
-    await user.click(screen.getByRole("button", { name: /見直し候補/ }));
+    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     await user.click(screen.getByTestId("subscriptions-folder-row-ungrouped"));
     expect(screen.queryByText("A Keep Feed")).not.toBeInTheDocument();
     expect(screen.queryByText("A Later Feed")).not.toBeInTheDocument();
@@ -189,7 +189,7 @@ describe("fetch error toast navigation", () => {
     const { pageQueryClient, wrapper } = createPageEnvironment();
     render(<SubscriptionsIndexPage />, { wrapper });
     await screen.findByRole("heading", { name: "全購読", level: 2 });
-    await user.click(screen.getByRole("button", { name: /見直し候補/ }));
+    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     await user.type(screen.getByRole("searchbox", { name: "購読を検索" }), "A Error");
     showFetchErrorsAction("acc-a");
     await clickFetchErrorsAction(user);
@@ -197,13 +197,13 @@ describe("fetch error toast navigation", () => {
     expect(screen.getByRole("button", { name: /A Error Feed/ })).toBeInTheDocument();
     expect(screen.queryByRole("searchbox", { name: "購読を検索" })).toHaveValue("");
 
-    await user.click(screen.getByRole("button", { name: /見直し候補/ }));
+    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     await user.type(screen.getByRole("searchbox", { name: "購読を検索" }), "A Error");
     showFetchErrorsAction("acc-a");
     await clickFetchErrorsAction(user);
     expect(await screen.findByRole("heading", { name: "取得エラー", level: 2 })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /見直し候補/ }));
+    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     const nextFeeds = [...feedsByAccount["acc-a"], makeFeed("a-new", "acc-a", "A New Feed")];
     feedsByAccount["acc-a"] = nextFeeds;
     pageQueryClient.setQueryData(queryKeys.feeds.byAccount("acc-a"), nextFeeds);
@@ -217,7 +217,7 @@ describe("fetch error toast navigation", () => {
         recent_article_count: 0,
       },
     ]);
-    expect(await screen.findByRole("heading", { name: "見直し候補", level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "90日以上未更新", level: 2 })).toBeInTheDocument();
     expect(await screen.findByText("A New Feed")).toBeInTheDocument();
   });
 

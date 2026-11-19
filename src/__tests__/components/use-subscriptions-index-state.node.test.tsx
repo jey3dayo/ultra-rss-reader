@@ -176,15 +176,15 @@ describe("useSubscriptionsIndexState", () => {
     expect(result.current.isGroupExpanded("all")).toBe(true);
   });
 
-  it("applies return-state summary filter and kept feeds before restoring selection", async () => {
+  it("applies the stale return filter and kept feeds before restoring selection", async () => {
     const reviewRow = makeRow("feed-review", {
-      tone: "medium",
-      labelKey: "review",
+      tone: "high",
+      labelKey: "stale_90d",
     });
     const normalRow = makeRow("feed-normal");
     const { result } = renderHook(() =>
       useSubscriptionsIndexState([reviewRow, normalRow], {
-        initialSummaryFilter: "review",
+        initialSummaryFilter: "stale",
         initialSelectedFeedId: "feed-review",
         initialKeptFeedIds: ["feed-review"],
         initialDeferredFeedIds: [],
@@ -192,7 +192,7 @@ describe("useSubscriptionsIndexState", () => {
     );
 
     await waitFor(() => {
-      expect(result.current.activeSummaryFilter).toBe("review");
+      expect(result.current.activeSummaryFilter).toBe("stale");
       expect(result.current.visibleRows).toEqual([]);
       expect(result.current.selectedFeedId).toBeNull();
       expect(result.current.selectedRow).toBeNull();
@@ -220,10 +220,10 @@ describe("useSubscriptionsIndexState", () => {
     });
 
     act(() => {
-      result.current.setActiveSummaryFilter("review");
+      result.current.setActiveSummaryFilter("stale");
     });
 
-    expect(result.current.activeSummaryFilter).toBe("review");
+    expect(result.current.activeSummaryFilter).toBe("stale");
     expect(result.current.listScrollTop).toBe(0);
   });
 

@@ -31,14 +31,6 @@ const SUMMARY_FILTER_CARDS: SubscriptionSummaryCard[] = [
     isActive: true,
   },
   {
-    filterKey: "review",
-    label: "確認待ち",
-    value: "12",
-    caption: "継続判断が必要な候補",
-    tone: "review",
-    isActive: false,
-  },
-  {
     filterKey: "stale",
     label: "90日以上未更新",
     value: "8",
