@@ -100,7 +100,7 @@ const initialState: UiState = {
   settingsAddAccountInitialKind: null,
   settingsLoading: false,
   subscriptionsWorkspace: null,
-  subscriptionsIndexReturnState: null,
+  subscriptionsIndexReturnStates: new Map(),
   syncProgress: getIdleSyncProgress(),
   accountSetupSession: null,
   commandPaletteOpen: false,

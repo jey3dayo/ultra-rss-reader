@@ -48,7 +48,7 @@ describe("AppLayout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "wide",
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: null },
       focusedPane: "content",
     });
 
@@ -63,7 +63,7 @@ describe("AppLayout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "wide",
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: null },
       focusedPane: "content",
     });
 
@@ -78,7 +78,7 @@ describe("AppLayout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "mobile",
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: null },
       focusedPane: "sidebar",
       selectedAccountId: null,
     });

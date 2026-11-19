@@ -64,7 +64,7 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
   const retryMutation = useMutation({
     mutationFn: async ({ feedId }: { accountId: string; feedId: string }) => Result.unwrap(await syncFeed(feedId)),
     onSuccess: (result, variables) => {
-      if (useUiStore.getState().selectedAccountId !== variables.accountId) return;
+      if (useUiStore.getState().subscriptionsWorkspace?.accountId !== variables.accountId) return;
       const feedback = summarizeSyncResult(result);
       if (feedback.kind === "already-in-progress") {
         showToast(t("fetch_error_retry_busy"));
@@ -75,14 +75,14 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
       }
     },
     onError: (_error, variables) => {
-      if (useUiStore.getState().selectedAccountId === variables.accountId) {
+      if (useUiStore.getState().subscriptionsWorkspace?.accountId === variables.accountId) {
         showToast({ message: t("detail_fetch_error_retry_failed"), severity: "error" });
       }
     },
     onSettled: async (_data, _error, variables) => {
       try {
         const refreshed = await invalidateFeedRetryQueries(queryClient, variables.accountId, variables.feedId);
-        if (!refreshed && useUiStore.getState().selectedAccountId === variables.accountId) {
+        if (!refreshed && useUiStore.getState().subscriptionsWorkspace?.accountId === variables.accountId) {
           showToast({ message: t("fetch_error_refresh_failed"), severity: "error" });
         }
       } finally {

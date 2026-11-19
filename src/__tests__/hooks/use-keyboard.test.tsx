@@ -347,7 +347,7 @@ describe("useKeyboard", () => {
 
     useUiStore.setState({
       ...useUiStore.getState(),
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: null },
       focusedPane: "content",
     });
 

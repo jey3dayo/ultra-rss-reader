@@ -179,6 +179,7 @@ describe("executeAction store actions", () => {
       executeAction("open-subscriptions-index");
       expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
         kind: "index",
+        accountId: null,
       });
       expect(useUiStore.getState().focusedPane).toBe("content");
     });

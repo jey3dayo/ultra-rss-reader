@@ -1,6 +1,7 @@
 {
+  "account_select_label": "Subscriptions account",
+  "fetch_error_navigation_blocked_dialog": "Close the feed dialog, then try again.",
   "title": "Subscriptions",
-  "subtitle": "Review your full subscription inventory and focus on feeds whose updates may have stopped.",
   "summary_total": "Total subscriptions",
   "summary_total_caption_one": "1 subscription in this account",
   "summary_total_caption_other": "{{count, count}} subscriptions in this account",

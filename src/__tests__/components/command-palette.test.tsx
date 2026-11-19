@@ -778,6 +778,7 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
         kind: "index",
+        accountId: "acc-1",
       });
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
     });

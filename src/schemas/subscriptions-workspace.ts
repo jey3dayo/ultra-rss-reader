@@ -29,6 +29,7 @@ const SubscriptionsWorkspaceListScrollStateSchema = s.strictObject({
   scrollTop: v.pipe(v.number(), v.finite(), v.minValue(0)),
   layoutGeneration: v.string(),
   viewportHeight: v.pipe(v.number(), v.finite(), v.minValue(0)),
+  viewportWidth: v.optional(v.pipe(v.number(), v.finite(), v.minValue(0))),
 });
 
 export type SubscriptionsWorkspaceListScrollState = v.InferOutput<typeof SubscriptionsWorkspaceListScrollStateSchema>;

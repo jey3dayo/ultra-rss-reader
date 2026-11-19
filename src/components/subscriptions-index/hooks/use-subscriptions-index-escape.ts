@@ -6,7 +6,11 @@ function hasOpenNestedEscapeLayer(): boolean {
   return document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]') !== null;
 }
 
-export function useSubscriptionsIndexEscape(hasOpenFeedDialog: boolean, closeSubscriptionsWorkspace: () => void) {
+export function useSubscriptionsIndexEscape(
+  hasOpenFeedDialog: boolean,
+  closeSubscriptionsWorkspace: () => void,
+  selectOpen = false,
+) {
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {
       const target = event.target;
@@ -15,6 +19,7 @@ export function useSubscriptionsIndexEscape(hasOpenFeedDialog: boolean, closeSub
         isImeCommitKeyEvent(event) ||
         event.key !== "Escape" ||
         hasOpenFeedDialog ||
+        selectOpen ||
         hasOpenNestedEscapeLayer() ||
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
@@ -30,5 +35,5 @@ export function useSubscriptionsIndexEscape(hasOpenFeedDialog: boolean, closeSub
     });
 
     return bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
-  }, [closeSubscriptionsWorkspace, hasOpenFeedDialog]);
+  }, [closeSubscriptionsWorkspace, hasOpenFeedDialog, selectOpen]);
 }

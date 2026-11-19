@@ -1,7 +1,8 @@
 import { Result } from "@praha/byethrow";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   AccountDto,
@@ -18,6 +19,8 @@ import { queryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+const originalViewportWidth = window.innerWidth;
 
 const accounts: AccountDto[] = [
   {
@@ -89,7 +92,7 @@ const failedStatuses: LocalFeedSyncStatusDto[] = [
     feed_id: "b-error",
     last_attempt_at: "2026-10-11T02:15:00Z",
     last_success_at: null,
-    error_kind: "network",
+    error_kind: "private_address_blocked",
     error_count: 1,
     diagnostic_id: "cb5442ec-30ba-4af2-baf7-48f556a81825",
   },
@@ -144,7 +147,7 @@ describe("fetch error toast navigation", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-a",
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: "acc-a" },
     });
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     vi.spyOn(accountCommands, "listAccounts").mockResolvedValue(Result.succeed(accounts));
@@ -152,6 +155,7 @@ describe("fetch error toast navigation", () => {
 
   afterEach(() => {
     cleanup();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: originalViewportWidth });
     vi.restoreAllMocks();
     queryClient.clear();
     useUiStore.setState(useUiStore.getInitialState());
@@ -221,16 +225,152 @@ describe("fetch error toast navigation", () => {
     expect(await screen.findByText("A New Feed")).toBeInTheDocument();
   });
 
-  it("navigates to the requested account and shows only that account's fetch errors", async () => {
+  it("switches accounts without changing the reader and restores the previous account state", async () => {
     const user = userEvent.setup();
-    await mountSubscriptionsPage();
+    const calls: { cmd: string; args: Record<string, unknown> }[] = [];
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 600 });
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      if (cmd === "trigger_sync_feed") return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };
+      if (cmd === "rename_feed") return null;
+      if (cmd === "list_feeds") return feedsByAccount["acc-b"];
+      if (cmd === "list_folders" || cmd === "list_feed_article_summaries" || cmd === "get_local_feed_sync_statuses")
+        return [];
+      return null;
+    });
+    useUiStore.setState({ selectedArticleId: "article-a" });
+    const { pageQueryClient } = await mountSubscriptionsPage();
+    await user.type(screen.getByRole("searchbox", { name: "購読を検索" }), "A Error");
+    const scrollRegion = screen.getByTestId("subscriptions-workspace-scroll-region");
+    scrollRegion.scrollTop = 120;
+    fireEvent.scroll(scrollRegion);
+    const select = screen.getByRole("combobox", { name: "購読一覧のアカウント" });
+    await user.click(select);
+    await screen.findByRole("listbox");
+    await user.keyboard("{Escape}");
+    expect(useUiStore.getState().subscriptionsWorkspace?.accountId).toBe("acc-a");
+    await waitFor(() => expect(select).toHaveFocus());
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Local B" }));
+    expect(await screen.findByRole("button", { name: /B Error Feed/ })).toBeInTheDocument();
+    await waitFor(() => expect(select).toHaveFocus());
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Local A" }));
+    expect(await screen.findByRole("searchbox", { name: "購読を検索" })).toHaveValue("A Error");
+    await waitFor(() => expect(scrollRegion.scrollTop).toBe(120));
     showFetchErrorsAction("acc-b");
     await clickFetchErrorsAction(user);
-
     expect(await screen.findByRole("heading", { name: "取得エラー", level: 2 })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /B Error Feed/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /A Error Feed/ })).not.toBeInTheDocument();
-    expect(useUiStore.getState().selectedAccountId).toBe("acc-b");
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-a");
+    expect(useUiStore.getState().subscriptionsWorkspace?.accountId).toBe("acc-b");
+    await user.click(screen.getByRole("button", { name: /B Error Feed/ }));
+    await user.click(screen.getByRole("button", { name: "取得先を確認" }));
+    let dialog = await screen.findByRole("dialog", { name: "フィードを編集" });
+    const retryAction = createFetchErrorsToastAction("acc-a", "取得エラーを表示");
+    act(() => retryAction?.onClick());
+    await waitFor(() =>
+      expect(useUiStore.getState().toastMessage?.message).toBe(
+        "フィードのダイアログを閉じてから、もう一度お試しください。",
+      ),
+    );
+    expect(useUiStore.getState().subscriptionsWorkspace?.accountId).toBe("acc-b");
+    expect(dialog).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "キャンセル" }));
+    await clickFetchErrorsAction(user);
+    await waitFor(() => expect(useUiStore.getState().subscriptionsWorkspace?.accountId).toBe("acc-a"));
+    showFetchErrorsAction("acc-b");
+    await clickFetchErrorsAction(user);
+    await user.click(await screen.findByRole("button", { name: /B Error Feed/ }));
+    await user.click(screen.getByRole("button", { name: "取得先を確認" }));
+    dialog = await screen.findByRole("dialog", { name: "フィードを編集" });
+    const titleInput = within(dialog).getByDisplayValue("B Error Feed");
+    await user.clear(titleInput);
+    await user.type(titleInput, "B Edited Feed");
+    await user.click(within(dialog).getByRole("button", { name: "保存" }));
+    await waitFor(() =>
+      expect(calls).toContainEqual(
+        expect.objectContaining({ cmd: "rename_feed", args: expect.objectContaining({ feedId: "b-error" }) }),
+      ),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "再取得" }));
+    await waitFor(() =>
+      expect(calls).toContainEqual(
+        expect.objectContaining({ cmd: "trigger_sync_feed", args: expect.objectContaining({ feedId: "b-error" }) }),
+      ),
+    );
+    await user.click(select);
+    await screen.findByRole("listbox");
+    act(() => pageQueryClient.setQueryData(queryKeys.accounts.root, [accounts[1]]));
+    await waitFor(() =>
+      expect(screen.queryByRole("combobox", { name: "購読一覧のアカウント" })).not.toBeInTheDocument(),
+    );
+    await user.keyboard("{Escape}");
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-a");
+    expect(useUiStore.getState().selectedArticleId).toBe("article-a");
+  });
+
+  it("restores the selected error and scroll after delayed statuses load", async () => {
+    const user = userEvent.setup();
+    let resolveStatuses: (statuses: LocalFeedSyncStatusDto[]) => void = () => {};
+    const pendingStatuses = new Promise<LocalFeedSyncStatusDto[]>((resolve) => {
+      resolveStatuses = resolve;
+    });
+    setupTauriMocks((cmd) => (cmd === "get_local_feed_sync_statuses" ? pendingStatuses : undefined));
+    const { pageQueryClient, wrapper } = createPageEnvironment();
+    pageQueryClient.removeQueries({ queryKey: queryKeys.localFeedSyncStatuses.byAccount("acc-a") });
+    useUiStore.setState({
+      subscriptionsWorkspace: {
+        kind: "index",
+        accountId: "acc-a",
+        returnState: {
+          accountId: "acc-a",
+          activeSummaryFilter: "fetch_errors",
+          selectedFeedId: "a-keep",
+          expandedGroups: {},
+          listScrollTop: {
+            scrollTop: 120,
+            layoutGeneration: "a-error\na-keep",
+            viewportHeight: window.innerHeight,
+            viewportWidth: window.innerWidth,
+          },
+          keptFeedIds: [],
+          deferredFeedIds: [],
+          searchQuery: "",
+        },
+      },
+    });
+    render(<SubscriptionsIndexPage />, { wrapper });
+    await screen.findByRole("heading", { name: "取得エラー", level: 2 });
+    const select = screen.getByRole("combobox", { name: "購読一覧のアカウント" });
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Local B" }));
+    expect(useUiStore.getState().subscriptionsIndexReturnStates.get("acc-a")?.listScrollTop.scrollTop).toBe(120);
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Local A" }));
+    await act(async () => resolveStatuses([failedStatuses[0], { ...failedStatuses[0], feed_id: "a-keep" }]));
+    expect(await screen.findByRole("button", { name: /A Keep Feed/ })).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(screen.getByTestId("subscriptions-list-scroll-region").scrollTop).toBe(120));
+  });
+
+  it("resets the shared scroll for an empty account and restores it when returning", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 600 });
+    const { pageQueryClient, wrapper } = createPageEnvironment();
+    pageQueryClient.setQueryData(queryKeys.feeds.byAccount("acc-b"), []);
+    render(<SubscriptionsIndexPage />, { wrapper });
+    await screen.findByRole("button", { name: /A Error Feed/ });
+    const scrollRegion = screen.getByTestId("subscriptions-workspace-scroll-region");
+    scrollRegion.scrollTop = 120;
+    const select = screen.getByRole("combobox", { name: "購読一覧のアカウント" });
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Local B" }));
+    await waitFor(() => expect(scrollRegion.scrollTop).toBe(0));
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Local A" }));
+    await waitFor(() => expect(scrollRegion.scrollTop).toBe(120));
   });
 
   it("shows a translated error toast when the account lookup fails", async () => {
@@ -277,6 +417,7 @@ describe("fetch error toast navigation", () => {
     await waitFor(() => {
       expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
         kind: "index",
+        accountId: "acc-a",
         navigationRequest: { accountId: "acc-a", summaryFilter: "fetch_errors" },
       });
     });

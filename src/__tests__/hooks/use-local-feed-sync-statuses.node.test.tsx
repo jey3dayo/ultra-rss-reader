@@ -102,13 +102,13 @@ describe("useLocalFeedSyncStatuses", () => {
   beforeEach(() => {
     ({ queryClient, wrapper } = createQueryWrapper());
     __resetPendingFeedRetryKeysForTests();
-    useUiStore.setState({ selectedAccountId: "acc-1" });
+    useUiStore.setState({ selectedAccountId: "acc-1", subscriptionsWorkspace: { kind: "index", accountId: "acc-1" } });
     vi.spyOn(tauriCommands, "listAccounts").mockResolvedValue(Result.succeed(accounts));
   });
 
   afterEach(async () => {
     cleanup();
-    useUiStore.setState({ selectedAccountId: null });
+    useUiStore.setState({ selectedAccountId: null, subscriptionsWorkspace: null });
     vi.restoreAllMocks();
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
@@ -197,7 +197,7 @@ describe("useLocalFeedSyncStatuses", () => {
     await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
     act(() => result.current.retryFeed("feed-1"));
     await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledWith("feed-1"));
-    useUiStore.setState({ selectedAccountId: "acc-2" });
+    useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: "acc-2" } });
     rerender({ accountId: "acc-2" });
     await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
 
@@ -296,7 +296,7 @@ describe("useLocalFeedSyncStatuses", () => {
     await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledTimes(1));
     expect(result.current.isRetryingFeed("feed-1")).toBe(true);
 
-    useUiStore.setState({ selectedAccountId: "acc-2" });
+    useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: "acc-2" } });
     rerender({ accountId: "acc-2" });
     await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
     act(() => result.current.retryFeed("feed-2"));
@@ -308,7 +308,7 @@ describe("useLocalFeedSyncStatuses", () => {
     });
     await waitFor(() => expect(result.current.isRetryingFeed("feed-2")).toBe(false));
 
-    useUiStore.setState({ selectedAccountId: "acc-1" });
+    useUiStore.setState({ selectedAccountId: "acc-1", subscriptionsWorkspace: { kind: "index", accountId: "acc-1" } });
     rerender({ accountId: "acc-1" });
     expect(result.current.isRetryingFeed("feed-1")).toBe(true);
     await act(async () => {

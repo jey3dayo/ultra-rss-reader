@@ -1,11 +1,6 @@
 import type { RefObject } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
-import {
-  WORKSPACE_CANVAS_CLASS,
-  WORKSPACE_CHROME_SPACING_CLASS,
-  WorkspaceHeader,
-  workspaceSplitShellClassName,
-} from "@/design-system";
+import { WORKSPACE_CANVAS_CLASS, WORKSPACE_CHROME_SPACING_CLASS, workspaceSplitShellClassName } from "@/design-system";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
@@ -24,8 +19,6 @@ import {
 } from "./subscriptions-overview-summary";
 
 type SubscriptionsIndexPageViewProps = {
-  title: string;
-  subtitle: string;
   summaryCards: SubscriptionSummaryCard[];
   summaryLabels: SubscriptionsOverviewSummaryLabels;
   inventoryHeading: string;
@@ -64,6 +57,9 @@ type SubscriptionsIndexPageViewProps = {
   listScrollResetKey: number;
   listScrollTop: number;
   scrollRegionRef: RefObject<HTMLDivElement | null>;
+  workspaceScrollRef: RefObject<HTMLDivElement | null>;
+  viewportWidth: number;
+  scrollReady: boolean;
   folderLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel: string;
@@ -81,18 +77,15 @@ type SubscriptionsIndexPageViewProps = {
   displayModeValue: string;
   decisionActions: SubscriptionDecisionActions | null;
   managementActions: SubscriptionManagementActions | null;
-  closeLabel: string;
   isGroupExpanded: (groupKey: string) => boolean;
   onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange: (scrollTop: number) => void;
   onSearchQueryChange: (query: string) => void;
   onToggleGroup: (groupKey: string) => void;
-  onClose: () => void;
 };
 
 export function SubscriptionsIndexPageView({
-  title,
   summaryCards,
   summaryLabels,
   inventoryHeading,
@@ -123,6 +116,9 @@ export function SubscriptionsIndexPageView({
   listScrollResetKey,
   listScrollTop,
   scrollRegionRef,
+  workspaceScrollRef,
+  viewportWidth,
+  scrollReady,
   folderLabel,
   latestArticleLabel,
   latestArticleEmptyLabel,
@@ -140,14 +136,12 @@ export function SubscriptionsIndexPageView({
   displayModeValue,
   decisionActions,
   managementActions,
-  closeLabel,
   isGroupExpanded,
   onSelectSummaryFilter,
   onSelectFeed,
   onListScrollTopChange,
   onSearchQueryChange,
   onToggleGroup,
-  onClose,
 }: SubscriptionsIndexPageViewProps) {
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
@@ -156,8 +150,7 @@ export function SubscriptionsIndexPageView({
   });
 
   return (
-    <div className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-y-auto bg-background lg:overflow-hidden">
-      <WorkspaceHeader title={title} closeLabel={closeLabel} onClose={onClose} />
+    <div className="contents">
       <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-2 sm:pt-3`}>
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary
@@ -191,6 +184,9 @@ export function SubscriptionsIndexPageView({
               scrollResetKey={listScrollResetKey}
               initialScrollTop={listScrollTop}
               scrollRegionRef={scrollRegionRef}
+              workspaceScrollRef={workspaceScrollRef}
+              viewportWidth={viewportWidth}
+              scrollReady={scrollReady}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}
               onSearchQueryChange={onSearchQueryChange}

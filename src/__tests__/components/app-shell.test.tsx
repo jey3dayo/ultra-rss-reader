@@ -136,7 +136,7 @@ describe("AppShell", () => {
   });
 
   it("keeps the main layout mounted when the store opens subscriptions workspace", () => {
-    useUiStore.setState({ subscriptionsWorkspace: { kind: "index" } });
+    useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: null } });
 
     const { container } = render(<AppShell />, { wrapper: createWrapper() });
 

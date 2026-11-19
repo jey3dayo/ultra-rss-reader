@@ -52,6 +52,7 @@ export type FeedEditDialogControllerParams = {
 };
 
 export type FeedEditDialogProps = {
+  accountScope?: "subscriptions";
   feed: FeedDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;

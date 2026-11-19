@@ -144,7 +144,7 @@ describe("executeAction event contracts", () => {
       const feedEvents = captureNavigationDetails(APP_EVENTS.navigateFeed);
       useUiStore.setState({
         ...useUiStore.getInitialState(),
-        subscriptionsWorkspace: { kind: "index" },
+        subscriptionsWorkspace: { kind: "index", accountId: null },
       });
 
       try {

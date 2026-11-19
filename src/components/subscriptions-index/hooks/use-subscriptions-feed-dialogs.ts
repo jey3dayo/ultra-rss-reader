@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
+import { useUiStore } from "@/stores/ui-store";
 
 type UseSubscriptionsFeedDialogsArgs = {
   selectedAccountId: string | null;
@@ -33,7 +34,12 @@ export function useSubscriptionsFeedDialogs({
     (deleteTargetInCurrentAccount && feeds.some((feed) => feed.id === deleteTargetFeed.id));
 
   const confirmDelete = async () => {
-    if (!deleteTargetFeed || deletePendingRef.current || !isDeleteTargetKnown) {
+    if (
+      !deleteTargetFeed ||
+      deletePendingRef.current ||
+      !isDeleteTargetKnown ||
+      useUiStore.getState().subscriptionsWorkspace?.accountId !== deleteTargetFeed.account_id
+    ) {
       return;
     }
 

@@ -145,7 +145,7 @@ describe("App", () => {
       expect(lazyButton).toHaveAttribute("tabindex", "-1");
     });
 
-    useUiStore.setState({ subscriptionsWorkspace: { kind: "index" }, focusedPane: "content" });
+    useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: null }, focusedPane: "content" });
     rerender(<AppLayout />);
 
     expect(screen.queryByTestId("sliding-pane-tray")).not.toBeInTheDocument();
