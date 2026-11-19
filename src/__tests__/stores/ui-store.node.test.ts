@@ -1392,7 +1392,7 @@ describe("useUiStore", () => {
         },
         keptFeedIds: [],
         deferredFeedIds: [],
-        searchQuery: "do-not-restore",
+        searchQuery: "Example",
       }).success,
     ).toBe(true);
 

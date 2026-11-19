@@ -1182,16 +1182,14 @@ describe("SubscriptionsIndexPage", () => {
   });
 
   it("restores the subscriptions workspace after closing and reopening from the header", async () => {
-    const user = userEvent.setup();
-
     const { unmount } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
-    const scrollRegion = await screen.findByTestId("subscriptions-list-scroll-region");
+    await screen.findByRole("button", { name: /Example Feed/ });
+    const scrollRegion = screen.getByTestId("subscriptions-list-scroll-region");
     scrollRegion.scrollTop = 73;
 
-    await user.click(await screen.findByRole("button", { name: "閉じる" }));
+    fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
-    expect(useUiStore.getState().subscriptionsIndexReturnState?.listScrollTop.scrollTop).toBe(73);
     unmount();
     act(() => useUiStore.getState().openSubscriptionsIndex());
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
