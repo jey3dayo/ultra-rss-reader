@@ -17,6 +17,8 @@ import { useUiStore } from "@/stores/ui-store";
 vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
   FeedEditDialogView: (props: {
     title: string;
+    titleErrorMessage?: string;
+    saveErrorMessages?: readonly string[];
     onTitleChange: (value: string) => void;
     onDisplayModeChange: (value: string) => void;
     urlFields: Array<{
@@ -56,6 +58,8 @@ vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
             onChange={(event) => props.onTitleChange(event.target.value)}
           />
         </label>
+        {props.titleErrorMessage ? <p>{props.titleErrorMessage}</p> : null}
+        {props.saveErrorMessages?.length ? <div role="alert">{props.saveErrorMessages.join(" / ")}</div> : null}
         <button type="button" onClick={() => props.onDisplayModeChange("preview")}>
           Set preview
         </button>
@@ -281,6 +285,8 @@ describe("FeedEditDialog", () => {
       type: "UserVisible",
       message: "folder update failed",
     });
+    expect(screen.getByRole("alert")).toHaveTextContent("Failed to update folder: folder update failed");
+    expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
   it("keeps the dialog open when the display-mode update fails", async () => {
@@ -320,9 +326,13 @@ describe("FeedEditDialog", () => {
       type: "UserVisible",
       message: "display update failed",
     });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Failed to update display settings: display update failed",
+    );
+    expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
-  it("keeps the dialog open and surfaces validation when submitting an empty title", async () => {
+  it("keeps the dialog open and shows the title error in the dialog when submitting an empty title", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     const onOpenChange = vi.fn();
@@ -345,9 +355,14 @@ describe("FeedEditDialog", () => {
     await user.clear(screen.getByLabelText(/title/i));
     await user.click(screen.getByRole("button", { name: /save/i }));
 
-    expect(useUiStore.getState().toastMessage).toMatchObject({ message: "Title is required", severity: "error" });
+    expect(screen.getByText("Title is required")).toBeInTheDocument();
+    expect(useUiStore.getState().toastMessage).toBeNull();
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(calls.find((call) => call.cmd === "rename_feed")).toBeUndefined();
+
+    await user.type(screen.getByLabelText(/title/i), "Renamed Feed");
+
+    expect(screen.queryByText("Title is required")).toBeNull();
   });
 
   it("trims the feed title before validating and renaming", async () => {
@@ -452,6 +467,8 @@ describe("FeedEditDialog", () => {
       type: "UserVisible",
       message: "rename failed",
     });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to rename: rename failed");
+    expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
   it("copies website and feed URLs from the edit dialog", async () => {

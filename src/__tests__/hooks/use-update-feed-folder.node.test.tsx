@@ -167,6 +167,32 @@ describe("useUpdateFeedFolder", () => {
     expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 
+  it("rolls back and rejects without a toast when the caller shows the failure itself", async () => {
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "boom" };
+    seedFeeds();
+    setupTauriMocks((cmd) => {
+      if (cmd === "update_feed_folder") {
+        throw appError;
+      }
+      return undefined;
+    });
+    const onError = vi.fn();
+
+    const { result } = renderHook(() => useUpdateFeedFolder({ notifyOnError: false }), { wrapper });
+
+    await expect(result.current.mutateAsync({ feedId: "feed-1", folderId: "folder-1" }, { onError })).rejects.toEqual(
+      appError,
+    );
+
+    expect(onError).toHaveBeenCalledWith(appError, expect.anything(), expect.anything(), expect.anything());
+    expect(showToastMock).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+      expect.objectContaining({ id: "feed-1", folder_id: null }),
+    ]);
+    expectTauriCommandError(consoleError, "update_feed_folder", appError);
+  });
+
   it("rolls back cached feeds when the folder update fails", async () => {
     seedFeeds();
     const consoleError = suppressConsoleError();

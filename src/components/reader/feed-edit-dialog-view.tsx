@@ -9,6 +9,7 @@ import {
   LabeledControlRow,
   LabeledInputRow,
   LabeledSelectRow,
+  SurfaceCard,
 } from "@/design-system";
 import type { FeedDialogSelectOption } from "./feed-dialog-form.types";
 import type { FeedEditDialogUrlField } from "./feed-edit-dialog.types";
@@ -34,6 +35,8 @@ type FeedEditDialogViewProps = {
   displayMode: string;
   displayModeOptions: FeedDialogSelectOption[];
   urlFields: FeedEditDialogUrlField[];
+  titleErrorMessage?: string;
+  saveErrorMessages?: readonly string[];
   onOpenChange: (open: boolean) => void;
   onTitleChange: (value: string) => void;
   onDisplayModeChange: (value: string) => void;
@@ -82,6 +85,22 @@ function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loa
   );
 }
 
+function SaveErrorAlert({ messages }: { messages: readonly string[] }) {
+  if (messages.length === 0) {
+    return null;
+  }
+
+  return (
+    <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" className="mt-3">
+      {messages.map((message) => (
+        <p key={message} className="text-sm leading-[1.5]">
+          {message}
+        </p>
+      ))}
+    </SurfaceCard>
+  );
+}
+
 export function FeedEditDialogView({
   open,
   title,
@@ -89,6 +108,8 @@ export function FeedEditDialogView({
   displayMode,
   displayModeOptions,
   urlFields,
+  titleErrorMessage,
+  saveErrorMessages = [],
   onOpenChange,
   onTitleChange,
   onDisplayModeChange,
@@ -98,8 +119,6 @@ export function FeedEditDialogView({
   onSubmit,
   onRequestUnsubscribe,
 }: FeedEditDialogViewProps) {
-  const submitDisabled = !title.trim() || loading;
-
   return (
     <FormDialogShell
       open={open}
@@ -108,7 +127,6 @@ export function FeedEditDialogView({
       submitLabel={labels.save}
       submittingLabel={labels.saving}
       loading={loading}
-      submitDisabled={submitDisabled}
       cancelDisabled={loading}
       size="wide"
       contentClassName="sm:max-w-[34rem]"
@@ -127,6 +145,7 @@ export function FeedEditDialogView({
         controlClassName={FEED_EDIT_CONTROL_CLASS_NAME}
         inputClassName={FEED_EDIT_INPUT_CLASS_NAME}
         disabled={loading}
+        errorText={titleErrorMessage}
       />
 
       <LabeledSelectRow
@@ -151,7 +170,9 @@ export function FeedEditDialogView({
         </div>
       ) : null}
 
-      <details data-testid="feed-information" open className="mt-3 border-t border-border/60 pt-2">
+      <SaveErrorAlert messages={saveErrorMessages} />
+
+      <details data-testid="feed-information" className="mt-3 border-t border-border/60 pt-2">
         <summary className="cursor-pointer select-none py-1 text-xs font-medium text-foreground-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
           {labels.feedInformation}
         </summary>

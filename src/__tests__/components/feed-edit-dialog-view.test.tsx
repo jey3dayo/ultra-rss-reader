@@ -86,7 +86,7 @@ describe("FeedEditDialogView", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Tech Blog");
     expect(screen.getByLabelText("Title").closest("form")).toBeInTheDocument();
-    expect(screen.getByTestId("feed-information")).toHaveAttribute("open");
+    expect(screen.getByTestId("feed-information")).not.toHaveAttribute("open");
     expect(screen.getByTestId("feed-information").querySelector("summary")).toHaveTextContent("Feed information");
     expect(screen.getByText("https://example.com")).not.toHaveAttribute("title");
     expect(screen.getByText("https://example.com/feed.xml")).not.toHaveAttribute("title");
@@ -111,6 +111,9 @@ describe("FeedEditDialogView", () => {
       unsubscribeDescription.id,
     );
 
+    await user.click(screen.getByText("Feed information"));
+    expect(screen.getByTestId("feed-information")).toHaveAttribute("open");
+
     const titleInput = screen.getByLabelText("Title");
     titleInput.focus();
 
@@ -133,11 +136,13 @@ describe("FeedEditDialogView", () => {
     expect(onRequestUnsubscribe).toHaveBeenCalledTimes(1);
   });
 
-  it("disables saving for blank titles", () => {
+  it("lets a blank title be submitted and shows the field and save errors where they occur", () => {
     render(
       <FeedEditDialogView
         open={true}
         title="   "
+        titleErrorMessage="Title is required"
+        saveErrorMessages={["Failed to rename: boom", "Failed to update folder: locked"]}
         loading={false}
         displayMode="standard"
         displayModeOptions={[{ value: "standard", label: "Standard" }]}
@@ -177,6 +182,12 @@ describe("FeedEditDialogView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+    const titleInput = screen.getByLabelText("Title");
+    expect(titleInput).toBeInvalid();
+    expect(titleInput.getAttribute("aria-describedby")).toBe(screen.getByText("Title is required").id);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Failed to rename: boom");
+    expect(alert).toHaveTextContent("Failed to update folder: locked");
   });
 });

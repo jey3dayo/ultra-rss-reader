@@ -17,18 +17,25 @@ import type {
   FeedEditDialogController,
   FeedEditDialogControllerParams,
   FeedEditDisplayPreset,
+  FeedEditTitleError,
 } from "../../feed-edit-dialog.types";
-import { type FeedEditorState, submitFeedEdits } from "../../feed-edit-submit";
+import { type FeedEditorState, submitFeedEdits, validateFeedEditTitle } from "../../feed-edit-submit";
 
 type FeedEditDialogState = FeedEditorState<{
   feedSnapshot: FeedDto;
+  titleError: FeedEditTitleError | null;
+  saveErrorMessages: readonly string[];
 }>;
 
 type FeedEditDialogAction =
   | { type: "reset"; feed: FeedDto }
   | { type: "set-title"; value: string }
   | { type: "set-display-preset"; value: FeedEditDisplayPreset }
-  | { type: "set-loading"; value: boolean };
+  | { type: "reject-title"; error: FeedEditTitleError }
+  | { type: "start-save" }
+  | { type: "finish-save" }
+  | { type: "report-save-error"; message: string }
+  | { type: "clear-save-errors" };
 
 function createInitialFeedEditDialogState(feed: FeedDto): FeedEditDialogState {
   return {
@@ -36,6 +43,8 @@ function createInitialFeedEditDialogState(feed: FeedDto): FeedEditDialogState {
     displayPreset: resolveFeedDisplayPreset(feed),
     loading: false,
     feedSnapshot: feed,
+    titleError: null,
+    saveErrorMessages: [],
   };
 }
 
@@ -44,11 +53,19 @@ function feedEditDialogReducer(state: FeedEditDialogState, action: FeedEditDialo
     case "reset":
       return createInitialFeedEditDialogState(action.feed);
     case "set-title":
-      return { ...state, title: action.value };
+      return { ...state, title: action.value, titleError: null, saveErrorMessages: [] };
     case "set-display-preset":
-      return { ...state, displayPreset: action.value };
-    case "set-loading":
-      return { ...state, loading: action.value };
+      return { ...state, displayPreset: action.value, saveErrorMessages: [] };
+    case "reject-title":
+      return { ...state, titleError: action.error, saveErrorMessages: [] };
+    case "start-save":
+      return { ...state, loading: true, titleError: null, saveErrorMessages: [] };
+    case "finish-save":
+      return { ...state, loading: false };
+    case "report-save-error":
+      return { ...state, saveErrorMessages: [...state.saveErrorMessages, action.message] };
+    case "clear-save-errors":
+      return state.saveErrorMessages.length === 0 ? state : { ...state, saveErrorMessages: [] };
     default:
       return state;
   }
@@ -63,7 +80,7 @@ export function useFeedEditDialogController({
 }: FeedEditDialogControllerParams): FeedEditDialogController {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(feedEditDialogReducer, feed, createInitialFeedEditDialogState);
-  const { title, displayPreset, loading, feedSnapshot } = state;
+  const { title, displayPreset, loading, feedSnapshot, titleError, saveErrorMessages } = state;
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     selectedFolderId,
@@ -75,23 +92,34 @@ export function useFeedEditDialogController({
     resetFolderSelection,
     setNewFolderName,
   } = useFolderSelection(feed.folder_id);
+  const initializedFeedIdRef = useRef<string | null>(null);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const { data: folders } = useFolders(feedSnapshot.account_id);
-  const updateFeedFolderMutation = useUpdateFeedFolder();
+  const updateFeedFolderMutation = useUpdateFeedFolder({ notifyOnError: false });
 
+  // Only an open transition or a different feed re-initializes the form; a refetch that
+  // hands back the same feed id must not discard what the user is typing.
   useEffect(() => {
     if (!open) {
+      initializedFeedIdRef.current = null;
       return;
     }
 
+    if (initializedFeedIdRef.current === feed.id) {
+      return;
+    }
+
+    initializedFeedIdRef.current = feed.id;
     dispatch({ type: "reset", feed });
     resetFolderSelection(feed.folder_id);
     scheduleAnimationFrame(() => {
       focusAndSelectInput(inputRef.current);
     });
-  }, [open, feed, feed.folder_id, feed.title, resetFolderSelection]);
+  }, [open, feed, resetFolderSelection]);
+
+  const reportSaveError = (message: string) => dispatch({ type: "report-save-error", message });
 
   const handleCopy = async (value: string) => {
     Result.pipe(
@@ -110,8 +138,10 @@ export function useFeedEditDialogController({
     }
 
     try {
-      if (!title.trim()) {
-        showToast({ message: t("title_required", { defaultValue: "Title is required" }), severity: "error" });
+      const nextTitleError = validateFeedEditTitle(title);
+      if (nextTitleError) {
+        dispatch({ type: "reject-title", error: nextTitleError });
+        focusAndSelectInput(inputRef.current);
         return;
       }
 
@@ -124,7 +154,7 @@ export function useFeedEditDialogController({
         ),
       };
 
-      dispatch({ type: "set-loading", value: true });
+      dispatch({ type: "start-save" });
       try {
         const saved = await submitFeedEdits({
           feed: feedSnapshot,
@@ -132,24 +162,40 @@ export function useFeedEditDialogController({
           displayPreset,
           folderSelection,
           queryClient: qc,
-          showToast,
+          reportError: reportSaveError,
           createFolderErrorMessage: (error) =>
             t("failed_to_create_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }),
           renameErrorMessage: (error) =>
             t("failed_to_rename", { message: localizeUserVisibleAppErrorMessage(error.message) }),
           updateFeedFolder: ({ feedId, folderId }) =>
             updateFeedFolderMutation
-              .mutateAsync({ feedId, folderId })
+              .mutateAsync(
+                { feedId, folderId },
+                {
+                  onError: (error) =>
+                    reportSaveError(
+                      t("failed_to_update_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+                    ),
+                },
+              )
               .then(() => true)
               .catch(() => false),
-          updateDisplaySettings: updateFeedDisplaySettings,
+          updateDisplaySettings: (feedId, readerMode, webPreviewMode) =>
+            updateFeedDisplaySettings(feedId, readerMode, webPreviewMode, {
+              onError: (error) =>
+                reportSaveError(
+                  t("failed_to_update_display_settings", {
+                    message: localizeUserVisibleAppErrorMessage(error.message),
+                  }),
+                ),
+            }),
         });
 
         if (saved) {
           onOpenChange(false);
         }
       } finally {
-        dispatch({ type: "set-loading", value: false });
+        dispatch({ type: "finish-save" });
       }
     } finally {
       releaseOperation();
@@ -160,6 +206,8 @@ export function useFeedEditDialogController({
     title,
     loading,
     displayPreset,
+    titleError,
+    saveErrorMessages,
     inputRef,
     folders,
     setTitle: (value) => dispatch({ type: "set-title", value }),
@@ -172,8 +220,14 @@ export function useFeedEditDialogController({
       isCreatingFolder,
       newFolderName,
       newFolderInputRef,
-      handleFolderChange,
-      setNewFolderName,
+      handleFolderChange: (value) => {
+        dispatch({ type: "clear-save-errors" });
+        handleFolderChange(value);
+      },
+      setNewFolderName: (value) => {
+        dispatch({ type: "clear-save-errors" });
+        setNewFolderName(value);
+      },
     },
   };
 }

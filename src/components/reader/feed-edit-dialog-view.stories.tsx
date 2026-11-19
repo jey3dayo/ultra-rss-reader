@@ -82,6 +82,19 @@ export const Loading: Story = {
   },
 };
 
+export const TitleRequired: Story = {
+  args: {
+    title: "",
+    titleErrorMessage: "Title is required",
+  },
+};
+
+export const SaveFailed: Story = {
+  args: {
+    saveErrorMessages: ["Failed to rename: The database is locked."],
+  },
+};
+
 export const Japanese: Story = {
   args: {
     title: "窓際のトットちゃん",

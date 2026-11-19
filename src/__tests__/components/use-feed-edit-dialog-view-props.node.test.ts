@@ -12,6 +12,8 @@ function createController(overrides: Partial<FeedEditDialogController> = {}): Fe
     title: "Daily Feed",
     loading: false,
     displayPreset: "default",
+    titleError: null,
+    saveErrorMessages: [],
     inputRef: createRef<HTMLInputElement>(),
     folders: [],
     setTitle: vi.fn(),
@@ -102,6 +104,24 @@ describe("useFeedEditDialogViewProps", () => {
 
     expect(controller.handleCopy).toHaveBeenCalledWith("https://example.com");
     expect(controller.handleCopy).toHaveBeenCalledWith("https://example.com/feed.xml");
+  });
+
+  it("maps the title error and save failures for the dialog to show", () => {
+    const controller = createController({ titleError: "required", saveErrorMessages: ["Failed to rename: boom"] });
+
+    const props = buildFeedEditDialogViewProps({
+      open: true,
+      feedSiteUrl: "",
+      feedUrl: "",
+      onOpenChange: vi.fn(),
+      folderLabelId: "folder-label",
+      controller,
+      t,
+      tc,
+    });
+
+    expect(props.titleErrorMessage).toBe(t("title_required"));
+    expect(props.saveErrorMessages).toEqual(["Failed to rename: boom"]);
   });
 
   it("only accepts supported display preset values", () => {

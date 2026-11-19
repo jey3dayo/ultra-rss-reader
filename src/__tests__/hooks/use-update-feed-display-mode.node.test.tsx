@@ -125,6 +125,23 @@ describe("useUpdateFeedDisplaySettings", () => {
     );
   });
 
+  it("hands the failure to onError instead of toasting while still rolling back", async () => {
+    seedFeeds();
+    vi.spyOn(tauriCommands, "updateFeedDisplaySettings").mockResolvedValue(
+      Result.fail({ type: "UserVisible", message: "boom" }),
+    );
+    const onError = vi.fn();
+    const { result } = createHook();
+
+    await expect(result.current("feed-1", "on", "on", { onError })).resolves.toBe(false);
+
+    expect(onError).toHaveBeenCalledWith({ type: "UserVisible", message: "boom" });
+    expect(showToastMock).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+      expect.objectContaining({ id: "feed-1", reader_mode: "inherit", web_preview_mode: "inherit" }),
+    ]);
+  });
+
   it("stops before optimistic update when feed query cancellation rejects", async () => {
     seedFeeds();
     vi.spyOn(queryClient, "cancelQueries").mockRejectedValue(new Error("cancel boom"));

@@ -36,6 +36,8 @@ export function buildFeedEditDialogViewProps({
     loading: controller.loading,
     displayMode: controller.displayPreset,
     displayModeOptions,
+    titleErrorMessage: controller.titleError ? t("title_required") : undefined,
+    saveErrorMessages: controller.saveErrorMessages,
     onOpenChange,
     onTitleChange: controller.setTitle,
     onDisplayModeChange: (value: string) => {

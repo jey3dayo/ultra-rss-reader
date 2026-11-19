@@ -4,7 +4,7 @@ import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tau
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError, FeedDto } from "@/api/tauri-commands";
 import type { SubmitFeedEditsParams } from "@/components/reader/feed-edit-dialog.types";
-import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
+import { submitFeedEdits, validateFeedEditTitle } from "@/components/reader/feed-edit-submit";
 import { queryKeys } from "@/lib/query/query-invalidation";
 
 const feed: FeedDto = {
@@ -32,7 +32,7 @@ function createParams(overrides: Partial<SubmitFeedEditsParams> = {}): SubmitFee
       newFolderName: "",
     },
     queryClient: createTestQueryClient(),
-    showToast: vi.fn(),
+    reportError: vi.fn(),
     createFolderErrorMessage: (error) => `Create folder failed: ${error.message}`,
     renameErrorMessage: (error) => `Rename failed: ${error.message}`,
     updateFeedFolder: vi.fn(async () => true),
@@ -64,13 +64,13 @@ describe("submitFeedEdits", () => {
     expect(updateDisplaySettings).not.toHaveBeenCalled();
   });
 
-  it("returns false and shows a toast when rename fails", async () => {
+  it("returns false and reports the message when rename fails", async () => {
     const consoleError = suppressConsoleError();
     const appError: AppError = {
       type: "UserVisible",
       message: "Name already exists",
     };
-    const showToast = vi.fn();
+    const reportError = vi.fn();
     recorder = createTauriMockCallRecorder((cmd) => {
       if (cmd === "rename_feed") {
         throw appError;
@@ -79,13 +79,13 @@ describe("submitFeedEdits", () => {
     });
     setupTauriMocks(recorder.handler);
 
-    await expect(submitFeedEdits(createParams({ title: "Renamed", showToast }))).resolves.toBe(false);
+    await expect(submitFeedEdits(createParams({ title: "Renamed", reportError }))).resolves.toBe(false);
 
     expect(recorder.calls).toContainEqual({
       cmd: "rename_feed",
       args: { feedId: feed.id, title: "Renamed" },
     });
-    expect(showToast).toHaveBeenCalledWith({ message: "Rename failed: Name already exists", severity: "error" });
+    expect(reportError).toHaveBeenCalledWith("Rename failed: Name already exists");
     expectTauriCommandError(consoleError, "rename_feed", appError);
   });
 
@@ -183,5 +183,15 @@ describe("submitFeedEdits", () => {
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: queryKeys.feeds.root,
     });
+  });
+});
+
+describe("validateFeedEditTitle", () => {
+  it.each(["", "   ", "\u3000"])("requires a title when %j has no visible text", (title) => {
+    expect(validateFeedEditTitle(title)).toBe("required");
+  });
+
+  it("accepts a title with surrounding whitespace", () => {
+    expect(validateFeedEditTitle("  Tech Blog ")).toBeNull();
   });
 });
