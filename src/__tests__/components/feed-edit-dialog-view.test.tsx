@@ -190,4 +190,59 @@ describe("FeedEditDialogView", () => {
     expect(alert).toHaveTextContent("Failed to rename: boom");
     expect(alert).toHaveTextContent("Failed to update folder: locked");
   });
+
+  it.each([
+    { loading: true, expectedCalls: 0 },
+    { loading: false, expectedCalls: 1 },
+  ])("closes on Escape only while not saving (loading=$loading)", async ({ loading, expectedCalls }) => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(
+      <FeedEditDialogView
+        open={true}
+        title="Tech Blog"
+        loading={loading}
+        displayMode="standard"
+        displayModeOptions={[{ value: "standard", label: "Standard" }]}
+        onOpenChange={onOpenChange}
+        onTitleChange={vi.fn()}
+        onDisplayModeChange={vi.fn()}
+        urlFields={[]}
+        folderSelectProps={{
+          labelId: "folder-label",
+          label: "Folder",
+          value: "",
+          options: [{ value: "", label: "No folder" }],
+          canCreateFolder: true,
+          disabled: false,
+          isCreatingFolder: false,
+          newFolderOptionLabel: "New folder",
+          newFolderLabel: "Folder name",
+          newFolderName: "",
+          newFolderPlaceholder: "Enter folder name",
+          onValueChange: vi.fn(),
+          onNewFolderNameChange: vi.fn(),
+        }}
+        labels={{
+          title: "Edit Feed",
+          titleField: "Title",
+          displayMode: "Display Mode",
+          cancel: "Cancel",
+          save: "Save",
+          saving: "Saving",
+          unsubscribe: "Unsubscribe",
+          unsubscribeAction: "Unsubscribe…",
+          feedInformation: "Feed information",
+          unsubscribeDescription: "Articles from this feed will also be deleted.",
+        }}
+        onRequestUnsubscribe={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    await user.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledTimes(expectedCalls);
+  });
 });

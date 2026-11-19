@@ -119,6 +119,14 @@ export function FeedEditDialogView({
   onSubmit,
   onRequestUnsubscribe,
 }: FeedEditDialogViewProps) {
+  // A save failure is shown inside this dialog, so it must stay open until the save settles.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && loading) {
+      return;
+    }
+    onOpenChange(next);
+  };
+
   return (
     <FormDialogShell
       open={open}
@@ -131,7 +139,7 @@ export function FeedEditDialogView({
       size="wide"
       contentClassName="sm:max-w-[34rem]"
       bodyClassName="space-y-0 py-3"
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       onSubmit={onSubmit}
     >
       <LabeledInputRow
