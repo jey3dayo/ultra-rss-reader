@@ -203,6 +203,12 @@ export function SettingsWorkspaceCanvas() {
                       onStartEditingName: () => {},
                       onNameDraftChange: () => {},
                       onCommitName: () => {},
+                      onCancelName: () => {},
+                      saveLabel: "Save",
+                      cancelLabel: "Cancel",
+                      unsavedLabel: "Unsaved changes",
+                      savedLabel: "Saved",
+                      savingLabel: "Saving…",
                       onNameKeyDown: () => {},
                     }}
                     credentialsSection={

@@ -67,6 +67,12 @@ const meta = {
       onStartEditingName: fn(),
       onNameDraftChange: fn(),
       onCommitName: fn(),
+      onCancelName: fn(),
+      saveLabel: "Save",
+      cancelLabel: "Cancel",
+      unsavedLabel: "Unsaved changes",
+      savedLabel: "Saved",
+      savingLabel: "Saving…",
       onNameKeyDown: fn(),
     },
     syncSection: {
