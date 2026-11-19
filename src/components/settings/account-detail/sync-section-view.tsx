@@ -60,32 +60,9 @@ type AccountSelectRowProps = {
   control: AccountSelectControl;
 };
 
-export function AccountSyncSectionView({
-  heading,
-  note,
-  saveNote,
-  syncInterval,
-  syncOnStartup,
-  syncOnWake,
-  keepReadItems,
-  statusRows,
-  syncNowLabel,
-  syncNowSuccessLabel,
-  syncNowSucceeded,
-  syncingLabel,
-  onSyncNow,
-  isSyncing,
-  actionsDisabled,
-  secondaryActionLabel,
-  onSecondaryAction,
-  devCredentialsRecoveryActionLabel,
-  devCredentialsRecoveryLoadingLabel,
-  onDevCredentialsRecoveryAction,
-  isDevCredentialsRecoveryInFlight,
-  errorMessage,
-}: AccountSyncSectionViewProps) {
-  const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight || actionsDisabled);
-  const devCredentialsRecoveryDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight || actionsDisabled);
+export function AccountSyncSectionView(props: AccountSyncSectionViewProps) {
+  const { heading, note, saveNote, syncInterval, syncOnStartup, syncOnWake, keepReadItems, statusRows, errorMessage } =
+    props;
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
@@ -122,39 +99,7 @@ export function AccountSyncSectionView({
           ))}
         </div>
       ) : null}
-      {(onSyncNow || onSecondaryAction || onDevCredentialsRecoveryAction) && (
-        <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end lg:pr-2")}>
-          {onSecondaryAction && secondaryActionLabel ? (
-            <SettingsActionButton size="standalone" onClick={onSecondaryAction} disabled={syncActionDisabled}>
-              {secondaryActionLabel}
-            </SettingsActionButton>
-          ) : null}
-          {onDevCredentialsRecoveryAction && devCredentialsRecoveryActionLabel ? (
-            <SettingsLoadingActionButton
-              size="standalone"
-              onClick={onDevCredentialsRecoveryAction}
-              loading={isDevCredentialsRecoveryInFlight}
-              loadingLabel={devCredentialsRecoveryLoadingLabel}
-              disabled={devCredentialsRecoveryDisabled}
-            >
-              {devCredentialsRecoveryActionLabel}
-            </SettingsLoadingActionButton>
-          ) : null}
-          {onSyncNow ? (
-            <SettingsLoadingActionButton
-              size="standalone"
-              onClick={onSyncNow}
-              loading={isSyncing}
-              loadingLabel={syncingLabel}
-              success={syncNowSucceeded}
-              successLabel={syncNowSuccessLabel}
-              disabled={syncActionDisabled}
-            >
-              {syncNowLabel}
-            </SettingsLoadingActionButton>
-          ) : null}
-        </div>
-      )}
+      <AccountSyncActions {...props} />
       {errorMessage ? (
         <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
           <p className="text-sm leading-[1.5]">{errorMessage}</p>
@@ -162,6 +107,57 @@ export function AccountSyncSectionView({
       ) : null}
     </SettingsSection>
   );
+}
+
+function AccountSyncActions({
+  syncNowLabel,
+  syncNowSuccessLabel,
+  syncNowSucceeded,
+  syncingLabel,
+  onSyncNow,
+  isSyncing,
+  actionsDisabled,
+  secondaryActionLabel,
+  onSecondaryAction,
+  devCredentialsRecoveryActionLabel,
+  devCredentialsRecoveryLoadingLabel,
+  onDevCredentialsRecoveryAction,
+  isDevCredentialsRecoveryInFlight,
+}: AccountSyncSectionViewProps) {
+  const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight || actionsDisabled);
+  return onSyncNow || onSecondaryAction || onDevCredentialsRecoveryAction ? (
+    <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end lg:pr-2")}>
+      {onSecondaryAction && secondaryActionLabel ? (
+        <SettingsActionButton size="standalone" onClick={onSecondaryAction} disabled={syncActionDisabled}>
+          {secondaryActionLabel}
+        </SettingsActionButton>
+      ) : null}
+      {onDevCredentialsRecoveryAction && devCredentialsRecoveryActionLabel ? (
+        <SettingsLoadingActionButton
+          size="standalone"
+          onClick={onDevCredentialsRecoveryAction}
+          loading={isDevCredentialsRecoveryInFlight}
+          loadingLabel={devCredentialsRecoveryLoadingLabel}
+          disabled={syncActionDisabled}
+        >
+          {devCredentialsRecoveryActionLabel}
+        </SettingsLoadingActionButton>
+      ) : null}
+      {onSyncNow ? (
+        <SettingsLoadingActionButton
+          size="standalone"
+          onClick={onSyncNow}
+          loading={isSyncing}
+          loadingLabel={syncingLabel}
+          success={syncNowSucceeded}
+          successLabel={syncNowSuccessLabel}
+          disabled={syncActionDisabled}
+        >
+          {syncNowLabel}
+        </SettingsLoadingActionButton>
+      ) : null}
+    </div>
+  ) : null;
 }
 
 function AccountSelectRow({ control }: AccountSelectRowProps) {
