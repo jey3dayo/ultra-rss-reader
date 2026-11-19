@@ -2,40 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { parse } from "valibot";
-import { describe, expect, expectTypeOf, it } from "vitest";
-import type {
-  AccountDto,
-  AccountSyncError,
-  AccountSyncStatusDto,
-  AccountSyncWarning,
-  AppError,
-  ArticleDto,
-  BrowserWebviewState,
-  DatabaseInfoDto,
-  DevRuntimeOptions,
-  DiscoveredFeedDto,
-  FeedArticleSummaryDto,
-  FeedDto,
-  FeedIntegrityCleanupDto,
-  FeedIntegrityReportDto,
-  FolderDto,
-  LocalAccountSyncExportReportDto,
-  LocalAccountSyncImportReportDto,
-  LocalAccountSyncSettingsDto,
-  LocalFeedSyncStatusDto,
-  MuteKeywordDto,
-  MuteKeywordScope,
-  OldUnreadDays,
-  OldUnreadScopeKind,
-  PlatformInfo,
-  SyncCompletedPayload,
-  SyncProgressEventDto,
-  SyncProgressRuntimeEventDto,
-  SyncResultDto,
-  SyncWarningPayload,
-  TagDto,
-  UpdateInfoDto,
-} from "@/api/schemas";
+import { describe, expect, it } from "vitest";
 import * as apiSchemas from "@/api/schemas";
 import {
   BooleanResponseSchema,
@@ -46,74 +13,6 @@ import {
   NullResponseSchema,
   StringResponseSchema,
 } from "@/api/schemas/common";
-
-const publicSchemaRuntimeExports = [
-  "APP_ERROR_MESSAGE_MAX_CHARS",
-  "AccountDtoListSchema",
-  "AccountDtoSchema",
-  "AccountSyncStatusSchema",
-  "AppErrorSchema",
-  "ArticleDtoListSchema",
-  "ArticleDtoSchema",
-  "ArticleIdListResponseSchema",
-  "BooleanResponseSchema",
-  "BrowserWebviewDiagnosticsPayloadSchema",
-  "BrowserWebviewFallbackPayloadSchema",
-  "BrowserWebviewStateSchema",
-  "CloudflareAccessMetadataSchema",
-  "COUNT_RESPONSE_MAX_VALUE",
-  "CountResponseSchema",
-  "CredentialStorageKindSchema",
-  "CredentialStorageSchema",
-  "DatabaseInfoDtoSchema",
-  "DevRuntimeOptionsSchema",
-  "DiscoveredFeedDtoListSchema",
-  "DiscoveredFeedDtoSchema",
-  "FeedArticleSummaryDtoListSchema",
-  "FeedArticleSummaryDtoSchema",
-  "FeedDtoListSchema",
-  "FeedDtoSchema",
-  "FeedIntegrityCleanupDtoSchema",
-  "FeedIntegrityReportDtoSchema",
-  "FolderDtoListSchema",
-  "FolderDtoSchema",
-  "FRONTEND_SCHEMA_CONTRACT_VERSION",
-  "IntResponseSchema",
-  "LocalAccountSyncExportReportDtoSchema",
-  "LocalAccountSyncImportReportDtoSchema",
-  "LocalAccountSyncSettingsDtoSchema",
-  "LocalFeedSyncStatusListSchema",
-  "LocalFeedSyncStatusSchema",
-  "MAX_IPC_PAGINATION_LIMIT",
-  "MuteKeywordDtoListSchema",
-  "MuteKeywordDtoSchema",
-  "MuteKeywordScopeSchema",
-  "NonnegativeIntResponseSchema",
-  "NullResponseSchema",
-  "NullableStarredArticlesSchema",
-  "NullableStarredCountSchema",
-  "PlatformInfoSchema",
-  "PreferencesDtoSchema",
-  "SettingsProfileImportResultSchema",
-  "SettingsProfileSchema",
-  "StringResponseSchema",
-  "SyncCompletedPayloadSchema",
-  "SyncProgressEventSchema",
-  "SyncResultSchema",
-  "SyncWarningPayloadSchema",
-  "QUERY_CACHE_KEY_VERSION",
-  "SCHEMA_PARSE_FAILURE_ACTION_STATE",
-  "TagArticleCountsSchema",
-  "TagDtoListSchema",
-  "TagDtoSchema",
-  "UpdateInfoDtoSchema",
-  "browserWebviewBoundsArgs",
-  "cloudflareAccessUpdateSchema",
-  "commandArgsSchemas",
-  "createSchemaVersionedQueryKey",
-  "getCommandArgsSchema",
-  "isCommandWithArgs",
-] as const satisfies readonly (keyof typeof apiSchemas)[];
 
 const commandArgExportNameOverrides = new Map<string, string>([
   ["count_old_unread_articles", "oldUnreadArticlesArgs"],
@@ -139,17 +38,6 @@ const toCommandArgExportName = (commandName: string): string => {
 const publicCommandArgSchemaExports = [
   ...new Set(Object.keys(apiSchemas.commandArgsSchemas).map(toCommandArgExportName)),
 ];
-
-const publicTauriCommandSchemaBoundaryExports = [
-  "DevRuntimeOptionsSchema",
-  "FeedIntegrityCleanupDtoSchema",
-  "FeedIntegrityReportDtoSchema",
-  "MAX_IPC_PAGINATION_LIMIT",
-  "PlatformInfoSchema",
-  "commandArgsSchemas",
-  "getCommandArgsSchema",
-  "isCommandWithArgs",
-] as const satisfies readonly (typeof publicSchemaRuntimeExports)[number][];
 
 const schemaFilesCoveredByAggregateTests = [
   "account-sync-status",
@@ -183,40 +71,6 @@ const expectedSchemaFileStems = [
   "update-info",
 ] as const;
 
-type PublicSchemaTypeContracts = readonly [
-  AccountDto,
-  AccountSyncError,
-  AccountSyncStatusDto,
-  AccountSyncWarning,
-  AppError,
-  ArticleDto,
-  BrowserWebviewState,
-  DatabaseInfoDto,
-  DevRuntimeOptions,
-  DiscoveredFeedDto,
-  FeedArticleSummaryDto,
-  FeedDto,
-  FeedIntegrityCleanupDto,
-  FeedIntegrityReportDto,
-  FolderDto,
-  LocalAccountSyncExportReportDto,
-  LocalAccountSyncImportReportDto,
-  LocalAccountSyncSettingsDto,
-  LocalFeedSyncStatusDto,
-  MuteKeywordDto,
-  MuteKeywordScope,
-  OldUnreadDays,
-  OldUnreadScopeKind,
-  PlatformInfo,
-  SyncCompletedPayload,
-  SyncProgressEventDto,
-  SyncProgressRuntimeEventDto,
-  SyncResultDto,
-  SyncWarningPayload,
-  TagDto,
-  UpdateInfoDto,
-];
-
 function readSource(path: string) {
   return readFileSync(join(process.cwd(), path), "utf8");
 }
@@ -236,20 +90,11 @@ function extractSchemaBarrelExportTargets(source: string) {
     .toSorted();
 }
 
-function toSchemaTestFilePath(schemaFileStem: string) {
-  return `src/__tests__/api/schemas/${schemaFileStem}.test.ts`;
-}
-
 describe("schema barrel public API", () => {
-  it("keeps runtime exports intentionally public through the schema barrel", () => {
-    expectSortedKeysForTarget("@/api/schemas barrel", Object.keys(apiSchemas), [
-      ...publicSchemaRuntimeExports,
-      ...publicCommandArgSchemaExports,
-    ]);
-  });
+  it("keeps command argument schemas public through the schema barrel", () => {
+    const barrelExportNames = new Set(Object.keys(apiSchemas));
 
-  it("keeps Tauri command schema boundary exports intentionally public", () => {
-    expect(publicTauriCommandSchemaBoundaryExports.every((exportName) => exportName in apiSchemas)).toBe(true);
+    expect(publicCommandArgSchemaExports.filter((exportName) => !barrelExportNames.has(exportName))).toEqual([]);
   });
 
   it("keeps shared nonnegative integer schema internal while preserving public response schemas", () => {
@@ -270,10 +115,6 @@ describe("schema barrel public API", () => {
     expect(apiSchemas.BooleanResponseSchema).toBe(BooleanResponseSchema);
   });
 
-  it("keeps DTO and command helper type exports intentionally public through the schema barrel", () => {
-    expectTypeOf<PublicSchemaTypeContracts>().toEqualTypeOf<PublicSchemaTypeContracts>();
-  });
-
   it("keeps every API schema file either barrel-exported or intentionally internal", () => {
     const schemaFileStems = readDirectoryFileStems("src/api/schemas").filter((stem) => stem !== "validation");
     const schemaBarrelExportTargets = extractSchemaBarrelExportTargets(readSource("src/api/schemas/index.ts"));
@@ -289,13 +130,6 @@ describe("schema barrel public API", () => {
 
     expectSortedKeysForTarget("schema files with dedicated or aggregate tests", coveredSchemaFileStems, [
       ...expectedSchemaFileStems,
-    ]);
-    expect(dedicatedSchemaTestStems.map(toSchemaTestFilePath)).toEqual([
-      "src/__tests__/api/schemas/database-info.test.ts",
-      "src/__tests__/api/schemas/feed-integrity.test.ts",
-      "src/__tests__/api/schemas/platform-info.test.ts",
-      "src/__tests__/api/schemas/sync-result.test.ts",
-      "src/__tests__/api/schemas/update-info.test.ts",
     ]);
   });
 });

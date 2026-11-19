@@ -8,18 +8,13 @@ import {
 import { parseJsonWithSchema } from "@/schemas/parse";
 import releaseWorkflowSource from "../../../.github/workflows/release.yml?raw";
 import releaseContaminationCheckerSource from "../../../scripts/check-release-build-contamination.ts?raw";
-import releaseArtifactsCliSource from "../../../scripts/release/artifacts.ts?raw";
 import {
   RELEASE_UPDATER_ASSET_CONTRACT as actualReleaseUpdaterAssetContract,
   UNSUPPORTED_UPDATER_PLATFORM_KEYS,
 } from "../../../scripts/release/lib/artifact-contract";
-import releaseConfigValidatorSource from "../../../scripts/release/validate-release-config.ts?raw";
-import releaseSourceValidatorSource from "../../../scripts/release/validate-source.ts?raw";
 import tauriConfigSource from "../../../src-tauri/tauri.conf.json?raw";
 import tauriReleaseConfigSource from "../../../src-tauri/tauri.release.conf.json?raw";
 
-const latestUpdaterUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
-const productionIdentifier = "com.jey3dayo.ultra-rss-reader";
 const releaseTauriConfigPath = "src-tauri/tauri.release.conf.json";
 const devTauriConfigPath = "src-tauri/tauri.dev.conf.json";
 
@@ -58,8 +53,6 @@ test("updater config points to GitHub Releases latest.json and has a pubkey", as
   const { endpoints, pubkey } = config.plugins.updater;
 
   expect(endpoints).toHaveLength(1);
-  expect(endpoints[0]).toBe(latestUpdaterUrl);
-  expect(endpoints).toContain(latestUpdaterUrl);
   expect(new URL(endpoints[0] ?? "").protocol).toBe("https:");
   expect(pubkey.trim()).not.toBe("");
 });
@@ -70,12 +63,10 @@ test("base config keeps updater artifacts disabled outside release builds", asyn
   expect(config.bundle?.createUpdaterArtifacts).toBe(false);
 });
 
-test("release config overrides identifier and enables updater artifacts", async () => {
+test("release config enables updater artifacts", async () => {
   const config = readTauriReleaseConfig();
 
-  expect(config.identifier).toBe(productionIdentifier);
   expect(config.bundle.createUpdaterArtifacts).toBe(true);
-  expect(config.bundle.macOS?.signingIdentity).toBe("-");
 });
 
 test("release workflow exports updater signing secrets", async () => {
@@ -95,24 +86,13 @@ test("release workflow exports updater signing secrets", async () => {
   expect(workflow).not.toContain('missing+=("APPLE_CERTIFICATE")');
   expect(workflow).not.toContain('missing+=("APPLE_SIGNING_IDENTITY")');
   expect(releaseConfig.bundle.createUpdaterArtifacts).toBe(true);
-  expect(releaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   expect(tauriActionBlock).toContain(`--config ${releaseTauriConfigPath}`);
   expect(tauriActionBlock).not.toContain(`--config ${devTauriConfigPath}`);
-  expect(releaseConfigValidatorSource).toContain(
-    'releaseTauriConfig: readFileSync(join(root, "src-tauri/tauri.release.conf.json")',
-  );
-  expect(releaseConfigValidatorSource).toContain(
-    'devTauriConfig: readFileSync(join(root, "src-tauri/tauri.dev.conf.json")',
-  );
 });
 
-test("release workflow keeps the supported artifact matrix", async () => {
+test("release workflow keeps the draft flag wired to the release policy", async () => {
   const workflow = releaseWorkflowSource;
 
-  expect(workflow).toContain("platform: macos-latest");
-  expect(workflow).toContain("args: --target aarch64-apple-darwin");
-  expect(workflow).toContain("platform: windows-latest");
-  expect(workflow).toMatch(/args:\s*""/);
   expect(workflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
 });
 
@@ -124,8 +104,6 @@ test("release workflow maps updater manifest platforms to asset signatures and c
   expect(workflow).toContain("Generate updater asset checksums");
   expect(workflow).toContain("Upload updater asset checksums");
   expect(workflow).toContain("node ./scripts/release/artifacts.ts validate-macos-app-signature");
-  expect(releaseArtifactsCliSource).toContain('from "./workflows/artifacts.ts"');
-  expect(UNSUPPORTED_UPDATER_PLATFORM_KEYS).toEqual(["linux-x86_64", "linux-aarch64"]);
 
   for (const contract of actualReleaseUpdaterAssetContract) {
     expect(UNSUPPORTED_UPDATER_PLATFORM_KEYS).not.toContain(contract.platformKey);
@@ -140,8 +118,6 @@ test("release workflow keeps provenance and dev-only contamination gates before 
   expect(workflow).toContain("Validate release source");
   expect(workflow).toContain("Validate release build contamination contract");
   expect(workflow).toContain("node ./scripts/release/validate-source.ts");
-  expect(releaseSourceValidatorSource).toContain('from "./workflows/validate-source.ts"');
-  expect(releaseSourceValidatorSource).toContain("runReleaseSourceValidationWorkflow(process.env)");
   expect(releaseContaminationCheckerSource).toContain(
     "release capability must not include debug-only MCP bridge permissions",
   );

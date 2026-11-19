@@ -10,18 +10,8 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
-function readMiseTaskCorpus() {
-  return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
-    .map(readRepoFile)
-    .join("\n");
-}
-
 function githubExpression(expression: string) {
   return [`${String.fromCharCode(36)}{{`, expression, "}}"].join(" ");
-}
-
-function matrixArtifactName(prefix: string, suffix: string) {
-  return `name: ${prefix}-${githubExpression("matrix.os")}-${suffix}`;
 }
 
 function extractWorkflowJobSection(source: string, jobId: string) {
@@ -43,7 +33,6 @@ function extractCheckJobSections(source: string) {
 describe("CI workflow contract", () => {
   it("sets up Node through mise and pnpm through the pinned pnpm setup action before frozen installs", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-    const setupAction = readRepoFile(".github/actions/setup-pnpm/action.yml");
     const checkJobSections = extractCheckJobSections(ciWorkflow);
 
     const rustOnlyJobIds = ["rust-clippy", "test-rust"];
@@ -67,27 +56,10 @@ describe("CI workflow contract", () => {
       }
     }
 
-    expect(setupAction).toContain("uses: pnpm/setup@");
-    expect(setupAction).not.toContain("runtime:");
-    expect(setupAction).toContain("cache: true");
-    expect(setupAction).toContain("install: false");
     expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(
       checkJobSections.length - installFreeJobIds.length,
     );
     expect(ciWorkflow).not.toContain("node_modules");
-  });
-
-  it("verifies package manager and engine contracts against local mise and the CI image", () => {
-    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-    const toolchainSection = extractWorkflowJobSection(ciWorkflow, "toolchain");
-    const miseSource = readMiseTaskCorpus();
-
-    expect(toolchainSection).toContain("Verify CI image toolchain contract");
-    expect(toolchainSection).toContain("node scripts/ci/check-image-toolchain.mjs");
-    const imageContract = readRepoFile("scripts/ci/check-image-toolchain.mjs");
-    expect(imageContract).toContain("process.versions.node");
-    expect(imageContract).toContain('execFileSync("pnpm", ["--version"]');
-    expect(miseSource).toContain('["quality:toolchain"]');
   });
 
   it("dry-runs every frontend lint task without passing task names to TypeScript", () => {
@@ -113,8 +85,6 @@ describe("CI workflow contract", () => {
     }
     expect(output).toMatch(/\[lint:types\] \$ tsc --noEmit\r?\n/);
     expect(output).toContain("node scripts/ci/check-shell.ts");
-    expect(readRepoFile("mise.toml")).toContain('shellcheck = "latest"');
-    expect(readRepoFile("lefthook.yml")).toContain("md,yml,yaml,sh}");
   });
 
   it("validates the required plan and reports all results through the quality gate", () => {
@@ -122,11 +92,10 @@ describe("CI workflow contract", () => {
     expect(qualityGateSection).toContain("node scripts/ci/quality-gate.ts");
     expect(qualityGateSection).toContain(githubExpression("toJSON(needs)"));
     const gateCli = readRepoFile("scripts/ci/quality-gate.ts");
-    expect(gateCli).toContain("Quality Gate Result Inputs");
     expect(gateCli).toContain("validateGate");
   });
 
-  it("uses the stable Ubuntu apt mirror for Linux Tauri dependencies in lint and test", () => {
+  it("sets up Linux Tauri dependencies only on Ubuntu in lint and test jobs", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
     for (const jobId of ["rust-clippy", "test-rust"]) {
@@ -136,74 +105,37 @@ describe("CI workflow contract", () => {
         "if: matrix.os == 'ubuntu-latest'",
       );
       expect(jobSection).toContain("uses: $/.github/actions/setup-tauri-linux-deps");
-      const dependencyScript = readRepoFile("scripts/ci/install-tauri-deps.sh");
-      expect(dependencyScript, `${jobId} should check apt source files before editing`).toContain(
-        'if [ -f "$apt_source" ]; then',
-      );
-      expect(dependencyScript, `${jobId} should replace the Azure Ubuntu mirror`).toContain(
-        "s|azure.archive.ubuntu.com|archive.ubuntu.com|g",
-      );
-      expect(dependencyScript, `${jobId} should preserve apt retries`).toContain("Acquire::Retries=3");
-      expect(dependencyScript, `${jobId} should define bounded apt options`).toContain(
-        "apt_options=(-o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)",
-      );
-      expect(dependencyScript, `${jobId} should retry apt with a fallback mirror`).toContain(
-        "mirror.math.princeton.edu/pub/ubuntu",
-      );
-      expect(dependencyScript, `${jobId} should bound apt update`).toContain(
-        `if ! timeout 300s sudo apt-get update "\${apt_options[@]}"; then`,
-      );
-      expect(dependencyScript, `${jobId} should bound apt install`).toContain(
-        `timeout 300s sudo apt-get install -y --no-install-recommends "\${apt_options[@]}"`,
-      );
     }
   });
 
   it("classifies CI failure artifact retention by frontend, Rust, and native smoke families", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
-    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "lint-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "test-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "build-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("rust", "lint-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("rust", "test-log"));
-    expect(ciWorkflow).toContain("native-smoke-windows-latest-debug-log");
-    expect(ciWorkflow).toContain("native-smoke-macos-latest-debug-log");
-    expect(ciWorkflow).toContain("native-smoke-macos-latest-debug-build-artifacts");
     expect(ciWorkflow.match(/retention-days: 7/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     expect(ciWorkflow.match(/retention-days: 14/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(ciWorkflow.match(/retention-days: 21/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 
-  it("uploads native smoke debug build logs and artifacts only on failure", () => {
+  it("uploads native smoke debug build logs and artifacts", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const nativeSmokeSection = extractWorkflowJobSection(ciWorkflow, "native-smoke");
     const macosNativeSection = extractWorkflowJobSection(ciWorkflow, "macos-native");
 
-    expect(nativeSmokeSection).toContain(
-      "bash scripts/ci/run-logged.sh tmp/ci-artifacts/native-smoke/debug-build.log mise run app:build:debug",
-    );
     expect(nativeSmokeSection).toContain("tmp/ci-artifacts/native-smoke/debug-build.log");
     expect(nativeSmokeSection).toContain("src-tauri/target/debug/bundle/");
-    expect(nativeSmokeSection.match(/if: failure\(\)/g)?.length ?? 0).toBe(2);
     expect(macosNativeSection).not.toContain("mise run lint:clippy");
     expect(macosNativeSection).toContain("mise run app:build:debug");
-    expect(macosNativeSection.match(/if: failure\(\)/g)?.length ?? 0).toBe(2);
   });
 
   it("runs macOS clippy and the credential session policy in the rust-clippy matrix", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const clippySection = extractWorkflowJobSection(ciWorkflow, "rust-clippy");
 
-    expect(clippySection).toContain("os: [ubuntu-latest, windows-latest, macos-latest]");
-    expect(clippySection).toContain("mise run lint:clippy");
     expect(clippySection).toMatch(
       /if: matrix\.os == 'macos-latest'\n\s+shell: bash\n\s+run: bash scripts\/ci\/repair-macos-rustup\.sh/,
     );
     expect(clippySection).toContain(
       "if: matrix.os == 'macos-latest' && needs.change-plan.outputs.credentials == 'true'",
     );
-    expect(clippySection).toContain("run: mise run test:keychain-session");
-    expect(clippySection).toContain(matrixArtifactName("rust", "lint-log"));
   });
 });

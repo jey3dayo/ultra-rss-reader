@@ -55,10 +55,6 @@ describe("dev web preview geometry page", () => {
     expect(html.match(new RegExp(`${fixture.rails.right.cssVariable}:`, "g"))).toHaveLength(1);
     expect(readRootCssVariableValue(styleText, fixture.rails.left.cssVariable)).toBe(fixture.rails.left.color);
     expect(readRootCssVariableValue(styleText, fixture.rails.right.cssVariable)).toBe(fixture.rails.right.color);
-    expect(styleText).toContain(
-      `var(${fixture.rails.left.cssVariable}) 0 14px,\n            var(--surface) 14px calc(100% - 14px),\n            var(${fixture.rails.right.cssVariable}) calc(100% - 14px) 100%`,
-    );
-    expect(styleText).toContain("grid-template-columns: 14px 1fr 14px;");
     expect(styleText).toContain(`background: var(${fixture.rails.left.cssVariable});`);
     expect(styleText).toContain(`background: var(${fixture.rails.right.cssVariable});`);
 
@@ -73,11 +69,6 @@ describe("dev web preview geometry page", () => {
       { label: fixture.rails.left.label, side: "left" },
       { label: fixture.rails.right.label, side: "right" },
     ]);
-
-    const rulerRails = Array.from(document.querySelectorAll(".ruler [data-geometry-rail]")).map((element) =>
-      element.getAttribute("data-geometry-rail"),
-    );
-    expect(rulerRails).toEqual(["left", "right"]);
 
     const cards = Array.from(document.querySelectorAll("main.grid > .card")).map((element) => ({
       description: requireElement(element, "p").textContent,

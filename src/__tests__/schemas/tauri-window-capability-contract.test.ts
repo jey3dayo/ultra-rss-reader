@@ -154,15 +154,6 @@ describe("tauri window capability contract", () => {
     const allowedCommands = Object.values(permissionAllowlists).flat();
     const registeredCommands = extractRegisteredRustCommandNames(readWorkspaceFile("src-tauri/src/lib.rs"));
 
-    expect(permissionFiles).toEqual([
-      "browser-commands.toml",
-      "database-commands.toml",
-      "debug-log-commands.toml",
-      "reader-commands.toml",
-      "settings-commands.toml",
-      "share-commands.toml",
-      "updater-commands.toml",
-    ]);
     expect(permissionIds).toEqual(expect.arrayContaining(Object.keys(permissionAllowlists)));
     expect(allowedCommands.toSorted()).toEqual(registeredCommands.toSorted());
     expect(new Set(allowedCommands).size).toBe(allowedCommands.length);

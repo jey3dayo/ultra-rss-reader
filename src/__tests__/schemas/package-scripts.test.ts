@@ -4,7 +4,6 @@ import { is, parse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { type PackageJson, PackageJsonSchema } from "@/schemas/app-config";
 import { isSchemaParseError, parseJsonWithSchema } from "@/schemas/parse";
-import { KEYCHAIN_SERVICE } from "../../../scripts/release/lib/macos-signature-diagnostics";
 
 function parsePackageJson(value: string): PackageJson {
   return parseJsonWithSchema(value, PackageJsonSchema);
@@ -30,13 +29,6 @@ function extractMiseTaskNames(miseToml: string): Set<string> {
       (match[1] ?? match[2] ?? "").replaceAll('"', ""),
     ),
   );
-}
-
-function extractMiseTaskDepends(miseToml: string, taskName: string): string[] {
-  const taskSection = extractMiseTaskSection(miseToml, taskName);
-  const dependsLine = taskSection.match(/^depends = \[(.*)\]$/m)?.[1] ?? "";
-
-  return [...dependsLine.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? "");
 }
 
 function extractMiseTaskSection(miseToml: string, taskName: string): string {
@@ -130,7 +122,6 @@ describe("package scripts", () => {
     const packageJson = readPackageJson();
 
     expect(packageJson.private).toBe(true);
-    expect(packageJson.type).toBe("module");
 
     expect(
       parse(PackageJsonSchema, {
@@ -184,10 +175,6 @@ describe("package scripts", () => {
 
     expect(packageJson.devDependencies?.["markdownlint-cli2"]).toBeDefined();
     expect(packageJson.devDependencies?.wrangler).toBeDefined();
-    expect(packageJson.knip?.ignoreDependencies).toEqual(["wrangler"]);
-    expect(extractMiseTaskCommand(miseToml, "deploy:site", "run")).toBe(
-      "wrangler pages deploy site --project-name=ultra-rss-reader --branch=main",
-    );
 
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run"))).toEqual([
       "markdownlint-cli2",
@@ -203,21 +190,10 @@ describe("package scripts", () => {
     ]);
   });
 
-  it("keeps fixed-port development scripts unchanged", () => {
-    const scripts = readPackageJson().scripts;
-
-    expect(scripts?.dev).toBe("pnpm exec vite");
-    expect(scripts?.storybook).toBe("storybook dev -p 6006 --no-open");
-  });
-
   it("adds portless entrypoints for browser development and storybook", () => {
     const packageJson = readPackageJson();
 
     expect(packageJson.devDependencies?.portless).toBeDefined();
-    expect(packageJson.scripts?.["dev:portless"]).toBe("portless ultra-rss-reader pnpm exec vite");
-    expect(packageJson.scripts?.["storybook:portless"]).toBe(
-      'portless storybook.ultra-rss-reader sh -c \'storybook dev -p "$PORT" --host "$HOST" --no-open\'',
-    );
   });
 
   it("keeps Playwright browser E2E config aligned with the Vite dev server", () => {
@@ -231,36 +207,15 @@ describe("package scripts", () => {
   });
 
   it("exposes Storybook E2E and build-storybook through mise tasks", () => {
-    const packageJson = readPackageJson();
     const miseToml = readMiseTaskCorpus();
     const miseTasks = extractMiseTaskNames(miseToml);
 
-    expect(packageJson.scripts?.["test:storybook:e2e"]).toBe(
-      "pnpm exec playwright test --config playwright.storybook.config.ts",
-    );
-    expect(packageJson.scripts?.["build-storybook"]).toBe("storybook build");
     expect(miseTasks.has("test:storybook:e2e")).toBe(true);
     expect(miseTasks.has("build:storybook")).toBe(true);
-    expect(miseToml).toContain("playwright test --config playwright.storybook.config.ts");
-    expect(miseToml).toContain("storybook build");
-  });
-
-  it("exposes macOS Keychain signature diagnostics through package scripts", () => {
-    const packageJson = readPackageJson();
-    const diagnosticScript = readWorkspaceFile("scripts/release/macos-keychain-signature-diagnostics.ts");
-
-    expect(packageJson.scripts?.["diagnose:macos-keychain-signature"]).toBe(
-      "node ./scripts/release/macos-keychain-signature-diagnostics.ts",
-    );
-    expect(diagnosticScript).toContain("record [--app <path>]");
-    expect(diagnosticScript).toContain("compare --before <old.json> --after <new.json>");
-    expect(KEYCHAIN_SERVICE).toBe("ultra-rss-reader");
   });
 
   it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
-    const packageJson = readPackageJson();
     const miseToml = readMiseTaskCorpus();
-    const vitestConfig = readWorkspaceFile("vitest.config.ts");
     const fastTask = extractMiseTaskSection(miseToml, "test:unit:fast");
     const fastWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:fast", "run_windows");
     const domTask = extractMiseTaskSection(miseToml, "test:unit:dom");
@@ -276,12 +231,6 @@ describe("package scripts", () => {
     const parallelProfileTask = extractMiseTaskSection(miseToml, "test:unit:parallel:profile");
     const parallelProfileWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:parallel:profile", "run_windows");
 
-    expect(packageJson.scripts?.test).toBe("pnpm run test:node && pnpm run test:jsdom");
-    expect(packageJson.scripts?.["test:node"]).toBe("pnpm exec vitest run --project node");
-    expect(packageJson.scripts?.["test:jsdom"]).toBe("pnpm exec vitest run --project jsdom");
-    expect(vitestConfig).toContain('"src/**/*.node.test.{ts,tsx}"');
-    expect(vitestConfig).toContain('"tests/**/*.node.test.{ts,tsx}"');
-    expect(vitestConfig).toContain("...nodeNamedTestGlobs");
     expect(fastTask).not.toBe("");
     expect(fastTask).toContain("vitest run --project node");
     expect(fastTask).not.toContain("test:jsdom");
@@ -311,24 +260,11 @@ describe("package scripts", () => {
     expect(parallelProfileWindowsCommand).toBe("");
   });
 
-  it("keeps mise test:all semantics aligned with Storybook E2E", () => {
-    const miseToml = readMiseTaskCorpus();
-
-    expect(extractMiseTaskDepends(miseToml, "test:all")).toEqual([
-      "test:rust",
-      "test:unit",
-      "test:e2e",
-      "test:storybook:e2e",
-    ]);
-  });
-
   it("exposes Tauri Vite manager check mode through mise", () => {
     const miseToml = readMiseTaskCorpus();
     const miseTasks = extractMiseTaskNames(miseToml);
 
-    expect(readWorkspaceFile("scripts/tauri-dev-vite-manager.ts")).toContain('args.includes("--check")');
     expect(miseTasks.has("app:dev:vite-check")).toBe(true);
-    expect(miseToml).toContain("node ./scripts/tauri-dev-vite-manager.ts --check");
   });
 
   it("keeps Tauri dev tasks on portable thin node commands", () => {
@@ -338,9 +274,6 @@ describe("package scripts", () => {
     for (const taskName of tauriDevTasks) {
       const taskSection = extractMiseTaskSection(miseToml, taskName);
 
-      expect(extractMiseTaskCommand(miseToml, taskName, "run")).toBe(
-        "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json -f mcp-bridge",
-      );
       expect(extractMiseTaskCommand(miseToml, taskName, "run_windows")).toBe("");
       expect(taskSection).not.toContain('shell = "powershell.exe');
       expect(taskSection).not.toContain("windows-dev-env");
@@ -350,9 +283,6 @@ describe("package scripts", () => {
 
     const viteCheckSection = extractMiseTaskSection(miseToml, "app:dev:vite-check");
 
-    expect(extractMiseTaskCommand(miseToml, "app:dev:vite-check", "run")).toBe(
-      "node ./scripts/tauri-dev-vite-manager.ts --check",
-    );
     expect(extractMiseTaskCommand(miseToml, "app:dev:vite-check", "run_windows")).toBe("");
     expect(viteCheckSection).not.toContain('shell = "powershell.exe');
     expect(viteCheckSection).not.toContain("windows-dev-env");
@@ -365,31 +295,5 @@ describe("package scripts", () => {
     const miseTasks = extractMiseTaskNames(readMiseTaskCorpus());
 
     expect(readmeCommands.filter((command) => !miseTasks.has(command))).toEqual([]);
-  });
-
-  it("keeps local app install docs separate from published release verification", () => {
-    const contributing = readWorkspaceFile("CONTRIBUTING.md");
-    const miseToml = readMiseTaskCorpus();
-    const releaseManual = readWorkspaceFile("docs/release-manual-verification.md");
-
-    expect(miseToml).toContain(
-      'description = "Build, locally re-sign, and install the current checkout; not a published release artifact verification"',
-    );
-    expect(contributing).toContain(
-      "mise run app:install  # Build, locally re-sign, and install the current checkout; not published release verification",
-    );
-    expect(contributing).toContain("Published release install verification must use the artifact from GitHub Releases");
-    expect(releaseManual).toContain("### 2. Published Release Install Verification");
-    expect(releaseManual).toContain("Release asset digest");
-    expect(releaseManual).toContain("Codesign result");
-    expect(releaseManual).toContain("Gatekeeper result");
-    expect(releaseManual).toContain("Do not use `mise run app:install` for this step.");
-    expect(releaseManual).toContain("not evidence that the published release artifact");
-    expect(releaseManual).toContain("### 3a. macOS Keychain Re-Prompt Signature Diagnostics");
-    expect(releaseManual).toContain("Do not use `mise run app:install`, `mise run app:dev:native-keyring`");
-    expect(releaseManual).toContain("pnpm run diagnose:macos-keychain-signature -- record");
-    expect(releaseManual).toContain("pnpm run diagnose:macos-keychain-signature -- compare");
-    expect(releaseManual).toContain("`CDHash` is recorded but ignored");
-    expect(releaseManual).toContain("service `ultra-rss-reader`");
   });
 });

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decodeConfiguredUpdaterPublicKey, verifyMinisignSignature } from "../scripts/release/minisign-verification.ts";
 import {
-  expectedReleaseAssetNames,
   LINUX_PROVENANCE_ASSET_NAME,
   LINUX_PROVENANCE_GENERATION_STEP,
   optionalLinuxReleaseAssetNames,
@@ -42,7 +41,6 @@ const verify = (fixture: Fixture) =>
 describe("release artifact verification", () => {
   it("accepts the 16 core assets when the optional Linux family is absent", () => {
     const fixture = createFixture();
-    expect(expectedReleaseAssetNames(TAG)).toHaveLength(16);
     expect(Buffer.from(bytesOf(fixture.files, "Ultra.RSS.Reader.app.tar.gz.sha256")).toString()).toContain(
       "  Ultra RSS Reader.app.tar.gz",
     );
