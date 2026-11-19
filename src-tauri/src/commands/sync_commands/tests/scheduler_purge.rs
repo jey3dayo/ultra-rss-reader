@@ -442,7 +442,17 @@ fn purge_old_articles_failure_does_not_change_sync_result_contract() {
     }));
     assert!(poison_result.is_err());
 
-    purge_old_articles(&db);
+    // The sync result is computed before purge runs, and purge is a best-effort
+    // post-step (see the plan_finish call sites): a purge failure — here a
+    // poisoned DB lock — must stay contained inside purge_old_articles and
+    // never propagate into the sync path that produced the result.
+    let purge_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        purge_old_articles(&db);
+    }));
+    assert!(
+        purge_result.is_ok(),
+        "purge failure must not propagate into the sync result path"
+    );
 }
 
 #[tokio::test]

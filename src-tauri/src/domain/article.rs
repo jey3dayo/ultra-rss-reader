@@ -85,8 +85,23 @@ mod tests {
 
     #[test]
     fn guid_takes_precedence() {
-        let id = generate_entry_id("acc1", Some("guid-123"), "http://feed.com", None, None);
-        assert_eq!(id.0.len(), 64);
+        let with_guid = generate_entry_id(
+            "acc1",
+            Some("guid-123"),
+            "http://feed.com",
+            Some("http://article.com/1"),
+            Some("My Title"),
+        );
+        let guid_only = generate_entry_id("acc1", Some("guid-123"), "http://feed.com", None, None);
+        let url_based = generate_entry_id(
+            "acc1",
+            None,
+            "http://feed.com",
+            Some("http://article.com/1"),
+            Some("My Title"),
+        );
+        assert_eq!(with_guid, guid_only);
+        assert_ne!(with_guid, url_based);
     }
 
     #[test]
