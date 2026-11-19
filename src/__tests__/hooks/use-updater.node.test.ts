@@ -61,8 +61,12 @@ async function getUiStore() {
 }
 
 async function getUpdaterModuleAndUiStore() {
-  const [updaterModule, useUiStore] = await Promise.all([import("@/hooks/use-updater"), getUiStore()]);
-  return { updaterModule, useUiStore };
+  const [updaterModule, useUiStore, updaterToasts] = await Promise.all([
+    import("@/hooks/use-updater"),
+    getUiStore(),
+    import("@/hooks/updater/updater-toasts"),
+  ]);
+  return { updaterModule: { ...updaterModule, showRestartToast: updaterToasts.showRestartToast }, useUiStore };
 }
 
 async function changeTestLanguage(language: "en" | "ja"): Promise<void> {

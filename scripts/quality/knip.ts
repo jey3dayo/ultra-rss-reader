@@ -8,8 +8,8 @@ import {
 } from "./tool-process.ts";
 
 const knipBaseline = {
-  issueCount: 1,
-  findingsCount: 1,
+  issueCount: 0,
+  findingsCount: 0,
 } as const;
 
 export type KnipIssueBucket = Record<string, unknown>;

@@ -22,15 +22,15 @@ export const similarityScanExcludePatterns = [
   "src-tauri/gen/schemas",
 ] as const;
 const similarityScanBaseline = {
-  functionPairs: 38,
-  similarTypePairs: 17,
-  typeLiteralPairs: 0,
+  functionPairs: 46,
+  similarTypePairs: 21,
+  typeLiteralPairs: 1,
 } as const;
 const similarityCssScanBaseline = {
-  totalRules: 98,
+  totalRules: 101,
   exactDuplicates: 0,
-  similarStyles: 8,
-  bemVariations: 10,
+  similarStyles: 9,
+  bemVariations: 9,
 } as const;
 
 type SimilarityThreshold = (typeof similarityThresholds)[number];
@@ -157,6 +157,42 @@ export const similarityFalsePositiveBaseline = [
     symbols: ["useBrowserWebviewBoundsSync", "useSidebarAccountSelection"],
     decision: "Do not share native browser bounds sync lifecycle with sidebar account selection side effects.",
     reviewUnit: "Review browser WebView bounds sync and sidebar account selection separately.",
+  },
+  {
+    id: "feed-tree-drag-vs-folder-tree-drag",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events.ts",
+      "src/components/reader/hooks/feed-tree/use-folder-tree-pointer-drag-events.ts",
+    ],
+    symbols: ["useFeedTreePointerDragEvents", "useFolderTreePointerDragEvents"],
+    decision:
+      "Keep the pointer-drag session hooks separate: the shared unit is session plumbing, drop semantics differ (feed assignment vs folder reorder), and the shared outcome/target logic already lives in src/lib/sidebar/tree-drag-outcome and tree-drop-target.",
+    reviewUnit: "Review feed-tree drag and folder-tree drag separately; revisit only if a third drag surface appears.",
+  },
+  {
+    id: "feed-tree-drag-vs-credential-draft-commit",
+    classification: "domain-boundary",
+    paths: [
+      "src/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events.ts",
+      "src/components/settings/hooks/account-detail/account-detail-credential-draft-commit.ts",
+    ],
+    symbols: ["useFeedTreePointerDragEvents", "createCredentialDraftCommitter"],
+    decision:
+      "Do not share pointer drag session handling with credential draft commit phases; shape-only similarity across domains.",
+    reviewUnit: "Review reader drag events and settings credential draft commits separately.",
+  },
+  {
+    id: "folder-tree-drag-vs-credential-draft-commit",
+    classification: "domain-boundary",
+    paths: [
+      "src/components/reader/hooks/feed-tree/use-folder-tree-pointer-drag-events.ts",
+      "src/components/settings/hooks/account-detail/account-detail-credential-draft-commit.ts",
+    ],
+    symbols: ["useFolderTreePointerDragEvents", "createCredentialDraftCommitter"],
+    decision:
+      "Do not share pointer drag session handling with credential draft commit phases; shape-only similarity across domains.",
+    reviewUnit: "Review reader drag events and settings credential draft commits separately.",
   },
 ] as const satisfies readonly SimilarityFalsePositive[];
 
