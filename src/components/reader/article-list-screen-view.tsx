@@ -17,8 +17,6 @@ import {
   useReaderPassiveLayoutCard,
 } from "./hooks/use-reader-passive-layout-context";
 
-export type { ArticleListEmptyStateVariant };
-
 type ListMotionStyle = CSSProperties &
   Record<"--motion-content-swap-offset" | "--motion-duration-content-swap", string>;
 const LIST_MOTION_STYLE: ListMotionStyle = {

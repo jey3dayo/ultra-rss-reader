@@ -3,7 +3,7 @@ import type { FeedDto } from "@/api/tauri-commands";
 import { ContextMenu } from "@/design-system/context-menu";
 import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
-import type { ArticleListEmptyStateVariant } from "./article-list-screen-view";
+import type { ArticleListEmptyStateVariant } from "./article-list-empty-state";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";

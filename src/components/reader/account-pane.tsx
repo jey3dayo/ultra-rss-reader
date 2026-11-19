@@ -1,7 +1,9 @@
 import { cn } from "cn";
-import { type KeyboardEvent as ReactKeyboardEvent, type RefCallback, useEffect, useRef } from "react";
+import { Plus } from "lucide-react";
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
+import { NavRowButton } from "@/design-system";
 import { useAccounts } from "@/hooks/use-accounts";
 import {
   ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE,
@@ -28,13 +30,7 @@ export function AccountPane() {
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const accountPaneOpen = useUiStore((state) => state.accountPaneOpen);
   const selectAccount = useUiStore((state) => state.selectAccount);
-  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const setAccountItemRef =
-    (index: number): RefCallback<HTMLButtonElement> =>
-    (element) => {
-      itemRefs.current[index] = element;
-    };
-
+  const openSettingsAddAccount = useUiStore((state) => state.openSettingsAddAccount);
   useEffect(() => {
     if (!accountPaneOpen || accounts.length === 0) {
       return;
@@ -59,13 +55,6 @@ export function AccountPane() {
       return;
     }
 
-    if (key === "ArrowDown" || key === "ArrowUp") {
-      event.preventDefault();
-      event.stopPropagation();
-      focusAdjacentAccountPaneTarget(key === "ArrowDown" ? 1 : -1);
-      return;
-    }
-
     if (key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -73,11 +62,22 @@ export function AccountPane() {
       return;
     }
 
-    if (key === "Enter" || key === "ArrowRight") {
+    const accountTarget =
+      event.target instanceof Element ? event.target.closest(`[${ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE}]`) : null;
+    if (!accountTarget) {
+      return;
+    }
+
+    if (key === "ArrowDown" || key === "ArrowUp") {
       event.preventDefault();
       event.stopPropagation();
-      selectCurrentAccountPaneTargetAndFocusSidebar();
+      focusAdjacentAccountPaneTarget(key === "ArrowDown" ? 1 : -1);
+      return;
     }
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectCurrentAccountPaneTargetAndFocusSidebar();
   };
 
   return (
@@ -93,7 +93,7 @@ export function AccountPane() {
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         <div className="space-y-1">
-          {accounts.map((account, index) => {
+          {accounts.map((account) => {
             const selected = account.id === selectedAccountId;
             const statusLabel = accountStatusLabels[account.id];
             const showKindLabel = shouldShowKindLabel(account.name, account.kind);
@@ -101,7 +101,6 @@ export function AccountPane() {
             return (
               <SidebarNavButton
                 key={account.id}
-                ref={setAccountItemRef(index)}
                 {...{ [ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE]: "true" }}
                 {...{ [ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE]: account.id }}
                 {...(selected ? { [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
@@ -136,6 +135,15 @@ export function AccountPane() {
             );
           })}
         </div>
+      </div>
+      <div className="px-2 pb-3">
+        <NavRowButton
+          tone="sidebar"
+          title={t("add_account_to_start")}
+          leading={<Plus aria-hidden="true" className="size-4" />}
+          onClick={() => openSettingsAddAccount()}
+          className="min-h-11 items-center gap-2 text-sm"
+        />
       </div>
     </nav>
   );

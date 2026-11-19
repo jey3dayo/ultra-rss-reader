@@ -10,7 +10,7 @@ import {
   readerPassiveCardPaddingClassName,
 } from "./reader-passive-card";
 
-export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
+export type ArticleListEmptyStateVariant = "default" | "setup";
 
 type PassiveCard = ReturnType<typeof useReaderPassiveLayoutCard>;
 
@@ -84,7 +84,6 @@ function ArticleListDefaultEmptyCard({
 const emptyStateContainerVariants = cva("", {
   variants: {
     variant: {
-      hidden: "h-full",
       setup: "flex h-full items-center justify-center p-6",
       default: "flex justify-center",
     },
@@ -102,8 +101,11 @@ const emptyStateContainerVariants = cva("", {
 export function ArticleListEmptyState({ variant, passiveCard, ...content }: ArticleListEmptyStateProps) {
   return (
     <div className={emptyStateContainerVariants({ variant, passiveCard: passiveCard.enabled })}>
-      {variant === "setup" ? <ArticleListSetupEmptyCard {...content} /> : null}
-      {variant === "default" ? <ArticleListDefaultEmptyCard passiveCard={passiveCard} {...content} /> : null}
+      {variant === "setup" ? (
+        <ArticleListSetupEmptyCard {...content} />
+      ) : (
+        <ArticleListDefaultEmptyCard passiveCard={passiveCard} {...content} />
+      )}
     </div>
   );
 }

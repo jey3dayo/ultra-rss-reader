@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { FeedDto } from "@/api/tauri-commands";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import { useArticleListPresentation } from "@/components/reader/hooks/article-list/use-article-list-presentation";
 import { useArticleListRuntime } from "@/components/reader/hooks/article-list/use-article-list-runtime";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useUiStore } from "@/stores/ui-store";
 import type { UseArticleListViewPropsResult } from "./article-list-controller.types";
 
 export function useArticleListController(): UseArticleListViewPropsResult {
@@ -11,7 +12,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
   const { t: tc } = useTranslation("common");
   const { t: ts } = useTranslation("sidebar");
   const { data: accounts } = useAccounts();
-  const openSubscriptionsIndex = useUiStore((state) => state.openSubscriptionsIndex);
+  const [feedEditState, setFeedEditState] = useState<{ feedSnapshot: FeedDto; open: boolean } | null>(null);
   const {
     selection,
     selectedAccountId,
@@ -44,6 +45,8 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     trimmedDebouncedQuery,
     searchResults,
     isSearching,
+    isSearchError,
+    searchError,
     openSearch,
     handleToggleSearch,
     handleCloseSearch,
@@ -68,27 +71,16 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     sortUnread,
     groupBy,
   });
-  const { feeds, isLoadingArticles, fetchNextPage, hasNextPage, isFetchingNextPage } = source;
+  const { feeds, isLoadingArticles, isArticlesError, articlesError, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    source;
   const onManageSelectedFeed =
     selectedAccountId !== null && selectedFeed
       ? () => {
-          openSubscriptionsIndex({
-            accountId: selectedAccountId,
-            activeSummaryFilter: "all",
-            selectedFeedId: selectedFeed.id,
-            expandedGroups: {},
-            listScrollTop: {
-              scrollTop: 0,
-              layoutGeneration: "reader-feed-manage-link",
-              viewportHeight: 0,
-            },
-            keptFeedIds: [],
-            deferredFeedIds: [],
-          });
+          setFeedEditState({ feedSnapshot: selectedFeed, open: true });
         }
       : null;
 
-  return useArticleListPresentation({
+  const viewProps = useArticleListPresentation({
     translators: { t, tc, ts },
     source: {
       selection,
@@ -96,6 +88,8 @@ export function useArticleListController(): UseArticleListViewPropsResult {
       accountCount: accounts?.length,
       feeds,
       isLoadingArticles,
+      isArticlesError,
+      articlesError,
       feedId: resolvedFeedId,
       filteredArticles,
       groupedArticles,
@@ -112,8 +106,9 @@ export function useArticleListController(): UseArticleListViewPropsResult {
       searchQuery,
       searchInputRef,
       trimmedDebouncedQuery,
-      searchResults,
       isSearching,
+      isSearchError,
+      searchError,
       openSearch,
       handleToggleSearch,
       handleCloseSearch,
@@ -147,4 +142,15 @@ export function useArticleListController(): UseArticleListViewPropsResult {
       selectionStyle,
     },
   });
+
+  return {
+    ...viewProps,
+    feedEditDialogProps: feedEditState
+      ? {
+          feed: feedEditState.feedSnapshot,
+          open: feedEditState.open,
+          onOpenChange: (open) => setFeedEditState((previous) => (previous ? { ...previous, open } : null)),
+        }
+      : undefined,
+  };
 }
