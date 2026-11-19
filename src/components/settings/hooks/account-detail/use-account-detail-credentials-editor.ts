@@ -11,7 +11,6 @@ import { focusFirstInput } from "@/lib/dom/input-focus";
 import { useUiStore } from "@/stores/ui-store";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { SettingsDirtyStateEntry } from "../settings-dirty-state-registry";
-import { useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
 import { runAccountConnectionVerification } from "./account-detail-connection-verification";
 import { createCredentialDraftCommitter } from "./account-detail-credential-draft-commit";
 import { accountDetailCredentialsEditorReducer } from "./account-detail-credentials-editor-reducer";
@@ -45,6 +44,7 @@ export type AccountDetailCredentialsEditorResult = {
   credentialFailure: CredentialFailureNotice | null;
   cloudflareAccessLoadFailure: CredentialFailureNotice | null;
   testingConnection: boolean;
+  credentialSavePending: boolean;
   connectionTestSucceeded: boolean;
   dirtyState: SettingsDirtyStateEntry;
   changedFields: CredentialChangedFields;
@@ -62,6 +62,7 @@ export type AccountDetailCredentialsEditorResult = {
   retryCloudflareAccessLoad: () => void;
   commitCredentials: () => Promise<boolean>;
   handleTestConnection: () => Promise<boolean>;
+  handleSaveAndTestConnection: () => Promise<boolean>;
   discardCredentialDrafts: () => void;
   handleCopyServerUrl: () => Promise<void>;
   onPasswordFocus: () => void;
@@ -249,19 +250,18 @@ export function useAccountDetailCredentialsEditor({
     return outcome.saved;
   };
 
-  const handleTestConnection = async (): Promise<boolean> => {
+  const verifyConnection = async (saveDraft: boolean): Promise<boolean> => {
     if (pendingConnectionTestRef.current) {
       return false;
     }
 
     setSuccessfulConnectionTest(null);
     pendingConnectionTestRef.current = true;
-    dispatch({ type: "set-testing-connection", value: true });
     const requestAccountId = account.id;
     const requestAccountGeneration = connectionTestAccountGenerationRef.current;
     const requestDraftRevision = state.draftRevision;
     try {
-      const credentialCommit = await commitCredentialDraft(null);
+      const credentialCommit = saveDraft ? await commitCredentialDraft(null) : { saved: true, updatedAccount: null };
       if (!credentialCommit.saved) {
         return false;
       }
@@ -273,6 +273,7 @@ export function useAccountDetailCredentialsEditor({
         return false;
       }
 
+      dispatch({ type: "set-testing-connection", value: true });
       const verified = await runConnectionVerification(
         requestAccountId,
         requestDraftRevision,
@@ -295,11 +296,8 @@ export function useAccountDetailCredentialsEditor({
       dispatch({ type: "set-testing-connection", value: false });
     }
   };
-
-  useRegisterSettingsDirtyState(dirtyState, {
-    save: handleTestConnection,
-    discard: discardCredentialDrafts,
-  });
+  const handleTestConnection = () => verifyConnection(false);
+  const handleSaveAndTestConnection = () => verifyConnection(true);
 
   const handleCopyServerUrl = async () => {
     const value = (credServerUrl ?? account.server_url ?? "").trim();
@@ -358,6 +356,7 @@ export function useAccountDetailCredentialsEditor({
     credentialFailure: state.credentialFailure,
     cloudflareAccessLoadFailure: state.cloudflareAccessLoadFailure,
     testingConnection,
+    credentialSavePending,
     connectionTestSucceeded,
     dirtyState,
     changedFields,
@@ -384,6 +383,7 @@ export function useAccountDetailCredentialsEditor({
     retryCloudflareAccessLoad,
     commitCredentials,
     handleTestConnection,
+    handleSaveAndTestConnection,
     discardCredentialDrafts,
     handleCopyServerUrl,
     onPasswordFocus,

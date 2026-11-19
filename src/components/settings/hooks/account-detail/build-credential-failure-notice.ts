@@ -5,7 +5,13 @@ import type { AccountDetailControllerResult } from "./use-account-detail-control
 
 type RetryHandlers = Pick<
   AccountDetailControllerResult,
-  "retryCloudflareAccessLoad" | "commitCredentials" | "handleTestConnection" | "testingConnection"
+  | "retryCloudflareAccessLoad"
+  | "commitCredentials"
+  | "handleTestConnection"
+  | "testingConnection"
+  | "credentialSavePending"
+  | "savingName"
+  | "syncSavePending"
 >;
 
 function failureLines(notice: CredentialFailureNotice, storeKind: CredentialStoreKind, t: TFunction<"settings">) {
@@ -29,6 +35,7 @@ export function buildCredentialFailureNotice(
   storeKind: CredentialStoreKind,
   t: TFunction<"settings">,
   controller: RetryHandlers,
+  onOpenCredentialStorage?: () => void,
 ): CredentialFailureNoticeViewModel {
   const retry = {
     load: () => controller.retryCloudflareAccessLoad(),
@@ -40,6 +47,16 @@ export function buildCredentialFailureNotice(
     lines: failureLines(notice, storeKind, t),
     retryLabel: t(`account.credential_retry.${notice.operation === "check_after_save" ? "check" : notice.operation}`),
     onRetry: retry,
-    retryDisabled: controller.testingConnection,
+    retryDisabled:
+      controller.testingConnection ||
+      controller.credentialSavePending ||
+      controller.savingName ||
+      controller.syncSavePending,
+    storageSettingsLabel:
+      onOpenCredentialStorage &&
+      ["read_failed", "write_failed", "not_allowed", "unreadable", "unwritable"].includes(notice.cause)
+        ? t("account.open_credential_storage")
+        : undefined,
+    onOpenCredentialStorage,
   };
 }

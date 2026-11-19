@@ -97,8 +97,21 @@ export function buildGeneralSection({
     onStartEditingName: controller.startEditingName,
     onNameDraftChange: controller.setNameDraft,
     onCommitName: controller.commitRename,
+    onCancelName: controller.cancelRename,
+    nameDirty: controller.nameDirty,
+    nameSaved: controller.nameSaved,
+    saveLabel: t("dirty_state.save"),
+    cancelLabel: t("dirty_state.cancel"),
+    unsavedLabel: t("dirty_state.unsaved_changes"),
+    savedLabel: t("dirty_state.saved"),
+    savingLabel: t("dirty_state.saving"),
     onNameKeyDown: controller.handleNameKeyDown,
-    disabled: isSetupActive || isQuarantined,
+    disabled:
+      isSetupActive ||
+      isQuarantined ||
+      controller.testingConnection ||
+      controller.credentialSavePending ||
+      controller.syncSavePending,
     errorMessage: controller.renameErrorMessage,
   };
 }

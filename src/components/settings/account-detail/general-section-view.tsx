@@ -1,5 +1,6 @@
 import type { KeyboardEvent, RefObject } from "react";
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
+import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledInputRow, SurfaceCard } from "@/design-system";
@@ -23,6 +24,14 @@ type AccountGeneralSectionViewProps = {
   onStartEditingName: () => void;
   onNameDraftChange: (value: string) => void;
   onCommitName: () => void;
+  onCancelName?: () => void;
+  nameDirty?: boolean;
+  nameSaved?: boolean;
+  saveLabel?: string;
+  cancelLabel?: string;
+  unsavedLabel?: string;
+  savedLabel?: string;
+  savingLabel?: string;
   onNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
   disabled?: boolean;
   errorMessage?: string | null;
@@ -41,6 +50,14 @@ export function AccountGeneralSectionView({
   onStartEditingName,
   onNameDraftChange,
   onCommitName,
+  onCancelName,
+  nameDirty,
+  nameSaved,
+  saveLabel,
+  cancelLabel,
+  unsavedLabel,
+  savedLabel,
+  savingLabel,
   onNameKeyDown,
   disabled = false,
   errorMessage,
@@ -57,13 +74,27 @@ export function AccountGeneralSectionView({
         title={editNameTitle}
         inputRef={nameInputRef}
         onChange={onNameDraftChange}
-        onBlur={!disabled && isEditingName ? onCommitName : undefined}
         onFocus={!disabled && !isEditingName ? onStartEditingName : undefined}
         onKeyDown={!disabled && isEditingName ? onNameKeyDown : undefined}
         labelClassName={labelColumnClassName}
         inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
         disabled={disabled || isSavingName}
       />
+      {isEditingName ? (
+        <div className="flex items-center justify-end gap-2">
+          {nameDirty && <span role="status">{unsavedLabel}</span>}
+          <SettingsActionButton size="compact" disabled={isSavingName || disabled} onClick={onCancelName}>
+            {cancelLabel}
+          </SettingsActionButton>
+          <SettingsActionButton size="compact" disabled={isSavingName || disabled} onClick={onCommitName}>
+            {isSavingName ? savingLabel : saveLabel}
+          </SettingsActionButton>
+        </div>
+      ) : nameSaved ? (
+        <p role="status" className="text-right text-sm">
+          {savedLabel}
+        </p>
+      ) : null}
       {errorMessage ? (
         <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
           <p className="text-sm leading-[1.5]">{errorMessage}</p>

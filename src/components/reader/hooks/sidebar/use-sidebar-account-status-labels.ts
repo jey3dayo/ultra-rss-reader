@@ -1,19 +1,24 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountSyncStatuses } from "@/hooks/use-account-sync-statuses";
-import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
+import { useRetryClock } from "@/hooks/use-retry-clock";
+import { formatAccountSyncRetryDateTime, getFutureAccountSyncRetry } from "@/lib/account/account-sync-status-format";
 import type { SidebarAccountStatusLabelsParams } from "../../sidebar-sources.types";
 
 export function buildSidebarAccountStatusLabels(params: {
   accounts: SidebarAccountStatusLabelsParams;
-  accountSyncStatuses: Record<string, { last_error?: string | null; next_retry_at?: string | null } | undefined>;
+  accountSyncStatuses: Record<
+    string,
+    | { last_error?: string | null; next_retry_at?: string | null; waiting_for_credential_access?: boolean | null }
+    | undefined
+  >;
   language: string;
+  now?: number;
   labels: {
     scheduledAt: (time: string) => string;
-    scheduledSoon: string;
   };
 }): Record<string, string> {
-  const { accounts, accountSyncStatuses, language, labels } = params;
+  const { accounts, accountSyncStatuses, language, labels, now = Date.now() } = params;
   const seenAccountIds = new Set<string>();
   const accountStatusLabels: Record<string, string> = {};
 
@@ -24,12 +29,12 @@ export function buildSidebarAccountStatusLabels(params: {
     seenAccountIds.add(account.id);
 
     const syncStatus = accountSyncStatuses[account.id];
-    if (!syncStatus?.next_retry_at) {
+    if (getFutureAccountSyncRetry(syncStatus, now) === null) {
       continue;
     }
 
-    const retryTime = formatAccountSyncRetryTime(syncStatus.next_retry_at, language);
-    accountStatusLabels[account.id] = retryTime ? labels.scheduledAt(retryTime) : labels.scheduledSoon;
+    const retryTime = formatAccountSyncRetryDateTime(syncStatus?.next_retry_at ?? undefined, language);
+    if (retryTime) accountStatusLabels[account.id] = labels.scheduledAt(retryTime);
   }
 
   return accountStatusLabels;
@@ -38,18 +43,19 @@ export function buildSidebarAccountStatusLabels(params: {
 export function useSidebarAccountStatusLabels(accounts: SidebarAccountStatusLabelsParams) {
   const { t, i18n } = useTranslation("sidebar");
   const accountSyncStatuses = useAccountSyncStatuses(accounts);
+  const now = useRetryClock(Object.values(accountSyncStatuses));
 
   return useMemo(
     () =>
       buildSidebarAccountStatusLabels({
         accounts,
         accountSyncStatuses,
+        now,
         language: i18n.language,
         labels: {
           scheduledAt: (time) => t("account_retry_scheduled_short", { time }),
-          scheduledSoon: t("account_retry_scheduled_short_soon"),
         },
       }),
-    [accountSyncStatuses, accounts, i18n.language, t],
+    [accountSyncStatuses, accounts, i18n.language, now, t],
   );
 }

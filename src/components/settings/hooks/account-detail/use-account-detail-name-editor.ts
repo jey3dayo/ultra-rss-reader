@@ -14,6 +14,7 @@ import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { scheduleInputFocus } from "@/lib/dom/input-focus";
 import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailEditorContext } from "../../account-detail/types";
@@ -27,7 +28,10 @@ export type AccountDetailNameEditorResult = {
   setNameDraft: (value: string) => void;
   nameInputRef: RefObject<HTMLInputElement | null>;
   startEditingName: () => void;
-  commitRename: () => Promise<void>;
+  commitRename: () => Promise<boolean>;
+  cancelRename: () => void;
+  nameDirty: boolean;
+  nameSaved: boolean;
   handleNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
   renameErrorMessage: string | null;
 };
@@ -84,6 +88,8 @@ export function useAccountDetailNameEditor({
   const activeAccountIdRef = useRef(account.id);
   const trackedAccountIdRef = useRef(account.id);
   const [renameErrorMessage, setRenameErrorMessage] = useState<string | null>(null);
+  const [nameSaved, setNameSaved] = useState(false);
+  const savingNameRef = useRef(false);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename", {
     persistMessage: setRenameErrorMessage,
   });
@@ -107,48 +113,68 @@ export function useAccountDetailNameEditor({
   const startEditingName = () => {
     editSessionRef.current += 1;
     setRenameErrorMessage(null);
+    setNameSaved(false);
     dispatch({ type: "start-edit", value: account.name });
     cancelScheduledFocus();
     cancelScheduledFocusRef.current = scheduleInputFocus(nameInputRef);
   };
 
   const commitRename = async () => {
-    if (!editingName || editSessionAtRender !== editSessionRef.current) {
-      return;
+    if (savingNameRef.current || (editingName && editSessionAtRender !== editSessionRef.current)) {
+      return false;
     }
+    if (!editingName) return true;
 
     const trimmed = normalizeRenameInput(nameDraft);
-    if (!trimmed || trimmed === account.name) {
+    if (!trimmed) {
+      setRenameErrorMessage(t("account.error_name_required"));
+      return false;
+    }
+    if (trimmed === account.name) {
       editSessionRef.current += 1;
       dispatch({ type: "finish-edit", value: account.name });
-      return;
+      return true;
     }
 
+    savingNameRef.current = true;
     dispatch({ type: "set-saving-name", value: true });
     const requestAccountId = account.id;
     const requestEditSession = editSessionRef.current;
     let renameSucceeded = false;
-    const renameResult = await renameAccount(requestAccountId, trimmed);
-    if (activeAccountIdRef.current !== requestAccountId || editSessionRef.current !== requestEditSession) {
-      dispatch({ type: "set-saving-name", value: false });
-      return;
+    try {
+      const renameResult = await renameAccount(requestAccountId, trimmed);
+      if (activeAccountIdRef.current !== requestAccountId || editSessionRef.current !== requestEditSession)
+        return false;
+      Result.pipe(
+        renameResult,
+        Result.inspectError(showRenameError),
+        Result.inspect((updated) => {
+          renameSucceeded = true;
+          setNameSaved(true);
+          setRenameErrorMessage(null);
+          editSessionRef.current += 1;
+          dispatch({ type: "finish-edit", value: updated.name });
+          updateCachedAccount(queryClient, updated);
+          invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
+        }),
+      );
+    } catch (error) {
+      if (activeAccountIdRef.current === requestAccountId && editSessionRef.current === requestEditSession) {
+        showRenameError({ message: getErrorMessage(error) });
+      }
+    } finally {
+      if (!renameSucceeded) dispatch({ type: "set-saving-name", value: false });
+      savingNameRef.current = false;
     }
+    return renameSucceeded;
+  };
 
-    Result.pipe(
-      renameResult,
-      Result.inspectError(showRenameError),
-      Result.inspect((updated) => {
-        renameSucceeded = true;
-        setRenameErrorMessage(null);
-        editSessionRef.current += 1;
-        dispatch({ type: "finish-edit", value: updated.name });
-        updateCachedAccount(queryClient, updated);
-        invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
-      }),
-    );
-    if (!renameSucceeded) {
-      dispatch({ type: "set-saving-name", value: false });
-    }
+  const cancelRename = () => {
+    if (savingNameRef.current) return;
+    cancelScheduledFocus();
+    editSessionRef.current += 1;
+    setRenameErrorMessage(null);
+    dispatch({ type: "cancel-edit" });
   };
 
   const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -161,9 +187,7 @@ export function useAccountDetailNameEditor({
       event.preventDefault();
       void commitRename();
     } else if (event.key === "Escape") {
-      cancelScheduledFocus();
-      editSessionRef.current += 1;
-      dispatch({ type: "cancel-edit" });
+      cancelRename();
     }
   };
 
@@ -179,6 +203,9 @@ export function useAccountDetailNameEditor({
     nameInputRef,
     startEditingName,
     commitRename,
+    cancelRename,
+    nameDirty: editingName && nameDraft !== account.name,
+    nameSaved,
     handleNameKeyDown,
     renameErrorMessage,
   };

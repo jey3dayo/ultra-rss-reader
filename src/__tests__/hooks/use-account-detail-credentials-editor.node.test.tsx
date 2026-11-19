@@ -66,6 +66,21 @@ describe("useAccountDetailCredentialsEditor", () => {
     resetTauriRuntimeFlags();
   });
 
+  it("checks the saved connection without writing or discarding credential drafts", async () => {
+    const account = sampleAccounts[1];
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    act(() => result.current.setCredUsername("draft-user"));
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+    expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+    expect(testAccountConnectionMock).toHaveBeenCalledWith(account.id);
+    expect(result.current.credUsername).toBe("draft-user");
+    expect(result.current.dirtyState.dirty).toBe(true);
+  });
+
   it("waits for an explicit connection after an authorization-required lease and does not retry a denial", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
@@ -79,7 +94,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
     expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
     expect(getAccountCloudflareAccessMock).toHaveBeenCalledTimes(1);
@@ -87,7 +102,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       Result.succeed({ status: "loaded", client_id: "dummy-restored-id" }),
     );
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
     expect(result.current.cloudflareAccessClientId).toBe("dummy-restored-id");
@@ -268,7 +283,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
@@ -299,7 +314,7 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     let connectionTest: Promise<unknown> = Promise.resolve();
     act(() => {
-      connectionTest = result.current.handleTestConnection();
+      connectionTest = result.current.handleSaveAndTestConnection();
     });
     await waitFor(() => expect(testAccountConnectionMock).toHaveBeenCalledOnce());
 
@@ -561,7 +576,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
     expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
@@ -1016,7 +1031,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
@@ -1047,7 +1062,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       });
 
       await act(async () => {
-        await result.current.handleTestConnection();
+        await result.current.handleSaveAndTestConnection();
       });
 
       expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
@@ -1097,7 +1112,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.credUsername).toBe("alice");
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(2);
@@ -1167,7 +1182,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(updateAccountCredentialsMock).toHaveBeenCalledWith(account.id, account.server_url, "alice", "bad-secret");
@@ -1190,7 +1205,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       }),
     );
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(1);
@@ -1255,7 +1270,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     await act(async () => {
-      expect(await result.current.handleTestConnection()).toBe(false);
+      expect(await result.current.handleSaveAndTestConnection()).toBe(false);
     });
 
     expect(result.current.credentialFailure).toEqual({
@@ -1266,7 +1281,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(useUiStore.getState().toastMessage).toBeNull();
 
     await act(async () => {
-      expect(await result.current.handleTestConnection()).toBe(true);
+      expect(await result.current.handleSaveAndTestConnection()).toBe(true);
     });
     expect(result.current.credentialFailure).toBeNull();
   });
@@ -1368,7 +1383,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       result.current.setCloudflareAccessSecret("replacement-dummy-secret");
     });
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
     expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
       account.id,
@@ -1384,7 +1399,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.dirtyState.dirty).toBe(false);
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
     expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(1);
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
@@ -1401,8 +1416,8 @@ describe("useAccountDetailCredentialsEditor", () => {
     let firstTest: Promise<unknown> = Promise.resolve();
     let secondTest: Promise<unknown> = Promise.resolve();
     act(() => {
-      firstTest = result.current.handleTestConnection();
-      secondTest = result.current.handleTestConnection();
+      firstTest = result.current.handleSaveAndTestConnection();
+      secondTest = result.current.handleSaveAndTestConnection();
     });
     await waitFor(() => expect(testAccountConnectionMock).toHaveBeenCalledTimes(1));
 
@@ -1438,7 +1453,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
@@ -1473,7 +1488,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     );
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(result.current.testingConnection).toBe(false);
@@ -1489,13 +1504,13 @@ describe("useAccountDetailCredentialsEditor", () => {
     );
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(result.current.credentialsSectionErrorMessage).toBe("Connection failed: invalid credentials");
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(result.current.credentialsSectionErrorMessage).toBeNull();
@@ -1556,7 +1571,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     const { result } = renderHook(() => useAccountDetailCredentialsEditor({ account, queryClient, t }));
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
@@ -1565,7 +1580,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     await act(async () => {
-      await result.current.handleTestConnection();
+      await result.current.handleSaveAndTestConnection();
     });
 
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
@@ -1592,7 +1607,7 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     let testConnection: Promise<unknown> = Promise.resolve();
     await act(async () => {
-      testConnection = result.current.handleTestConnection();
+      testConnection = result.current.handleSaveAndTestConnection();
       await Promise.resolve();
     });
     expect(testAccountConnectionMock).toHaveBeenCalledWith(account.id);
@@ -1640,7 +1655,7 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     let testConnection: Promise<unknown> = Promise.resolve();
     await act(async () => {
-      testConnection = result.current.handleTestConnection();
+      testConnection = result.current.handleSaveAndTestConnection();
       await Promise.resolve();
     });
     expect(testAccountConnectionMock).toHaveBeenCalledWith(firstAccount.id);
@@ -1675,7 +1690,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     act(() => {
       result.current.setCredUsername("stale-user");
     });
-    const saveCredentials = result.current.handleTestConnection();
+    const saveCredentials = result.current.handleSaveAndTestConnection();
 
     act(() => {
       result.current.setCredUsername("current-draft");
@@ -1871,7 +1886,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     act(() => {
       result.current.setCredUsername("alice");
     });
-    const testConnection = result.current.handleTestConnection();
+    const testConnection = result.current.handleSaveAndTestConnection();
 
     rerender({ account: secondAccount });
 
@@ -2151,7 +2166,7 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     let tested = false;
     await act(async () => {
-      tested = await result.current.handleTestConnection();
+      tested = await result.current.handleSaveAndTestConnection();
     });
 
     expect(tested).toBe(true);
@@ -2174,7 +2189,7 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     let tested = true;
     await act(async () => {
-      tested = await result.current.handleTestConnection();
+      tested = await result.current.handleSaveAndTestConnection();
     });
 
     expect(tested).toBe(false);
@@ -2198,7 +2213,7 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     let tested = true;
     await act(async () => {
-      tested = await result.current.handleTestConnection();
+      tested = await result.current.handleSaveAndTestConnection();
     });
 
     expect(tested).toBe(false);

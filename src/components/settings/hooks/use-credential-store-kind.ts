@@ -1,26 +1,40 @@
 import { Result } from "@praha/byethrow";
 import { useEffect, useState } from "react";
-import type { CredentialStorageKind } from "@/api/schemas";
+import type { CredentialStorageDto } from "@/api/schemas";
 import { getCredentialStorage } from "@/api/tauri-commands";
 import { type CredentialStoreKind, resolveCredentialStoreKind } from "@/lib/account/credential-failure";
 import { usePlatformStore } from "@/stores/platform-store";
 
-export function useCredentialStoreKind(): CredentialStoreKind {
+export function useCredentialStoreInfo(): { kind: CredentialStoreKind; configurable: boolean } {
   const platformKind = usePlatformStore((s) => s.platform.kind);
   const usesDevFileCredentials = usePlatformStore((s) => s.platform.capabilities.uses_dev_file_credentials);
-  const [storage, setStorage] = useState<CredentialStorageKind | null>(null);
+  const [storage, setStorage] = useState<CredentialStorageDto | null>(null);
 
   useEffect(() => {
     let active = true;
     void getCredentialStorage().then((result) => {
-      if (active && Result.isSuccess(result)) {
-        setStorage(Result.unwrap(result).storage);
+      if (!active) return;
+      if (Result.isFailure(result)) {
+        console.error("Failed to get credential storage:", Result.unwrapError(result));
+        return;
       }
+      setStorage(Result.unwrap(result));
     });
     return () => {
       active = false;
     };
   }, []);
 
-  return resolveCredentialStoreKind({ platform: platformKind, storage, usesDevFileCredentials });
+  return {
+    kind: resolveCredentialStoreKind({
+      platform: platformKind,
+      storage: storage?.storage ?? null,
+      usesDevFileCredentials,
+    }),
+    configurable: storage?.configurable ?? false,
+  };
+}
+
+export function useCredentialStoreKind(): CredentialStoreKind {
+  return useCredentialStoreInfo().kind;
 }

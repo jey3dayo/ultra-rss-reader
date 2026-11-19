@@ -1,4 +1,4 @@
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -7,7 +7,8 @@ import {
   buildSidebarAccountStatusLabels,
   useSidebarAccountStatusLabels,
 } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
-import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
+import { useRetryClock } from "@/hooks/use-retry-clock";
+import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
 import i18n from "@/lib/i18n";
 
 setupBrowserTestDom();
@@ -23,6 +24,60 @@ describe("useSidebarAccountStatusLabels", () => {
     setupTauriMocks();
   });
 
+  it("re-evaluates at the next retry deadline and when the window regains focus", () => {
+    vi.useFakeTimers();
+    try {
+      const initial = Date.parse("2026-04-13T03:15:00Z");
+      vi.setSystemTime(initial);
+      const { result } = renderHook(() => useRetryClock([{ next_retry_at: new Date(initial + 1000).toISOString() }]));
+      expect(result.current).toBe(initial);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(result.current).toBe(initial + 1000);
+      vi.setSystemTime(initial + 5000);
+      act(() => window.dispatchEvent(new Event("focus")));
+      expect(result.current).toBe(initial + 5000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("re-arms a deadline beyond the maximum timer delay", () => {
+    vi.useFakeTimers();
+    try {
+      const initial = Date.parse("2026-04-13T03:15:00Z");
+      const maxDelay = 2_147_483_647;
+      vi.setSystemTime(initial);
+      const { result } = renderHook(() =>
+        useRetryClock([{ next_retry_at: new Date(initial + maxDelay + 1000).toISOString() }]),
+      );
+      act(() => vi.advanceTimersByTime(maxDelay));
+      expect(result.current).toBe(initial + maxDelay);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(result.current).toBe(initial + maxDelay + 1000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("re-arms when a timer fires before the deadline", () => {
+    vi.useFakeTimers();
+    try {
+      const initial = Date.parse("2026-04-13T03:15:00Z");
+      let now = initial;
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      const { result } = renderHook(() => useRetryClock([{ next_retry_at: new Date(initial + 1000).toISOString() }]));
+      now = initial + 500;
+      act(() => vi.advanceTimersByTime(1000));
+      expect(result.current).toBe(initial + 500);
+      now = initial + 1000;
+      act(() => vi.advanceTimersByTime(500));
+      expect(result.current).toBe(initial + 1000);
+    } finally {
+      vi.restoreAllMocks();
+      vi.useRealTimers();
+    }
+  });
+
   it("builds no labels for accounts without loaded statuses", () => {
     expect(
       buildSidebarAccountStatusLabels({
@@ -31,13 +86,12 @@ describe("useSidebarAccountStatusLabels", () => {
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
-          scheduledSoon: "scheduled soon",
         },
       }),
     ).toEqual({});
   });
 
-  it("falls back to a soon label for invalid scheduled retry dates", () => {
+  it("omits invalid scheduled retry dates", () => {
     expect(
       buildSidebarAccountStatusLabels({
         accounts: [{ id: "acc-1" }],
@@ -47,16 +101,13 @@ describe("useSidebarAccountStatusLabels", () => {
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
-          scheduledSoon: "scheduled soon",
         },
       }),
-    ).toEqual({
-      "acc-1": "scheduled soon",
-    });
+    ).toEqual({});
   });
 
   it("returns retry labels for accounts with scheduled retries", async () => {
-    const retryAt = "2026-04-13T03:15:00Z";
+    const retryAt = "2099-04-13T03:15:00Z";
 
     setupTauriMocks((cmd, args) => {
       if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
@@ -75,11 +126,9 @@ describe("useSidebarAccountStatusLabels", () => {
     });
 
     await waitFor(() => {
-      const retryTime = formatAccountSyncRetryTime(retryAt, i18n.language);
+      const retryTime = formatAccountSyncRetryDateTime(retryAt, i18n.language);
       expect(result.current).toEqual({
-        "acc-2": retryTime
-          ? i18n.t("account_retry_scheduled_short", { ns: "sidebar", time: retryTime })
-          : i18n.t("account_retry_scheduled_short_soon", { ns: "sidebar" }),
+        "acc-2": i18n.t("account_retry_scheduled_short", { ns: "sidebar", time: retryTime }),
       });
     });
   });
@@ -118,7 +167,6 @@ describe("useSidebarAccountStatusLabels", () => {
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
-          scheduledSoon: "scheduled soon",
         },
       }),
     ).toEqual({});
@@ -129,23 +177,22 @@ describe("useSidebarAccountStatusLabels", () => {
       buildSidebarAccountStatusLabels({
         accounts: [{ id: "acc-1" }, { id: "" }, { id: "   " }],
         accountSyncStatuses: {
-          "": { next_retry_at: "2026-04-13T03:15:00Z" },
-          "   ": { next_retry_at: "2026-04-13T03:15:00Z" },
+          "": { next_retry_at: "2099-04-13T03:15:00Z" },
+          "   ": { next_retry_at: "2099-04-13T03:15:00Z" },
           "acc-1": { next_retry_at: null },
-          "acc-ghost": { next_retry_at: "2026-04-13T03:15:00Z" },
+          "acc-ghost": { next_retry_at: "2099-04-13T03:15:00Z" },
         },
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
-          scheduledSoon: "scheduled soon",
         },
       }),
     ).toEqual({});
   });
 
   it("projects scheduled retry labels only once for visible account ids", () => {
-    const retryAt = "2026-04-13T03:15:00Z";
-    const retryTime = formatAccountSyncRetryTime(retryAt, "en");
+    const retryAt = "2099-04-13T03:15:00Z";
+    const retryTime = formatAccountSyncRetryDateTime(retryAt, "en");
     const scheduledAt = vi.fn((time: string) => `scheduled:${time}`);
 
     expect(
@@ -161,7 +208,6 @@ describe("useSidebarAccountStatusLabels", () => {
         language: "en",
         labels: {
           scheduledAt,
-          scheduledSoon: "scheduled soon",
         },
       }),
     ).toEqual({

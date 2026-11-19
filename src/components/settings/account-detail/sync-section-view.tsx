@@ -16,21 +16,25 @@ export type AccountSyncStatusRow = {
   value: string;
 };
 
+type SaveStatus = { message: string; isError: boolean };
+
 type AccountSelectControl = Pick<
   LabeledSelectRowProps,
   "name" | "label" | "value" | "options" | "onChange" | "disabled"
->;
+> & { status?: SaveStatus };
 
 type AccountSwitchControl = {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  status?: SaveStatus;
 };
 
 type AccountSyncSectionViewProps = {
   heading: string;
   note?: string;
+  saveNote?: string;
   syncInterval: AccountSelectControl;
   syncOnStartup: AccountSwitchControl;
   syncOnWake: AccountSwitchControl;
@@ -42,6 +46,7 @@ type AccountSyncSectionViewProps = {
   syncingLabel?: string;
   onSyncNow?: () => void;
   isSyncing?: boolean;
+  actionsDisabled?: boolean;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   devCredentialsRecoveryActionLabel?: string;
@@ -58,6 +63,7 @@ type AccountSelectRowProps = {
 export function AccountSyncSectionView({
   heading,
   note,
+  saveNote,
   syncInterval,
   syncOnStartup,
   syncOnWake,
@@ -69,6 +75,7 @@ export function AccountSyncSectionView({
   syncingLabel,
   onSyncNow,
   isSyncing,
+  actionsDisabled,
   secondaryActionLabel,
   onSecondaryAction,
   devCredentialsRecoveryActionLabel,
@@ -77,11 +84,12 @@ export function AccountSyncSectionView({
   isDevCredentialsRecoveryInFlight,
   errorMessage,
 }: AccountSyncSectionViewProps) {
-  const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
-  const devCredentialsRecoveryDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
+  const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight || actionsDisabled);
+  const devCredentialsRecoveryDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight || actionsDisabled);
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
+      {saveNote && <p className="text-sm text-foreground-soft">{saveNote}</p>}
       <AccountSelectRow control={syncInterval} />
       <LabeledSwitchRow
         label={syncOnStartup.label}
@@ -89,18 +97,15 @@ export function AccountSyncSectionView({
         onChange={syncOnStartup.onChange}
         disabled={syncOnStartup.disabled}
       />
+      <SyncSaveStatus status={syncOnStartup.status} />
       <LabeledSwitchRow
         label={syncOnWake.label}
         checked={syncOnWake.checked}
         onChange={syncOnWake.onChange}
         disabled={syncOnWake.disabled}
       />
+      <SyncSaveStatus status={syncOnWake.status} />
       <AccountSelectRow control={keepReadItems} />
-      {errorMessage ? (
-        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
-          <p className="text-sm leading-[1.5]">{errorMessage}</p>
-        </SurfaceCard>
-      ) : null}
       {statusRows && statusRows.length > 0 ? (
         <div className={cn(CONTROL_RAIL_CLASS, "mt-4 px-4 py-3 text-sm", SETTINGS_INFO_SURFACE_CLASS)}>
           {statusRows.map((row) => (
@@ -150,20 +155,43 @@ export function AccountSyncSectionView({
           ) : null}
         </div>
       )}
+      {errorMessage ? (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{errorMessage}</p>
+        </SurfaceCard>
+      ) : null}
     </SettingsSection>
   );
 }
 
 function AccountSelectRow({ control }: AccountSelectRowProps) {
   return (
-    <LabeledSelectRow
-      label={control.label}
-      name={control.name}
-      value={control.value}
-      options={control.options}
-      onChange={control.onChange}
-      disabled={control.disabled}
-      triggerClassName={SETTINGS_CONTROL_SURFACE_CLASS}
-    />
+    <>
+      <LabeledSelectRow
+        label={control.label}
+        name={control.name}
+        value={control.value}
+        options={control.options}
+        onChange={control.onChange}
+        disabled={control.disabled}
+        triggerClassName={SETTINGS_CONTROL_SURFACE_CLASS}
+      />
+      <SyncSaveStatus status={control.status} />
+    </>
+  );
+}
+
+function SyncSaveStatus({ status }: { status?: SaveStatus }) {
+  if (!status) return null;
+  if (status.isError)
+    return (
+      <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+        <p className="text-sm">{status.message}</p>
+      </SurfaceCard>
+    );
+  return (
+    <p role="status" className="text-right text-sm">
+      {status.message}
+    </p>
   );
 }

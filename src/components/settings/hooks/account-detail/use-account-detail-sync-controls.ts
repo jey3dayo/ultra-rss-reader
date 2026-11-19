@@ -23,7 +23,7 @@ import { getErrorMessage } from "@/lib/ui/errors";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
-import { createAccountDetailErrorToast } from "../../account-detail/toast";
+import { createAccountDetailErrorToast, formatAccountDetailErrorMessage } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
 
 export type UpdateAccountSyncParams = {
@@ -52,6 +52,12 @@ export type AccountDetailSyncControlsResult = {
   syncIntervalOptions: OptionWithLabel[];
   keepReadItemsOptions: OptionWithLabel[];
   syncSectionErrorMessage: string | null;
+  syncSavePending: boolean;
+  syncSaveStatus: {
+    field: keyof UpdateAccountSyncParams;
+    state: "saving" | "saved" | "error";
+    message?: string;
+  } | null;
 };
 
 type RunAccountSetupSyncParams = {
@@ -167,14 +173,12 @@ export function useAccountDetailSyncControls({
   accountSetupState,
 }: AccountDetailSyncControlsParams): AccountDetailSyncControlsResult {
   const [syncSectionErrorMessage, setSyncSectionErrorMessage] = useState<string | null>(null);
-  const showSyncUpdateError = createAccountDetailErrorToast(t, "account.failed_to_update_sync", {
-    persistMessage: setSyncSectionErrorMessage,
-  });
   const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed", {
     persistMessage: setSyncSectionErrorMessage,
   });
   const syncActionInFlightRef = useRef(false);
-  const syncUpdateRevisionRef = useRef(0);
+  const syncSavePendingRef = useRef(false);
+  const [syncSaveStatus, setSyncSaveStatus] = useState<AccountDetailSyncControlsResult["syncSaveStatus"]>(null);
   const selectedAccountGenerationRef = useRef(0);
   const selectedAccountIdRef = useRef(account.id);
   const mountedRef = useRef(true);
@@ -209,31 +213,46 @@ export function useAccountDetailSyncControls({
     selectedAccountIdRef.current === accountId;
 
   const handleSyncUpdate = async (partial: UpdateAccountSyncParams) => {
-    const revision = syncUpdateRevisionRef.current + 1;
-    syncUpdateRevisionRef.current = revision;
-
-    Result.pipe(
-      await updateAccountSync(
+    if (syncSavePendingRef.current) return;
+    const field = Object.keys(partial)[0];
+    if (
+      field !== "syncIntervalSecs" &&
+      field !== "syncOnStartup" &&
+      field !== "syncOnWake" &&
+      field !== "keepReadItemsDays"
+    )
+      return;
+    syncSavePendingRef.current = true;
+    setSyncSaveStatus({ field, state: "saving" });
+    try {
+      const result = await updateAccountSync(
         account.id,
         partial.syncIntervalSecs ?? account.sync_interval_secs,
         partial.syncOnStartup ?? account.sync_on_startup,
         partial.syncOnWake ?? account.sync_on_wake,
         partial.keepReadItemsDays ?? account.keep_read_items_days,
-      ),
-      Result.inspectError((error) => {
-        if (revision !== syncUpdateRevisionRef.current) {
-          return;
-        }
-        showSyncUpdateError(error);
-      }),
-      Result.inspect((updated) => {
-        if (revision !== syncUpdateRevisionRef.current) {
-          return;
-        }
-        setSyncSectionErrorMessage(null);
-        updateCachedAccount(queryClient, updated);
-      }),
-    );
+      );
+      if (Result.isFailure(result)) {
+        setSyncSaveStatus({
+          field,
+          state: "error",
+          message: formatAccountDetailErrorMessage(t, "account.failed_to_update_sync", Result.unwrapError(result)),
+        });
+      } else {
+        updateCachedAccount(queryClient, Result.unwrap(result));
+        setSyncSaveStatus({ field, state: "saved" });
+      }
+    } catch (error) {
+      setSyncSaveStatus({
+        field,
+        state: "error",
+        message: formatAccountDetailErrorMessage(t, "account.failed_to_update_sync", {
+          message: getErrorMessage(error),
+        }),
+      });
+    } finally {
+      syncSavePendingRef.current = false;
+    }
   };
 
   const handleSyncNow = async () => {
@@ -393,5 +412,7 @@ export function useAccountDetailSyncControls({
       { value: "0", label: t("account.forever") },
     ],
     syncSectionErrorMessage,
+    syncSavePending: syncSaveStatus?.state === "saving",
+    syncSaveStatus,
   };
 }

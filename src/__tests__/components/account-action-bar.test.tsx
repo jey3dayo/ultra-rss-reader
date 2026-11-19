@@ -66,6 +66,18 @@ describe("AccountActionBar", () => {
     expect(props.onTestConnection).not.toHaveBeenCalled();
   });
 
+  it.each([false, true])(
+    "disables credential actions during another save without claiming a check is running (dirty: %s)",
+    (dirty) => {
+      render(<AccountActionBar {...buildProps({ hasUnsavedChanges: dirty, disabled: true })} />);
+      expect(
+        screen.getByRole("button", { name: dirty ? "Save & Test Connection" : "Check Connection" }),
+      ).toBeDisabled();
+      if (dirty) expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Checking…" })).not.toBeInTheDocument();
+    },
+  );
+
   it("locks both buttons while a save-and-test is running", async () => {
     const user = userEvent.setup();
     const props = buildProps({ hasUnsavedChanges: true, running: true });

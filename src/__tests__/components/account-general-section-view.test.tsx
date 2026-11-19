@@ -74,6 +74,6 @@ describe("AccountGeneralSectionView", () => {
 
     expect(onNameDraftChange).toHaveBeenCalledWith("Renamed account");
     expect(onNameKeyDown).toHaveBeenCalledTimes(1);
-    expect(onCommitName).toHaveBeenCalledTimes(1);
+    expect(onCommitName).not.toHaveBeenCalled();
   });
 });

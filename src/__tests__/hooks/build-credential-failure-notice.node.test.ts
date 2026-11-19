@@ -12,6 +12,9 @@ function createHandlers() {
     commitCredentials: vi.fn(async () => true),
     handleTestConnection: vi.fn(async () => true),
     testingConnection: false,
+    credentialSavePending: false,
+    savingName: false,
+    syncSavePending: false,
   };
 }
 

@@ -4,9 +4,20 @@ import {
   formatAccountSyncRetryDateTime,
   formatAccountSyncRetryTime,
   getAccountSyncErrorTranslationKey,
+  getFutureAccountSyncRetry,
 } from "@/lib/account/account-sync-status-format";
 
 describe("account-sync-status-format", () => {
+  it("only schedules a valid future retry when credential access is not waiting", () => {
+    const now = Date.parse("2026-04-13T03:15:00Z");
+    expect(getFutureAccountSyncRetry({ next_retry_at: "2026-04-13T03:15:01Z" }, now)).toBe(now + 1000);
+    for (const next_retry_at of ["", "bad", "2026-04-13T03:15:00Z", "2026-04-13T03:14:59Z"]) {
+      expect(getFutureAccountSyncRetry({ next_retry_at }, now)).toBeNull();
+    }
+    expect(
+      getFutureAccountSyncRetry({ next_retry_at: "2026-04-13T03:15:01Z", waiting_for_credential_access: true }, now),
+    ).toBeNull();
+  });
   const formatExpectedLastSuccessLabel = (date: Date, isToday: boolean) => ({
     date: date.toLocaleDateString("en", { month: "short", day: "numeric" }),
     time: date.toLocaleTimeString("en", {
