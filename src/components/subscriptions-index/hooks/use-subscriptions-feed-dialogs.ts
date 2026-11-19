@@ -80,9 +80,9 @@ export function useSubscriptionsFeedDialogs({
 
   useEffect(() => {
     if (deleteTargetFeed !== null && !deleteTargetInCurrentAccount && !deletePending) {
-      setDeleteTargetFeed(null);
+      setDeleteTarget(null);
     }
-  }, [deleteTargetFeed, deleteTargetInCurrentAccount, deletePending, setDeleteTargetFeed]);
+  }, [deleteTargetFeed, deleteTargetInCurrentAccount, deletePending]);
 
   return {
     deleteTargetFeed,
