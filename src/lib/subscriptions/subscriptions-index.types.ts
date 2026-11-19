@@ -4,7 +4,7 @@ import type {
   SubscriptionReviewTone,
 } from "@/lib/subscriptions/subscription-review-candidates";
 
-export type SubscriptionSummaryFilterKey = "all" | "review" | "stale" | "frequent" | "fetch_errors";
+export type SubscriptionSummaryFilterKey = "all" | "stale" | "frequent" | "fetch_errors";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
@@ -19,7 +19,7 @@ export type SubscriptionSummaryCard = {
   label: string;
   value: string;
   caption?: string;
-  tone?: "neutral" | "review" | "stale" | "danger";
+  tone?: "neutral" | "stale" | "danger";
   isActive?: boolean;
   isActionable?: boolean;
 };

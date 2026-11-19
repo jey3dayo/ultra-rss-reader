@@ -943,7 +943,6 @@ describe("setupDevMocks", () => {
       feedArticleSummaryMap: new Map(feedArticleSummaries.map((s) => [s.feed_id, s])),
     });
 
-    expect(summary.reviewCount).toBeGreaterThanOrEqual(3);
     expect(summary.staleCount).toBeGreaterThanOrEqual(3);
   });
 

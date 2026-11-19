@@ -8,9 +8,9 @@ import {
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
-const subscriptionsReviewFilterButtonName = /(Feeds to revisit|更新を見直す購読)\s*を表示/i;
+const staleSubscriptionsHeadingName = /^(No RSS updates for 90\+ days|90日以上未更新)$/i;
+const staleSubscriptionsFilterButtonName = /^(No RSS updates for 90\+ days|90日以上未更新)/i;
 const subscriptionsInventoryHeadingName = /All subscriptions|全購読/i;
-const subscriptionsReviewHeadingName = /Feeds to revisit|更新を見直す購読/i;
 const appLayoutHiddenPaneSelector = [
   '[data-testid="compact-account-pane-shell"][aria-hidden="true"]',
   '[data-testid="wide-account-pane-content"][aria-hidden="true"]',
@@ -79,11 +79,11 @@ async function openSubscriptionsIndex(page: Page) {
   ).toBeVisible();
 }
 
-async function openSubscriptionReview(page: Page) {
+async function openStaleSubscriptions(page: Page) {
   await openSubscriptionsIndex(page);
-  await page.getByRole("button", { name: subscriptionsReviewFilterButtonName }).click();
+  await page.getByRole("button", { name: staleSubscriptionsFilterButtonName }).click();
 
-  await expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible();
+  await expect(page.getByRole("heading", { name: staleSubscriptionsHeadingName })).toBeVisible();
 }
 
 async function openSubscriptionInventory(page: Page) {
@@ -367,15 +367,15 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     ]);
   });
 
-  test("opens subscription review from the subscriptions index and shows split review controls", async ({ page }) => {
+  test("opens the stale subscriptions filter and shows the detail pane", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    await openSubscriptionReview(page);
+    await openStaleSubscriptions(page);
 
     await Promise.all([
-      expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible(),
-      expect(page.getByRole("button", { name: subscriptionsReviewFilterButtonName })).toHaveAttribute(
+      expect(page.getByRole("heading", { name: staleSubscriptionsHeadingName })).toBeVisible(),
+      expect(page.getByRole("button", { name: staleSubscriptionsFilterButtonName })).toHaveAttribute(
         "aria-pressed",
         "true",
       ),

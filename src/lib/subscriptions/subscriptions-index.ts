@@ -16,8 +16,6 @@ import type {
   SubscriptionSummaryFilterKey,
 } from "@/lib/subscriptions/subscriptions-index.types";
 
-export { countStarredArticles } from "@/lib/articles/article-list";
-export type { SubscriptionRowStatus } from "@/lib/subscriptions/subscriptions-index.types";
 export type { SubscriptionDecisionActions } from "./subscription-detail";
 
 export {
@@ -34,16 +32,6 @@ export {
 } from "./subscription-detail";
 
 export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
-
-function countReviewCandidates(candidates: SubscriptionReviewCandidate[]): number {
-  let count = 0;
-  for (const candidate of candidates) {
-    if (summarizeSubscriptionReviewCandidate(candidate).tone !== "low") {
-      count += 1;
-    }
-  }
-  return count;
-}
 
 function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
   let count = 0;
@@ -78,14 +66,6 @@ function rowMatchesSubscriptionSummaryFilter(
     return Boolean(row.fetchError);
   }
 
-  if (filterKey === "review") {
-    return (
-      row.status.labelKey === "review" ||
-      row.status.labelKey === "stale_90d" ||
-      row.status.labelKey === "quiet_no_unread"
-    );
-  }
-
   return false;
 }
 
@@ -97,12 +77,8 @@ function rowMatchesSubscriptionDecisionVisibility(params: {
 }): boolean {
   const { row, activeSummaryFilter, keptFeedIds, deferredFeedIds } = params;
 
-  // Kept/deferred hiding is a cleanup-queue affordance: only the review/stale
-  // decision filters suppress already-decided feeds. Informational filters
-  // ("all", "frequent") show every matching row so the summary card count and
-  // the visible list stay consistent.
-  const isCleanupDecisionFilter = activeSummaryFilter === "review" || activeSummaryFilter === "stale";
-  if (!isCleanupDecisionFilter) {
+  // Only the stale filter hides decided feeds. Other filters keep all their matches visible.
+  if (activeSummaryFilter !== "stale") {
     return true;
   }
 
@@ -217,13 +193,11 @@ export function buildSubscriptionsIndexSummary({
   feedArticleSummaryMap: Map<string, FeedArticleSummaryDto>;
 }): {
   totalCount: number;
-  reviewCount: number;
   staleCount: number;
   frequentCount: number;
 } {
   return {
     totalCount: feeds.length,
-    reviewCount: countReviewCandidates(candidates),
     staleCount: countStaleCandidates(candidates),
     frequentCount: countFrequentFeeds(feeds, feedArticleSummaryMap),
   };
@@ -232,7 +206,6 @@ export function buildSubscriptionsIndexSummary({
 export function buildSubscriptionSummaryCards(params: {
   summary: {
     totalCount: number;
-    reviewCount: number;
     staleCount: number;
     frequentCount: number;
   };
@@ -240,8 +213,6 @@ export function buildSubscriptionSummaryCards(params: {
   labels: {
     total: string;
     totalCaption: (count: number) => string;
-    review: string;
-    reviewCaption: (count: number) => string;
     stale: string;
     staleCaption: (count: number) => string;
     frequent: string;
@@ -250,7 +221,6 @@ export function buildSubscriptionSummaryCards(params: {
 }): SubscriptionSummaryCard[] {
   const { summary, activeSummaryFilter, labels } = params;
   const totalCount = normalizeSubscriptionCount(summary.totalCount);
-  const reviewCount = normalizeSubscriptionCount(summary.reviewCount);
   const staleCount = normalizeSubscriptionCount(summary.staleCount);
   const frequentCount = normalizeSubscriptionCount(summary.frequentCount);
 
@@ -262,14 +232,6 @@ export function buildSubscriptionSummaryCards(params: {
       caption: labels.totalCaption(totalCount),
       tone: "neutral",
       isActive: activeSummaryFilter === "all",
-    },
-    {
-      filterKey: "review",
-      label: labels.review,
-      value: String(reviewCount),
-      caption: labels.reviewCaption(reviewCount),
-      tone: "review",
-      isActive: activeSummaryFilter === "review",
     },
     {
       filterKey: "stale",
