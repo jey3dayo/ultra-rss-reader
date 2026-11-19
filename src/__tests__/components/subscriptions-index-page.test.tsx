@@ -699,7 +699,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "再取得" }));
 
-    expect(await screen.findByText("取得エラーのあるフィードはありません")).toBeInTheDocument();
+    expect(await screen.findByText("取得エラーのある購読はありません")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^総購読数 / })).toBeInTheDocument();
   });
