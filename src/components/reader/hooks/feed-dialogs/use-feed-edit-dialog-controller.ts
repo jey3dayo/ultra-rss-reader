@@ -29,6 +29,7 @@ type FeedEditDialogState = FeedEditorState<{
 
 type FeedEditDialogAction =
   | { type: "reset"; feed: FeedDto }
+  | { type: "sync-feed-snapshot"; feed: FeedDto }
   | { type: "set-title"; value: string }
   | { type: "set-display-preset"; value: FeedEditDisplayPreset }
   | { type: "reject-title"; error: FeedEditTitleError }
@@ -52,6 +53,8 @@ function feedEditDialogReducer(state: FeedEditDialogState, action: FeedEditDialo
   switch (action.type) {
     case "reset":
       return createInitialFeedEditDialogState(action.feed);
+    case "sync-feed-snapshot":
+      return state.feedSnapshot === action.feed ? state : { ...state, feedSnapshot: action.feed };
     case "set-title":
       return { ...state, title: action.value, titleError: null, saveErrorMessages: [] };
     case "set-display-preset":
@@ -99,8 +102,8 @@ export function useFeedEditDialogController({
   const { data: folders } = useFolders(feedSnapshot.account_id);
   const updateFeedFolderMutation = useUpdateFeedFolder({ notifyOnError: false });
 
-  // Only an open transition or a different feed re-initializes the form; a refetch that
-  // hands back the same feed id must not discard what the user is typing.
+  // Only an open transition or a different feed re-initializes the form; a refetch that hands back the
+  // same feed id must not discard what the user is typing, but the saved-state baseline still follows it.
   useEffect(() => {
     if (!open) {
       initializedFeedIdRef.current = null;
@@ -108,6 +111,7 @@ export function useFeedEditDialogController({
     }
 
     if (initializedFeedIdRef.current === feed.id) {
+      dispatch({ type: "sync-feed-snapshot", feed });
       return;
     }
 

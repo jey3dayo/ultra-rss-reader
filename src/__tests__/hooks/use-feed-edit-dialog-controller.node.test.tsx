@@ -216,6 +216,20 @@ describe("useFeedEditDialogController copy action", () => {
       expect(result.current.folderSelectProps.folderSelectValue).toBe("folder-2");
     });
 
+    it("compares edits with the refetched feed, so reverting a title the server already changed is saved", async () => {
+      const { result, rerender } = renderController({ feed, open: true });
+
+      rerender({ feed: { ...feed, title: "Renamed elsewhere" }, open: true });
+      act(() => {
+        result.current.setTitle("Original");
+      });
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+
+      expect(renameFeedMock).toHaveBeenCalledWith(feed.id, "Original");
+    });
+
     it("re-initializes the form when the dialog is reopened", () => {
       const { result, rerender } = renderController({ feed, open: true });
 
