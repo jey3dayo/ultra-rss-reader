@@ -1,0 +1,2 @@
+(C) 2026-11-20 jev-lint 指摘の本体コード6件を直す（名前と振る舞いの食い違い・無言 catch） +quality note:https://github.com/jey3dayo/ultra-rss-reader/issues/743
+(C) 2026-11-20 jev-lint 指摘のテスト5件を直す（名前が主張する内容を検証していない） +quality note:https://github.com/jey3dayo/ultra-rss-reader/issues/744
