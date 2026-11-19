@@ -11,7 +11,6 @@ import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 
 function renderArticleListBody({
-  emptyStateVariant,
   emptyMessage = "No articles",
   emptyDescription,
   emptyActionLabel,
@@ -38,7 +37,6 @@ function renderArticleListBody({
   manageSelectedFeedLabel,
   onManageSelectedFeed,
 }: {
-  emptyStateVariant?: "default" | "setup" | "hidden";
   emptyMessage?: string;
   emptyDescription?: string;
   emptyActionLabel?: string;
@@ -59,7 +57,6 @@ function renderArticleListBody({
       onListKeyDownCapture={vi.fn()}
       isLoading={isLoading}
       loadingMessage="Loading articles"
-      emptyStateVariant={emptyStateVariant}
       emptyMessage={emptyMessage}
       emptyDescription={emptyDescription}
       emptyActionLabel={emptyActionLabel}
@@ -294,17 +291,5 @@ describe("ArticleListBody", () => {
 
     await user.click(screen.getByRole("button", { name: "Clear search" }));
     expect(onEmptyAction).toHaveBeenCalledTimes(1);
-  });
-
-  it("honors hidden setup empty-state semantics from the body props builder", () => {
-    renderArticleListBody({
-      groups: [],
-      emptyStateVariant: "hidden",
-      emptyMessage: "Add an account and your articles will appear here.",
-      emptyDescription: "The list stays empty until the initial setup is complete.",
-    });
-
-    expect(screen.queryByText("Add an account and your articles will appear here.")).not.toBeInTheDocument();
-    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
   });
 });

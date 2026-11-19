@@ -68,6 +68,7 @@ export function useSidebarControllerSections({
   isTagsSectionOpen,
   toggleTagsSection,
   handleOpenAccountSettings,
+  handleAddAccount,
   tags,
   tagArticleCounts,
   moveFeedToFolder,
@@ -177,6 +178,7 @@ export function useSidebarControllerSections({
     handleSelectAccount,
     closeAccountList,
     handleOpenAccountSettings,
+    handleAddAccount,
   });
   const contentSectionsProps = useSidebarContentSectionsProps({
     t,
@@ -192,7 +194,6 @@ export function useSidebarControllerSections({
     showSidebarTags,
     isTagsSectionOpen,
     toggleTagsSection,
-    handleOpenAccountSettings,
     feedTreeProps,
     tags,
     tagArticleCounts,

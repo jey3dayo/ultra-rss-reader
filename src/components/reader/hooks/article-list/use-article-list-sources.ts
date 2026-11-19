@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { parseAppErrorOrNull } from "@/api/schemas/error";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useAccountArticles, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -263,13 +264,13 @@ export function useArticleListSources({
   });
   const primarySourceSnapshotCandidate = useMemo<ArticleListPrimarySourceSnapshot | null>(
     () =>
-      primarySourceArticles === undefined || primarySourceLoading
+      primarySourceArticles === undefined || primarySourceLoading || primaryArticleQuery.isError
         ? null
         : {
             contextKey: sourcePlan.sourceKey,
             articles: primarySourceArticles,
           },
-    [primarySourceArticles, primarySourceLoading, sourcePlan.sourceKey],
+    [primarySourceArticles, primarySourceLoading, primaryArticleQuery.isError, sourcePlan.sourceKey],
   );
   const { snapshot: primarySourceSnapshot } = useScreenSnapshot(
     primarySourceSnapshotCandidate,
@@ -331,12 +332,15 @@ export function useArticleListSources({
     });
   }, [resolvedPrimarySourceArticles, retainedArticleIds, retainedArticlesSnapshot, sourcePlan.sourceKey]);
   const isPrimarySourceLoading = primarySourceLoading && adoptedPrimarySourceSnapshot === null;
+  const isArticlesError = sourcePlan.query !== null && primaryArticleQuery.isError === true;
 
   return {
     sourcePlan,
     feeds: resolvedFeeds,
     articles: resolvedPrimarySourceArticlesWithRetained,
     isLoadingArticles: sourcePlan.query !== null && isPrimarySourceLoading,
+    isArticlesError,
+    articlesError: isArticlesError ? parseAppErrorOrNull(primaryArticleQuery.error) : null,
     fetchNextPage: primaryFetchNextPage ? () => primaryFetchNextPage() : undefined,
     hasNextPage: primaryArticleQuery.hasNextPage ?? false,
     isFetchingNextPage: primaryArticleQuery.isFetchingNextPage ?? false,

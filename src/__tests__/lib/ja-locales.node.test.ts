@@ -51,7 +51,7 @@ describe("Japanese feed management labels", () => {
     expect(jaReader.open_in_external_browser).toBe("外部ブラウザで開く");
     expect(jaReader.open_in_browser).toBe(jaReader.view_in_browser);
     expect(jaReader.browser_view).toBe(jaSettings.reading.in_app_browser);
-    expect(jaReader.display_mode_preview).toBe(jaSettings.reading.in_app_browser);
+    expect(jaReader.display_mode_preview).toBe(jaSettings.reading.preview);
     expect(jaReader.shortcuts.view_in_browser).toBe("Webプレビューを開く");
     expect(jaReader.shortcuts.open_external_browser).toBe("外部ブラウザで開く");
     expect(jaSettings.reading.standard).toBe("本文のみ");

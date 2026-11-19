@@ -59,7 +59,16 @@ export function AddFeedDialogView({
     <FormDialogShell
       open={open}
       title={labels.title}
-      description={labels.description}
+      description={
+        <>
+          {labels.account !== null ? (
+            <span dir="auto" className="block wrap-anywhere font-medium text-foreground">
+              {labels.account}
+            </span>
+          ) : null}{" "}
+          {labels.description}
+        </>
+      }
       cancelLabel={labels.cancel}
       submitLabel={labels.add}
       submittingLabel={labels.adding}

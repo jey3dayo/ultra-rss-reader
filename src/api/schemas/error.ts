@@ -54,3 +54,8 @@ export const AppErrorSchema = v.variant("type", [
 
 export type AppError = v.InferOutput<typeof AppErrorSchema>;
 export type CredentialFailure = v.InferOutput<typeof CredentialFailureSchema>;
+
+export function parseAppErrorOrNull(value: unknown): AppError | null {
+  const result = v.safeParse(AppErrorSchema, value);
+  return result.success ? result.output : null;
+}

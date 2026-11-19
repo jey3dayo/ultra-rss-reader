@@ -33,6 +33,8 @@ export function useArticleListPresentation({
     accountCount,
     feeds,
     isLoadingArticles,
+    isArticlesError,
+    articlesError,
     feedId,
     filteredArticles,
     groupedArticles,
@@ -49,8 +51,9 @@ export function useArticleListPresentation({
     searchQuery,
     searchInputRef,
     trimmedDebouncedQuery,
-    searchResults,
     isSearching,
+    isSearchError,
+    searchError,
     openSearch,
     handleToggleSearch,
     handleCloseSearch,
@@ -84,9 +87,12 @@ export function useArticleListPresentation({
     feedCount: feeds?.length,
     showSearch,
     trimmedDebouncedQuery,
-    searchResults,
     isSearching,
     filteredArticleCount: filteredArticles.length,
+    isArticlesError,
+    articlesError,
+    isSearchError,
+    searchError,
   });
 
   const articleGroups = useArticleListGroups({

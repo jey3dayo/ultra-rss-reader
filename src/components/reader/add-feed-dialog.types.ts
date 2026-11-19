@@ -45,6 +45,7 @@ export type AddFeedDialogProps = Omit<AddFeedDialogControllerParams, "folders" |
 export type AddFeedDialogViewLabels = {
   title: string;
   description: string;
+  account: string | null;
   urlLabel: string;
   urlPlaceholder: string;
   discover: string;

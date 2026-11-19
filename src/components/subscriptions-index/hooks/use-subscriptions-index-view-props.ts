@@ -136,9 +136,7 @@ export function useSubscriptionsIndexViewProps({
 
   const state = useSubscriptionsIndexState(rows, {
     initialSummaryFilter: scopedNavigationRequest?.summaryFilter ?? scopedIndexReturnState?.activeSummaryFilter,
-    initialSelectedFeedId: scopedNavigationRequest
-      ? scopedNavigationRequest.selectedFeedId
-      : scopedIndexReturnState?.selectedFeedId,
+    initialSelectedFeedId: scopedNavigationRequest ? null : scopedIndexReturnState?.selectedFeedId,
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
@@ -177,7 +175,7 @@ export function useSubscriptionsIndexViewProps({
       return;
     }
     consumedNavigationRequest.current = request;
-    state.navigateToSummaryFilter(request.summaryFilter, request.selectedFeedId);
+    state.navigateToSummaryFilter(request.summaryFilter);
   });
 
   useEffect(() => {

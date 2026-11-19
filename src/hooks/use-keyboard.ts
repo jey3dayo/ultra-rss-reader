@@ -23,6 +23,7 @@ import { scrollArticleContentByViewport } from "@/lib/reader/reader-content-scro
 import {
   focusArticleListRowTargetWhenReady,
   focusSelectedSidebarTarget,
+  getAccountPaneNavigationTargetSelector,
   isSidebarPaneTarget,
   resolveReaderFocusReturnAction,
   scheduleReaderFocusFrame,
@@ -88,6 +89,16 @@ function handleAccountPaneNavigation(
     (!targetInSidebarPane || targetInAccountPane || targetInAccountSwitcherMenu);
   if (!shouldRouteAccountPaneKey) {
     return false;
+  }
+
+  if (
+    normalizedPaneKey === "Enter" &&
+    targetInAccountPane &&
+    isGlobalShortcutNativeActivationTarget(targetElement) &&
+    !targetElement?.closest(getAccountPaneNavigationTargetSelector())
+  ) {
+    // Keep native activation and skip any configured shortcut for this Enter.
+    return true;
   }
 
   if (normalizedPaneKey === "ArrowDown" || normalizedPaneKey === "ArrowUp") {

@@ -49,7 +49,7 @@ const baseProps = {
   detailCandidate: null,
   folderLabel: "Folder",
   latestArticleLabel: "Latest",
-  latestArticleEmptyLabel: "No updates yet",
+  latestArticleEmptyLabel: "No articles fetched",
   updateFrequencyLabel: "Update frequency",
   formatUpdateFrequencyValue: (recentArticleCount: number) => `${recentArticleCount} recent`,
   overloadedBadgeLabel: "Can't keep up",
@@ -419,7 +419,7 @@ describe("SubscriptionDetailPane", () => {
       />,
     );
 
-    expect(within(getLatestArticleMetricRow()).getByText("No updates yet")).toBeInTheDocument();
+    expect(within(getLatestArticleMetricRow()).getByText("No articles fetched")).toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
 
     rerender(
@@ -431,7 +431,7 @@ describe("SubscriptionDetailPane", () => {
       />,
     );
 
-    expect(within(getLatestArticleMetricRow()).getByText("No updates yet")).toBeInTheDocument();
+    expect(within(getLatestArticleMetricRow()).getByText("No articles fetched")).toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("Invalid Date")).not.toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
   });

@@ -95,10 +95,10 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   );
 
   const navigateToSummaryFilter = useCallback(
-    (filterKey: SubscriptionSummaryFilterKey, feedId: string | null = null) => {
+    (filterKey: SubscriptionSummaryFilterKey) => {
       setActiveSummaryFilter(filterKey);
       setSearchQuery("");
-      setSelectedFeedId(feedId);
+      setSelectedFeedId(null);
       resetListScrollState();
     },
     [resetListScrollState],

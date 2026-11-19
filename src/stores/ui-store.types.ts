@@ -33,7 +33,6 @@ type ToastAnnouncement = {
 export type SubscriptionsIndexNavigationRequest = Readonly<{
   accountId: string | null;
   summaryFilter: SubscriptionSummaryFilterKey;
-  selectedFeedId?: string;
 }>;
 
 type SubscriptionsWorkspace = {

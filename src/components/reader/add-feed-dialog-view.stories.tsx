@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { createRef } from "react";
 import { fn } from "storybook/test";
 import { AddFeedDialogView } from "./add-feed-dialog-view";
 
@@ -40,7 +39,6 @@ const meta = {
       newFolderPlaceholder: "Enter folder name",
       onValueChange: fn(),
       onNewFolderNameChange: fn(),
-      newFolderInputRef: createRef<HTMLInputElement>(),
     },
     error: null,
     successMessage: "Feed detected",
@@ -51,6 +49,7 @@ const meta = {
     labels: {
       title: "Add feed",
       description: "Add a feed from a URL or website",
+      account: "Add to: Personal RSS",
       urlLabel: "Feed",
       urlPlaceholder: "https://example.com/feed.xml",
       discover: "Discover",
@@ -59,7 +58,6 @@ const meta = {
       add: "Add",
       adding: "Adding",
     },
-    inputRef: createRef<HTMLInputElement>(),
     onSubmit: fn(),
   },
 } satisfies Meta<typeof AddFeedDialogView>;
@@ -71,59 +69,24 @@ export const Default: Story = {};
 
 export const CreatingFolder: Story = {
   args: {
-    isDiscoverDisabled: false,
     folderSelectProps: {
-      labelId: "folder-story-label",
-      label: "Folder",
+      ...meta.args.folderSelectProps,
       value: "__new__",
-      options: [
-        { value: "", label: "No folder" },
-        { value: "folder-1", label: "Work" },
-        { value: "folder-2", label: "Personal" },
-      ],
-      canCreateFolder: true,
-      disabled: false,
       isCreatingFolder: true,
-      newFolderOptionLabel: "New folder",
-      newFolderLabel: "Folder name",
       newFolderName: "Reading List",
-      newFolderPlaceholder: "Enter folder name",
-      onValueChange: fn(),
-      onNewFolderNameChange: fn(),
-      newFolderInputRef: createRef<HTMLInputElement>(),
     },
     successMessage: null,
-    urlHint: null,
-    urlHintTone: "muted",
   },
 };
 
 export const Loading: Story = {
   args: {
     loading: true,
-    urlHint: null,
-    urlHintTone: "muted",
     isDiscoverDisabled: true,
     isSubmitDisabled: true,
     folderSelectProps: {
-      labelId: "folder-story-label",
-      label: "Folder",
-      value: "",
-      options: [
-        { value: "", label: "No folder" },
-        { value: "folder-1", label: "Work" },
-        { value: "folder-2", label: "Personal" },
-      ],
-      canCreateFolder: true,
+      ...meta.args.folderSelectProps,
       disabled: true,
-      isCreatingFolder: false,
-      newFolderOptionLabel: "New folder",
-      newFolderLabel: "Folder name",
-      newFolderName: "",
-      newFolderPlaceholder: "Enter folder name",
-      onValueChange: fn(),
-      onNewFolderNameChange: fn(),
-      newFolderInputRef: createRef<HTMLInputElement>(),
     },
   },
 };

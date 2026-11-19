@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
@@ -15,6 +15,7 @@ import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { useKeyboard } from "@/hooks/use-keyboard";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
@@ -739,7 +740,7 @@ describe("Sidebar", () => {
     );
   });
 
-  it("opens account settings from the account title context menu", async () => {
+  it("opens account settings and account creation from the account section", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -758,6 +759,10 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().settingsCategory).toBe("accounts");
     expect(useUiStore.getState().settingsAccountId).toBe("acc-1");
     expect(useUiStore.getState().settingsAddAccount).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add account" }));
+
+    expect(useUiStore.getState().settingsAddAccount).toBe(true);
   });
 
   it("keeps starred subscription context when selecting a feed from the starred smart view", async () => {
@@ -1868,8 +1873,9 @@ describe("Sidebar", () => {
     });
   });
 
-  it("opens the account pane instead of the account switcher popover from the account title on wide layout", async () => {
+  it("opens the account pane from the title and adds an account with the keyboard", async () => {
     const user = userEvent.setup();
+    usePreferencesStore.setState({ prefs: { shortcut_open_command_palette: "Enter" } });
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -1877,6 +1883,7 @@ describe("Sidebar", () => {
       layoutMode: "wide",
     });
 
+    renderHook(() => useKeyboard());
     render(
       <>
         <AccountPane />
@@ -1897,6 +1904,14 @@ describe("Sidebar", () => {
         within(screen.getByRole("navigation", { name: "Accounts" })).getByRole("button", { name: /Local/ }),
       ).toHaveFocus();
     });
+
+    const addAccountButton = within(screen.getByRole("navigation", { name: "Accounts" })).getByRole("button", {
+      name: "Add account",
+    });
+    addAccountButton.focus();
+    await user.keyboard("{Enter}");
+
+    expect(useUiStore.getState()).toMatchObject({ settingsOpen: true, settingsAddAccount: true });
   });
 
   it("keeps the account title as static text on wide layout when only one account exists", async () => {
@@ -2686,29 +2701,15 @@ describe("Sidebar", () => {
     expect(screen.getByRole("heading", { name: "Ultra RSS" })).toBeInTheDocument();
   });
 
-  it("keeps the subscriptions pane quiet when onboarding is handled in the reader pane", async () => {
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_accounts":
-          return [];
-        case "list_folders":
-        case "list_feeds":
-        case "list_account_articles":
-          return [];
-        case "list_tags":
-          return [];
-        case "get_tag_article_counts":
-          return {};
-        default:
-          return undefined;
-      }
-    });
+  it("opens account creation from the sidebar when no accounts exist", async () => {
+    const user = userEvent.setup();
+    setupTauriMocks((cmd) => (cmd === "list_accounts" ? [] : undefined));
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Add account" })).not.toBeInTheDocument();
-    });
+    await user.click(await screen.findByRole("button", { name: "Add account" }));
+
+    expect(useUiStore.getState()).toMatchObject({ settingsOpen: true, settingsAddAccount: true });
   });
 
   it("routes the header add-feed action to account settings when no account is available", async () => {

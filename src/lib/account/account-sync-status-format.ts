@@ -42,8 +42,17 @@ const ACCOUNT_SYNC_ERROR_PREFIXES = [
   { prefix: "Migration error:", kind: "migration" },
 ] as const satisfies readonly AccountSyncErrorPrefix[];
 
+/**
+ * The keychain "needs auth" recovery instruction is persisted into
+ * `last_error` as the English `NEEDS_AUTH` constant owned by the Rust
+ * keyring store (`src-tauri/src/infra/keyring_store/mod.rs`). Match its
+ * stable opening at this presentation boundary so the instruction is
+ * rendered from locale resources instead of the English source text.
+ */
+const KEYCHAIN_NEEDS_AUTH_DETAIL_PREFIX = "Credential access needs attention.";
+
 export type AccountSyncErrorTranslation = {
-  key: AccountSyncErrorKind | null;
+  key: AccountSyncErrorKind | "keychain_needs_auth" | null;
   params: { message: string };
 };
 
@@ -59,6 +68,13 @@ export function getAccountSyncErrorTranslationKey(lastError: string): AccountSyn
   }
 
   const detail = normalizedError.slice(matchedPrefix.prefix.length).trim();
+  if (matchedPrefix.kind === "keychain" && detail.startsWith(KEYCHAIN_NEEDS_AUTH_DETAIL_PREFIX)) {
+    return {
+      key: "keychain_needs_auth",
+      params: { message: "" },
+    };
+  }
+
   return {
     key: matchedPrefix.kind,
     params: { message: detail },
