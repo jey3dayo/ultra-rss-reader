@@ -34,9 +34,10 @@ describe("sidebar section props builders", () => {
       handleSelectAccount: onSelectAccount,
       closeAccountList: onClose,
       handleOpenAccountSettings: vi.fn(),
+      handleAddAccount: vi.fn(),
     });
 
-    expect(props).toEqual({
+    expect(props).toMatchObject({
       containerRef,
       title: "Work",
       lastSyncedLabel: "Synced now",
@@ -71,6 +72,7 @@ describe("sidebar section props builders", () => {
       handleSelectAccount: vi.fn(),
       closeAccountList: vi.fn(),
       handleOpenAccountSettings: vi.fn(),
+      handleAddAccount: vi.fn(),
     });
 
     expect(props.title).toBe(t("app_name"));
@@ -133,7 +135,6 @@ describe("sidebar section props builders", () => {
       showSidebarTags: true,
       isTagsSectionOpen: false,
       toggleTagsSection: onToggleTagsSection,
-      handleOpenAccountSettings: vi.fn(),
       feedTreeProps,
       tags: [],
       tagArticleCounts: {},

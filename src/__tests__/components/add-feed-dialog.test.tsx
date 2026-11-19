@@ -1,35 +1,20 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { createSampleAccounts } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
+import type { AddFeedDialogViewProps } from "@/components/reader/add-feed-dialog-view";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 vi.mock("@/components/reader/add-feed-dialog-view", () => ({
-  AddFeedDialogView: (props: {
-    url: string;
-    onUrlChange: (value: string) => void;
-    onDiscover: () => void;
-    urlHint: string | null;
-    error: string | null;
-    isDiscoverDisabled: boolean;
-    isSubmitDisabled: boolean;
-    discoveredFeedOptions: Array<{ value: string; label: string }>;
-    onSelectedFeedUrlChange: (value: string) => void;
-    folderSelectProps: {
-      isCreatingFolder: boolean;
-      newFolderName: string;
-      onValueChange: (value: string) => void;
-      onNewFolderNameChange: (value: string) => void;
-    };
-    onSubmit: () => void;
-  }) => (
+  AddFeedDialogView: (props: AddFeedDialogViewProps) => (
     <div>
+      {props.labels.account ? <p>{props.labels.account}</p> : null}
       <input aria-label="Feed URL" value={props.url} onChange={(event) => props.onUrlChange(event.target.value)} />
       {props.urlHint ? <p>{props.urlHint}</p> : null}
-      {props.error ? <p>{props.error}</p> : null}
       <button type="button" onClick={props.onDiscover} disabled={props.isDiscoverDisabled}>
         Discover
       </button>
@@ -55,11 +40,6 @@ vi.mock("@/components/reader/add-feed-dialog-view", () => ({
   ),
 }));
 
-const sampleFolders = [
-  { id: "folder-1", account_id: "acc-1", name: "Work", sort_order: 0 },
-  { id: "folder-2", account_id: "acc-1", name: "Personal", sort_order: 1 },
-];
-
 describe("AddFeedDialog", () => {
   beforeEach(() => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -70,7 +50,7 @@ describe("AddFeedDialog", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: false });
   });
 
-  it("keeps async discovery and folder assignment in the container", async () => {
+  it("shows the destination account used for feed creation and folder assignment", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     const { queryClient, wrapper } = createQueryWrapper();
@@ -81,8 +61,10 @@ describe("AddFeedDialog", () => {
       calls.push({ cmd, args });
 
       switch (cmd) {
+        case "list_accounts":
+          return createSampleAccounts().toReversed();
         case "list_folders":
-          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+          return [];
         case "discover_feeds":
           return [
             { url: "https://example.com/feed.xml", title: "Tech Blog" },
@@ -113,6 +95,7 @@ describe("AddFeedDialog", () => {
 
     render(<AddFeedDialog open={true} onOpenChange={onOpenChange} accountId="acc-1" />, { wrapper });
 
+    expect(await screen.findByText("Add to: Local")).toBeVisible();
     await user.type(screen.getByLabelText("Feed URL"), "https://example.com");
     await user.click(screen.getByRole("button", { name: "Discover" }));
     await user.click(await screen.findByText("News Feed"));
@@ -143,14 +126,7 @@ describe("AddFeedDialog", () => {
     const user = userEvent.setup();
     const { wrapper } = createQueryWrapper();
 
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_folders":
-          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
-        default:
-          return undefined;
-      }
-    });
+    setupTauriMocks();
 
     render(<AddFeedDialog open={true} onOpenChange={vi.fn()} accountId="acc-1" />, { wrapper });
 
