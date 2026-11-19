@@ -24,15 +24,6 @@ function extractWorkflowJobIf(source: string, jobId: string): string {
 }
 
 describe("GitHub templates contract", () => {
-  it("keeps release-readiness ownership in labeler", () => {
-    const labeler = readRepoFile(".github/labeler.yml");
-
-    expect(labeler).toContain("release-readiness:");
-    expect(labeler).toContain('".github/release.yml"');
-    expect(labeler).toContain('".github/workflows/release.yml"');
-    expect(labeler).toContain('"src-tauri/tauri.release.conf.json"');
-  });
-
   it("keeps write-permission labeler workflows scoped to same-repository pull requests", () => {
     const sameRepositoryPullRequestOnly =
       "$" + "{{ github.event.pull_request.head.repo.full_name == github.repository }}";

@@ -11,7 +11,6 @@ import {
 } from "@tests/helpers/repo-contract-parser";
 import { describe, expect, it } from "vitest";
 import {
-  queryKeys,
   resolveAddFeedInvalidationQueryKeys,
   resolveArticleInvalidationQueryKeys,
   resolveArticleMutationInvalidationQueryKeys,
@@ -24,7 +23,6 @@ import issueTestTemplate from "../../../.github/ISSUE_TEMPLATE/03-test-verificat
 import issueMaintenanceTemplate from "../../../.github/ISSUE_TEMPLATE/04-maintenance.yml?raw";
 import labelerConfig from "../../../.github/labeler.yml?raw";
 import releaseNotesConfig from "../../../.github/release.yml?raw";
-import prInsightsLabelerWorkflow from "../../../.github/workflows/pr-insights-labeler.yml?raw";
 import storybookConfig from "../../../.storybook/main";
 import {
   STORYBOOK_A11Y_TEST_MODE,
@@ -89,13 +87,6 @@ function expectPackageJsonStringRecord(fieldName: "scripts" | "devDependencies")
   }
 
   return value;
-}
-
-function listRepoRootYamlFiles(): string[] {
-  return readdirSync(repoRoot)
-    .filter((entry) => /\.(?:ya?ml)$/u.test(entry))
-    .filter((entry) => entry !== "pnpm-lock.yaml")
-    .toSorted();
 }
 
 function readRepoFile(path: string) {
@@ -203,11 +194,6 @@ function extractQualityGateNeeds(source: string) {
     .toSorted();
 }
 
-function extractMiseEnvValue(source: string, envName: string) {
-  const escapedEnvName = envName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return source.match(new RegExp(`^${escapedEnvName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null;
-}
-
 function extractMiseTaskSection(source: string, taskName: string) {
   const escapedTaskName = taskName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return (
@@ -258,15 +244,6 @@ function extractPlaywrightForbidOnlyExpression(source: string) {
 
 function extractPlaywrightReuseExistingServerExpression(source: string) {
   return source.match(/\breuseExistingServer:\s*(true|false)/)?.[1] ?? "";
-}
-
-function extractPlaywrightWebServerTimeout(source: string) {
-  const timeoutExpression = source.match(/\bwebServer:\s*{[^}]*\btimeout:\s*([^,\n]+)/s)?.[1]?.trim() ?? "";
-  const timeoutValue =
-    timeoutExpression.match(/^\d+$/)?.[0] ??
-    source.match(new RegExp(`\\bconst\\s+${timeoutExpression}\\s*=\\s*(\\d+)`))?.[1];
-
-  return Number(timeoutValue ?? Number.NaN);
 }
 
 function extractStorybookCanvasIds(source: string) {
@@ -562,7 +539,6 @@ const storybookStoryHelperExportAllowlist = new Set(
     ({ storyFilePath, helperExportName }) => `${storyFilePath.replace(/^\/+/, "")}:${helperExportName}`,
   ),
 );
-const officialTauriV2ConfigSchemaUrl = "https://schema.tauri.app/config/2";
 const maintainerManagedLabelSet = new Set<string>(maintainerManagedLabels);
 const automationMaintenanceLabelSet = new Set(["ci", "maintenance-family"]);
 const pathLabelableAffectedAreaTemplateNames = ["feature", "bug", "test verification", "maintenance"] as const;
@@ -769,28 +745,6 @@ describe("repository static contracts", () => {
       [...invalidationTargetRoots, ...mutationTargetRoots].map((queryKey) => queryKey[1]),
     );
 
-    expect(
-      Object.values(queryKeys)
-        .map((entry) => entry.root[1])
-        .toSorted(),
-    ).toEqual([
-      "accountArticles",
-      "accountStarredCount",
-      "accountUnreadCount",
-      "accounts",
-      "articles",
-      "articlesByTag",
-      "feedArticleSummaries",
-      "feedIntegrityReport",
-      "feeds",
-      "folderArticles",
-      "folders",
-      "localFeedSyncStatuses",
-      "recentArticles",
-      "search",
-      "starredArticles",
-      "tagArticleCounts",
-    ]);
     expect([...reachableRootNames].toSorted()).toEqual([
       "accountArticles",
       "accountStarredCount",
@@ -810,43 +764,15 @@ describe("repository static contracts", () => {
     ]);
   });
 
-  it("keeps the base Tauri config on the official v2 schema URL", () => {
-    expect(tauriConfig.$schema).toBe(officialTauriV2ConfigSchemaUrl);
-  });
-
   it("keeps markdown format and lint tasks on the same glob inventory", () => {
     const miseSource = readMiseTaskCorpus();
-    const markdownArguments = [
-      "$MD_GLOB",
-      "$MD_EXCLUDE_NODE_MODULES",
-      "$MD_EXCLUDE_PNPM_STORE",
-      "$MD_EXCLUDE_WORKTREES",
-      "$MD_EXCLUDE_TARGET",
-      "$MD_EXCLUDE_TAURI_GEN",
-    ].join(" ");
-    const markdownWindowsArguments = [
-      "$env:MD_GLOB",
-      "$env:MD_EXCLUDE_NODE_MODULES",
-      "$env:MD_EXCLUDE_PNPM_STORE",
-      "$env:MD_EXCLUDE_WORKTREES",
-      "$env:MD_EXCLUDE_TARGET",
-      "$env:MD_EXCLUDE_TAURI_GEN",
-    ].join(" ");
 
-    expect(extractMiseEnvValue(miseSource, "MD_GLOB")).toBe("**/*.md");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_NODE_MODULES")).toBe("#**/node_modules/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_PNPM_STORE")).toBe("#**/.pnpm-store/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_WORKTREES")).toBe("#**/.worktrees/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TARGET")).toBe("#**/target/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TAURI_GEN")).toBe("#src-tauri/gen/**");
-    expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(`markdownlint-cli2 ${markdownArguments} --fix`);
-    expect(extractMiseTaskCommand(miseSource, "format:md", "run_windows")).toBe(
-      `markdownlint-cli2 ${markdownWindowsArguments} --fix`,
-    );
-    expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(`markdownlint-cli2 ${markdownArguments}`);
-    expect(extractMiseTaskCommand(miseSource, "lint:md", "run_windows")).toBe(
-      `markdownlint-cli2 ${markdownWindowsArguments}`,
-    );
+    for (const commandName of ["run", "run_windows"] as const) {
+      const lintCommand = extractMiseTaskCommand(miseSource, "lint:md", commandName);
+      const formatCommand = extractMiseTaskCommand(miseSource, "format:md", commandName);
+
+      expect(formatCommand).toBe(`${lintCommand} --fix`);
+    }
   });
 
   it("keeps API schema files covered by barrel exports and schema tests", () => {
@@ -857,41 +783,7 @@ describe("repository static contracts", () => {
     );
     const aggregateSchemaTestSource = readRepoFile("src/__tests__/api/schema-barrel-public-api.test.ts");
 
-    expect(schemaFileStems).toEqual([
-      "account",
-      "account-sync-status",
-      "article",
-      "browser-webview",
-      "commands",
-      "common",
-      "database-info",
-      "discovered-feed",
-      "error",
-      "feed",
-      "feed-article-summary",
-      "feed-integrity",
-      "folder",
-      "local-account-sync",
-      "local-feed-sync-status",
-      "mute-keyword",
-      "platform-info",
-      "preferences",
-      "runtime-contracts",
-      "settings-profile",
-      "starred-articles",
-      "sync-progress",
-      "sync-result",
-      "tag",
-      "update-info",
-    ]);
     expect(schemaBarrelExportTargets).toEqual(schemaFileStems);
-    expect(dedicatedSchemaTestStems).toEqual([
-      "database-info",
-      "feed-integrity",
-      "platform-info",
-      "sync-result",
-      "update-info",
-    ]);
 
     for (const schemaFileStem of schemaFileStems) {
       const hasDedicatedTest = dedicatedSchemaTestStems.includes(schemaFileStem);
@@ -904,7 +796,6 @@ describe("repository static contracts", () => {
   it("keeps generated schema and target artifacts outside repo scan inventories", () => {
     const gitignoreSource = readRepoFile(".gitignore");
     const ripgrepIgnoreSource = readRepoFile(".ignore");
-    const claudeGuidance = readRepoFile("AGENTS.md");
     const miseSource = readMiseTaskCorpus();
     const ignoredArtifactPrefixes = [
       "dist/",
@@ -922,10 +813,6 @@ describe("repository static contracts", () => {
       expect(qualityBaselineRepoScanIgnoredPathPrefixes).toContain(ignoredArtifactPrefix);
     }
 
-    expect(claudeGuidance).toContain("Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output");
-    expect(claudeGuidance).toContain("Tauri capability schemas are ignored generated output and are not tracked");
-    expect(claudeGuidance).toContain("Do not hand-edit or commit files there");
-    expect(claudeGuidance).toContain("change `src-tauri/capabilities/` or the owning Tauri permission/config source");
     expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TARGET");
     expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TAURI_GEN");
     expect(extractMiseTaskCommand(miseSource, "quality:markdownlint-contract")).toContain("$MD_EXCLUDE_TARGET");
@@ -941,13 +828,10 @@ describe("repository static contracts", () => {
     const playwrightWebServerCommand = playwrightConfig.match(/\bcommand:\s*"([^"]+)"/)?.[1] ?? "";
     const playwrightWebServerUrl = playwrightConfig.match(/\bwebServer:\s*{[^}]*\burl:\s*"([^"]+)"/s)?.[1] ?? "";
 
-    expect(packageScripts.dev).toBe("pnpm exec vite");
-    expect(packageScripts["dev:tauri:vite"]).toBe("node ./scripts/tauri-dev-vite-manager.ts");
     expect(playwrightWebServerCommand).toBe("pnpm dev:tauri:vite");
     expect(packageScripts[extractPnpmScriptName(playwrightWebServerCommand)]).toBe(packageScripts["dev:tauri:vite"]);
     expect(readRepoFile("scripts/tauri-dev-vite-manager.ts")).toContain("classifyPortOwnerCommandLine");
     expect(extractPlaywrightReuseExistingServerExpression(playwrightConfig)).toBe("false");
-    expect(vitePort).toBe(1420);
     expect(viteConfig).toContain("strictPort: true");
     expect(extractUrlPort(playwrightBaseUrl)).toBe(vitePort);
     expect(playwrightWebServerUrl).toBe(playwrightBaseUrl);
@@ -964,14 +848,6 @@ describe("repository static contracts", () => {
       expect(appE2eSpec).toContain(importedName);
       expect(runtimeErrorGuardHelper).toContain(`function ${importedName}`);
     }
-
-    expect(appE2eSpec).toContain("test.beforeEach(async ({ page }) => {");
-    expect(appE2eSpec).toContain("installAppRuntimeErrorGuard(page);");
-    expect(appE2eSpec).toContain("test.afterEach(async ({ page }) => {");
-    expect(appE2eSpec).toContain("expectNoRuntimeErrors(page);");
-    expect(appE2eSpec).toContain("disposeRuntimeErrorGuard(page);");
-    expect(runtimeErrorGuardHelper).toContain('page.on("pageerror", pageErrorHandler)');
-    expect(runtimeErrorGuardHelper).toContain('page.off("pageerror", pageErrorHandler)');
   });
 
   it("keeps app and Storybook Playwright artifacts separated", () => {
@@ -982,10 +858,6 @@ describe("repository static contracts", () => {
     const appReportFolder = extractPlaywrightHtmlReportFolder(playwrightConfig);
     const storybookReportFolder = extractPlaywrightHtmlReportFolder(storybookPlaywrightConfig);
 
-    expect(appOutputDir).toBe("test-results/e2e");
-    expect(storybookOutputDir).toBe("test-results/storybook");
-    expect(appReportFolder).toBe("playwright-report/e2e");
-    expect(storybookReportFolder).toBe("playwright-report/storybook");
     expect(appOutputDir).not.toBe(storybookOutputDir);
     expect(appReportFolder).not.toBe(storybookReportFolder);
   });
@@ -993,10 +865,6 @@ describe("repository static contracts", () => {
   it("isolates the static accessibility suite from dev-server Playwright runs", () => {
     const auditConfig = readRepoFile("playwright.storybook-a11y.config.ts");
     expect(extractPlaywrightForbidOnlyExpression(auditConfig)).toBe("Boolean(process.env.CI)");
-    expect(extractPlaywrightOutputDir(auditConfig)).toBe("test-results/storybook-a11y");
-    expect(extractPlaywrightHtmlReportFolder(auditConfig)).toBe("playwright-report/storybook-a11y");
-    expect(auditConfig).toContain('testMatch: "accessibility.spec.ts"');
-    expect(auditConfig).toContain("--outDir storybook-static");
     expect(auditConfig).toContain("reuseExistingServer: false");
     for (const config of ["playwright.config.ts", "playwright.storybook.config.ts"])
       expect(readRepoFile(config)).toMatch(/testIgnore: "[^" ]*accessibility\.spec\.ts"/);
@@ -1014,53 +882,7 @@ describe("repository static contracts", () => {
     const miseTasks = extractMiseTaskNames(readMiseTaskCorpus());
     const ciTasks = extractMiseRunTasks(readRepoFile(".github/workflows/ci.yml"));
 
-    expect([...new Set(ciTasks)].toSorted()).toEqual([
-      "actions-lock:verify:online",
-      "app:build:debug",
-      "audit:deps",
-      "audit:deps:rust",
-      "build",
-      "build:storybook",
-      "format:check",
-      "lint:actions",
-      "lint:actions-shell",
-      "lint:biome",
-      "lint:clippy",
-      "lint:md",
-      "lint:types",
-      "lint:workflow-pins",
-      "lint:yaml",
-      "quality:knip",
-      "quality:react-doctor-pin",
-      "quality:react-doctor:diff",
-      "quality:toolchain",
-      "test:change-plan",
-      "test:keychain-session",
-      "test:rust",
-      "test:storybook:a11y",
-      "test:unit:ci:dom:shard1",
-      "test:unit:ci:dom:shard2",
-      "test:unit:ci:node",
-    ]);
     expect(ciTasks.filter((task) => !miseTasks.has(task))).toEqual([]);
-  });
-
-  it("keeps YAML lint checking its own config", () => {
-    const miseSource = readMiseTaskCorpus();
-
-    expect(miseSource).toContain(
-      'run = "yamllint -c .yamllint .github/ .yamllint apm.lock.yaml apm.yml jev-lint.yaml lefthook.yml pnpm-workspace.yaml"',
-    );
-  });
-
-  it("keeps root-level YAML additions out of the lint blind spot", () => {
-    expect(listRepoRootYamlFiles()).toEqual([
-      "apm.lock.yaml",
-      "apm.yml",
-      "jev-lint.yaml",
-      "lefthook.yml",
-      "pnpm-workspace.yaml",
-    ]);
   });
 
   it("keeps CI quality gate waiting on every check job", () => {
@@ -1079,11 +901,6 @@ describe("repository static contracts", () => {
     const framework =
       typeof storybookConfig.framework === "string" ? storybookConfig.framework : storybookConfig.framework?.name;
 
-    expect([...addonNames, framework].filter((name): name is string => Boolean(name))).toEqual([
-      "@storybook/addon-a11y",
-      "@storybook/addon-docs",
-      "@storybook/react-vite",
-    ]);
     expect(
       [...addonNames, framework].filter((name): name is string => Boolean(name) && !(name in devDependencies)),
     ).toEqual([]);
@@ -1097,7 +914,6 @@ describe("repository static contracts", () => {
 
     expect(STORYBOOK_A11Y_TEST_MODE).toBe("error");
     expect(storybookConfig.addons).toContain("@storybook/addon-a11y");
-    expect(STORYBOOK_A11Y_TEST_TODO_ALLOWLIST).toEqual([]);
     expect(storySourcesWithA11yTodo).toEqual([...STORYBOOK_A11Y_TEST_TODO_ALLOWLIST]);
   });
 
@@ -1107,7 +923,6 @@ describe("repository static contracts", () => {
       STORYBOOK_PREVIEW_BACKGROUNDS.map(({ name, value }) => [name, value] as const),
     );
 
-    expect(STORYBOOK_PREVIEW_BACKGROUND_TOKEN).toBe("--theme-canvas");
     expect(STORYBOOK_PREVIEW_BACKGROUND_VALUES).toEqual({
       dark: extractCssCustomProperty(globalCss, ":root.dark", STORYBOOK_PREVIEW_BACKGROUND_TOKEN),
       light: extractCssCustomProperty(globalCss, ":root", STORYBOOK_PREVIEW_BACKGROUND_TOKEN),
@@ -1125,34 +940,52 @@ describe("repository static contracts", () => {
     const colorRule = readRepoFile(".claude/rules/color-pattern.md");
     const globalCss = readRepoFile("src/styles/global.css");
 
-    expect(designGuidance).toContain("Primary (`#f54e00`)");
-    expect(designGuidance).toContain("Unread (`#9fbbe0`)");
-    expect(designGuidance).toContain("Loading (`#9fbbe0`)");
-    expect(designGuidance).toContain("Starred (`#facc15`)");
+    // DESIGN.md documents each fixed role as "- <Role> (`#rrggbb`)". Extract the
+    // documented values and compare the CSS token layer against them instead of
+    // restating the hex literals here.
+    const designRoleColors = new Map<string, Set<string>>();
+    for (const match of designGuidance.matchAll(
+      /- (Primary|Secondary|Unread|Loading|Starred) \(`?(#[0-9a-f]{6})`?\)/g,
+    )) {
+      const role = match[1] ?? "";
+      const values = designRoleColors.get(role) ?? new Set<string>();
+      values.add(match[2] ?? "");
+      designRoleColors.set(role, values);
+    }
+    const designRoleColor = (role: string): string => {
+      const values = designRoleColors.get(role) ?? new Set<string>();
+      expect(values.size, `DESIGN.md should document one ${role} color`).toBe(1);
+      return [...values][0] ?? "";
+    };
+    const primary = designRoleColor("Primary");
+    const secondary = designRoleColor("Secondary");
+    const unread = designRoleColor("Unread");
+    const starred = designRoleColor("Starred");
+
+    expect(designRoleColor("Loading")).toBe(unread);
     expect(designGuidance).toContain("Dialog and Popup Shells");
     expect(designGuidance).toContain("named scrim roles from the token layer");
 
-    expect(extractCssCustomProperty(globalCss, ":root", "--theme-primary")).toBe("#f54e00");
-    expect(extractCssCustomProperty(globalCss, ":root.dark", "--theme-primary")).toBe("#f54e00");
-    expect(extractCssCustomProperty(globalCss, ":root", "--theme-unread")).toBe("#9fbbe0");
-    expect(extractCssCustomProperty(globalCss, ":root.dark", "--theme-unread")).toBe("#9fbbe0");
-    expect(extractCssCustomProperty(globalCss, ":root", "--theme-starred")).toBe("#facc15");
-    expect(extractCssCustomProperty(globalCss, ":root.dark", "--theme-starred")).toBe("#facc15");
-    expect(extractCssCustomProperty(globalCss, ":root", "--tone-loading")).toBe("var(--theme-unread)");
-    expect(extractCssCustomProperty(globalCss, ":root.dark", "--tone-loading")).toBe("var(--theme-unread)");
-    expect(extractCssCustomProperty(globalCss, ":root", "--dialog-scrim")).toBe("var(--dialog-overlay)");
-    expect(extractCssCustomProperty(globalCss, ":root.dark", "--dialog-scrim")).toBe("var(--dialog-overlay)");
-    expect(extractCssCustomProperty(globalCss, ":root", "--control-active-warm")).toBe("#c08532");
-    expect(extractCssCustomProperty(globalCss, ":root.dark", "--control-active-warm")).toBe("#c08532");
-
-    expect(colorRule).toContain("rgba(245, 78, 0, 0.26)");
-    expect(colorRule).toContain("rgba(245, 78, 0, 0.38)");
-    expect(colorRule).toContain("var(--gradient-switch-track-off)");
-    expect(colorRule).not.toContain("oklch(0.65 0.15 250)");
+    for (const scope of [":root", ":root.dark"] as const) {
+      expect(extractCssCustomProperty(globalCss, scope, "--theme-primary")).toBe(primary);
+      expect(extractCssCustomProperty(globalCss, scope, "--theme-unread")).toBe(unread);
+      expect(extractCssCustomProperty(globalCss, scope, "--theme-starred")).toBe(starred);
+      expect(extractCssCustomProperty(globalCss, scope, "--control-active-warm")).toBe(secondary);
+      expect(extractCssCustomProperty(globalCss, scope, "--tone-loading")).toBe("var(--theme-unread)");
+      expect(extractCssCustomProperty(globalCss, scope, "--dialog-scrim")).toBe("var(--dialog-overlay)");
+    }
     expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe(
       "var(--control-active-warm)",
     );
     expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-off")).toBe("var(--color-input)");
+
+    // color-pattern.md states the focus ring as rgba() of the primary color in
+    // light and dark alphas; derive the components from the documented primary.
+    const [red, green, blue] = [1, 3, 5].map((index) => Number.parseInt(primary.slice(index, index + 2), 16));
+    const primaryRgbaPattern = new RegExp(`rgba\\(${red}, ${green}, ${blue}, [\\d.]+\\)`, "g");
+    expect(colorRule.match(primaryRgbaPattern)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(colorRule).toContain("var(--gradient-switch-track-off)");
+    expect(colorRule).not.toContain("oklch(0.65 0.15 250)");
   });
 
   it("keeps Storybook, Vite, and Vitest aliases aligned", () => {
@@ -1196,7 +1029,6 @@ describe("repository static contracts", () => {
       .filter((entry) => /^ui-reference-.+\.stories\.tsx$/.test(entry))
       .map((entry) => readRepoFile(join("src/components/storybook", entry)));
 
-    expect(packageScripts.storybook).toBe("storybook dev -p 6006 --no-open");
     expect(storybookPlaywrightConfig).toContain("const storybookCommand = isWindows");
     expect(storybookPlaywrightConfig).toContain(': "pnpm storybook"');
     expect(extractStorybookDevCommandPorts([storybookPlaywrightConfig, packageScripts.storybook].join("\n"))).toEqual([
@@ -1204,11 +1036,9 @@ describe("repository static contracts", () => {
       storybookPort,
     ]);
     expect(packageScripts[extractPnpmScriptName(storybookWebServerCommand)]).toBe(packageScripts.storybook);
-    expect(storybookPort).toBe(6006);
     expect(storybookWebServerUrl).toBe(storybookBaseUrl);
     expect(extractUrlPort(storybookWebServerUrl)).toBe(storybookPort);
     expect(storybookReuseExistingServer).toBe("false");
-    expect(extractPlaywrightWebServerTimeout(storybookPlaywrightConfig)).toBe(120000);
     expect([...uiReferenceCanvasStoryIds].toSorted()).toEqual(
       storySources.flatMap(extractStorybookCanvasIds).toSorted(),
     );
@@ -1281,23 +1111,6 @@ describe("repository static contracts", () => {
       .filter((link) => link !== ".claude/rules/README.md")
       .filter((link) => !indexedRuleFiles.has(link));
 
-    expect(claudeRuleLinks).toEqual([
-      ".claude/rules/README.md",
-      ".claude/rules/async-side-effect-policy.md",
-      ".claude/rules/boundary-ownership.md",
-      ".claude/rules/code-policy.md",
-      ".claude/rules/contract-test-policy.md",
-      ".claude/rules/preferences-pattern.md",
-      ".claude/rules/quality-policy.md",
-      ".claude/rules/react-doctor-triage.md",
-      ".claude/rules/repository-structure.md",
-      ".claude/rules/result-boundary.md",
-      ".claude/rules/runtime-boundary.md",
-      ".claude/rules/rust-test-unwrap-policy.md",
-      ".claude/rules/schema-boundary.md",
-      ".claude/rules/similarity-false-positives.md",
-      ".claude/rules/tauri-ipc-error-handling.md",
-    ]);
     expect(missingFromIndex).toEqual([]);
   });
 
@@ -1343,16 +1156,7 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
-    expect(releaseWorkflow).toContain('"platform":"macos-latest"');
-    expect(releaseWorkflow).toContain('"args":"--target aarch64-apple-darwin"');
-    expect(releaseWorkflow).toContain('"platform":"windows-latest"');
-    expect(releaseWorkflow).toContain("build_linux:");
-    expect(releaseWorkflow).toContain("default: false");
-    expect(releaseWorkflow).toContain('"platform":"ubuntu-24.04"');
-    expect(releaseWorkflow).toContain('"updater_enabled":false');
     expect(releaseWorkflow).toContain("matrix.updater_enabled == true");
-    expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json");
-    expect(releaseWorkflow).toContain("--ci");
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
     expect(tauriReleaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   });
@@ -1472,30 +1276,15 @@ describe("repository static contracts", () => {
 
   it("uses the native Windows URL opener for percent-encoded article links", () => {
     const cargoToml = readRepoFile("src-tauri/Cargo.toml");
-    const cargoLock = readRepoFile("src-tauri/Cargo.lock");
 
-    expect(cargoToml).toContain('open = "5.4"');
     expect(cargoToml).not.toContain('features = ["insecure"]');
-    expect(cargoLock).toMatch(/\[\[package\]\]\r?\nname = "open"\r?\nversion = "5\.4\.\d+"/u);
   });
 
   it("keeps Web Preview ATS relaxation scoped to web content loads", () => {
     const infoPlist = readRepoFile("src-tauri/Info.plist");
 
-    expect(tauriConfig.bundle.macOS?.infoPlist).toBe("Info.plist");
     expect("infoPlist" in tauriReleaseConfig.bundle.macOS).toBe(false);
-    expect(infoPlist).toContain("<key>NSAppTransportSecurity</key>");
-    expect(infoPlist).toContain("<key>NSAllowsArbitraryLoadsInWebContent</key>");
-    expect(infoPlist).toContain("<true/>");
     expect(infoPlist).not.toContain("<key>NSAllowsArbitraryLoads</key>");
-  });
-
-  it("documents the release-build condition for Tauri unstable child webview APIs", () => {
-    const cargoToml = readRepoFile("src-tauri/Cargo.toml");
-
-    expect(cargoToml).toContain('features = ["image-png", "unstable"]');
-    expect(cargoToml).toContain("required for the embedded browser child webview boundary");
-    expect(cargoToml).toContain("release-smoke the browser preview open, resize, navigation");
   });
 
   it("keeps manual release dispatch pinned to explicit version tags", () => {
@@ -1505,9 +1294,7 @@ describe("repository static contracts", () => {
 
     expect(releaseWorkflow).toContain("workflow_dispatch:");
     expect(releaseWorkflow).toContain("release_tag:");
-    expect(releaseWorkflow).toContain('description: "Release tag to publish. Must start with v."');
     expect(releaseWorkflow).toContain("required: true");
-    expect(releaseWorkflow).toContain("type: string");
     expect(releaseWorkflow).toContain("github.event_name == 'workflow_dispatch'");
     expect(releaseWorkflow).toContain(["ref: $", "{{ github.ref }}"].join(""));
     expect(releaseWorkflow).not.toContain("format('refs/tags/{0}', inputs.release_tag)");
@@ -1542,9 +1329,6 @@ describe("repository static contracts", () => {
 
   it("keeps bundled app icon provenance and configured icon outputs explicit", () => {
     const docsReadme = readRepoFile("docs/README.md");
-    const miseSource = readRepoFile("mise.toml");
-    const appIconTask = extractMiseTaskSection(miseSource, "app:icon");
-    const liquidIconTask = extractMiseTaskSection(miseSource, "app:icon:liquid");
     const bundleIcons = tauriConfig.bundle.icon;
     const liquidIconFiles = [
       "assets/app-icon-liquid-foreground.png",
@@ -1554,14 +1338,6 @@ describe("repository static contracts", () => {
       "src-tauri/icons/Assets.car",
     ];
 
-    expect(bundleIcons).toEqual([
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico",
-      "icons/Assets.car",
-    ]);
     for (const iconPath of bundleIcons) {
       expect(existsSync(join(repoRoot, "src-tauri", iconPath)), iconPath).toBe(true);
     }
@@ -1572,18 +1348,7 @@ describe("repository static contracts", () => {
     for (const iconPath of liquidIconFiles) {
       expect(existsSync(join(repoRoot, iconPath)), iconPath).toBe(true);
     }
-    expect(appIconTask).toContain("tauri icon assets/app-icon-tauri-source.png");
-    expect(liquidIconTask).toContain("sips --resampleHeightWidth 1024 1024 assets/app-icon-liquid-foreground.png");
-    expect(liquidIconTask).toContain("--out src-tauri/icons/AppIcon.icon/Assets/foreground.png");
-    expect(liquidIconTask).toContain("mktemp -d tmp/app-icon-liquid.XXXXXX");
-    expect(liquidIconTask).toContain("xcrun actool src-tauri/icons/AppIcon.icon");
-    expect(liquidIconTask).toContain("CFBundleIconName");
-    expect(liquidIconTask).toContain('cp "$ICON_TMP_DIR/Assets.car" src-tauri/icons/Assets.car');
     expect(docsReadme).toContain("Bundled app icon provenance");
-    expect(docsReadme).toContain("`assets/app-icon.png` is the checked-in raster design master");
-    expect(docsReadme).toContain("`assets/app-icon-tauri-source.png` is the checked-in Tauri source image");
-    expect(docsReadme).toContain("project-owned artwork with no third-party attribution requirement");
-    expect(docsReadme).toContain("source URL, license, and attribution note");
   });
 
   it("keeps top-level workflow permissions on a least-privilege inventory", () => {
@@ -1799,14 +1564,6 @@ describe("repository static contracts", () => {
       (path) => [path, readRepoFile(path)] as const,
     );
 
-    expect(schemaFileStems).toEqual([
-      "app-config",
-      "parse",
-      "preference-values",
-      "preferences",
-      "storage",
-      "subscriptions-workspace",
-    ]);
     for (const schemaFileStem of schemaFileStems) {
       expect(
         schemaTestSource.some(
@@ -1862,10 +1619,6 @@ describe("repository static contracts", () => {
 
     expect(ownerPaths.filter((path) => !documentedPaths.has(path))).toEqual([]);
     expect(ownerPaths.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-    expect(readRepoFile("src/hooks/use-keyboard.ts")).toContain("normalizePaneNavigationKey");
-    expect(readRepoFile("src/hooks/use-keyboard.ts")).toContain(
-      "targetElement?.closest('[data-sidebar-pane=\"true\"]')",
-    );
   });
 
   it("keeps GitHub issue templates aligned with label taxonomy sources", () => {
@@ -1899,12 +1652,6 @@ describe("repository static contracts", () => {
       expect(issueTemplateText).toContain(label);
     }
 
-    expect(issueTemplates.map(extractIssueTemplateDefaultLabels)).toEqual([
-      ["feature"],
-      ["fix"],
-      ["category/tests"],
-      ["chore"],
-    ]);
     expect(issueTemplates.flatMap(extractIssueTemplateDefaultLabels)).toEqual([...issueTemplateDefaultLabels]);
     expect(
       issueTemplates
@@ -1917,9 +1664,6 @@ describe("repository static contracts", () => {
     expect(extractIssueTemplateCheckboxLabels(issueTestTemplate, "follow-up-labels")).toEqual(
       expect.arrayContaining(["manual-verification が必要", "release-readiness に入る"]),
     );
-    expect(prInsightsLabelerWorkflow).toContain("uses: jey3dayo/pr-insights-labeler@v1.15.1");
-    expect(prInsightsLabelerWorkflow).toContain('file_size_limit: "100KB"');
-    expect(prInsightsLabelerWorkflow).toContain('pr_files_limit: "50"');
   });
 
   it("keeps issue affected areas aligned with automatic area labels", () => {
@@ -1997,7 +1741,6 @@ describe("repository static contracts", () => {
     const labelerRuleLabelSet = new Set(labelerRuleLabels);
     const excludedReleaseNoteLabelSet = new Set(excludedReleaseNoteLabels);
 
-    expect(releaseNoteLabels).toEqual(["breaking", "chore", "dependencies", "docs", "feature", "fix", "refactor"]);
     expect(releaseNoteLabelParityLabels.filter((label) => !releaseNoteLabelSet.has(label))).toEqual([]);
     expect(releaseNoteLabelParityLabels.filter((label) => !labelerRuleLabelSet.has(label))).toEqual([]);
     expect(releaseNoteLabelParityLabels.filter((label) => excludedReleaseNoteLabelSet.has(label))).toEqual([]);

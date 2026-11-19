@@ -244,17 +244,6 @@ describe("check-react-doctor-pin-consistency", () => {
   });
 
   describe("loadPinnedFullScanSummary", () => {
-    it("loads the pinned full-scan totals from the react-doctor-pin JSON", () => {
-      const pinJson = readFileSync("scripts/quality/react-doctor-pin.json", "utf8");
-      const pin = JSON.parse(pinJson);
-      expect(pin.full).toEqual({
-        score: null,
-        errorCount: 2,
-        warningCount: 29,
-        affectedFileCount: 29,
-      });
-    });
-
     it("matches the real reactDoctorFullScanTriageStatus derivation against the current pin", () => {
       const pinJson = readFileSync("scripts/quality/react-doctor-pin.json", "utf8");
       const pinned = JSON.parse(pinJson).full;

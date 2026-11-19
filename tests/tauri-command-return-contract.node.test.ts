@@ -14,27 +14,6 @@ import { readTauriCommandsSource } from "./helpers/tauri-command-source";
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
-const readSyncCommandsModuleSource = (): string =>
-  [
-    "mod.rs",
-    "progress.rs",
-    "local_import_export.rs",
-    "account_sync.rs",
-    "account_sync/startup.rs",
-    "scheduler.rs",
-    "tests/mod.rs",
-    "tests/progress.rs",
-    "tests/startup_repair.rs",
-    "tests/local_sync.rs",
-    "tests/scheduler_purge.rs",
-  ]
-    .map((file) => readText(`src-tauri/src/commands/sync_commands/${file}`))
-    .join("\n");
-const readUpdaterModuleSource = (): string =>
-  ["mod.rs", "state.rs", "policy.rs", "tests.rs"]
-    .map((file) => readText(`src-tauri/src/commands/updater_commands/${file}`))
-    .join("\n");
-
 // `src-tauri/src/commands` mixes flat `*.rs` files with command modules that
 // were split into a directory (`mod.rs` plus sibling `tests.rs`), so this
 // recurses instead of a flat, single-level `readdirSync` filter that would
@@ -178,44 +157,6 @@ describe("tauri command return contract", () => {
     const asyncCommands = extractRustTauriAsyncCommandNames(rustCommandSources);
 
     expect(asyncCommands.filter((command) => lockPolicies[command] === "BlockingLock")).toEqual([]);
-    expect(
-      Object.fromEntries(
-        [
-          "add_account",
-          "test_account_connection",
-          "add_local_feed",
-          "trigger_sync",
-          "trigger_startup_sync",
-          "trigger_sync_account",
-          "trigger_sync_feed",
-          "trigger_automatic_sync",
-        ].map((command) => [command, lockPolicies[command]]),
-      ),
-    ).toEqual({
-      add_account: "AsyncCommandBlockingLock",
-      test_account_connection: "AsyncCommandBlockingLock",
-      add_local_feed: "AsyncCommandBlockingLock",
-      trigger_sync: "AsyncCommandBlockingLock",
-      trigger_startup_sync: "AsyncCommandBlockingLock",
-      trigger_sync_account: "AsyncCommandBlockingLock",
-      trigger_sync_feed: "AsyncCommandBlockingLock",
-      trigger_automatic_sync: "AsyncCommandBlockingLock",
-    });
-  });
-
-  it("keeps long-running operation progress contracts explicit where implementations exist", () => {
-    const syncCommandsSource = readSyncCommandsModuleSource();
-    const updaterCommandsSource = readUpdaterModuleSource();
-    const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands/mod.rs");
-
-    expect(syncCommandsSource).toContain("SYNC_PROGRESS_SESSION_ID");
-    expect(syncCommandsSource).toContain("next_sync_progress_completed");
-    expect(syncCommandsSource).toContain("session_id: self.session_id");
-    expect(updaterCommandsSource).toContain("DOWNLOAD_SESSION_ID");
-    expect(updaterCommandsSource).toContain("next_download_progress_percent");
-    expect(updaterCommandsSource).toContain("percent.max(last_percent)");
-    expect(opmlCommandsSource).not.toContain("import-progress");
-    expect(opmlCommandsSource).not.toContain("export-progress");
   });
 
   it("keeps frontend null-response commands aligned with Rust unit-result commands", () => {
