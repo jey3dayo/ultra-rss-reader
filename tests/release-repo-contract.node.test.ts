@@ -875,6 +875,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(storeSubmissionScript.indexOf("if ($PriceId -cnotmatch")).toBeLessThan(
       storeSubmissionScript.indexOf("Invoke-WebRequest"),
     );
+    expect(storeSubmissionScript).toMatch(
+      /elseif \(\$Method -eq 'POST'\) \{\s+(?:#[^\n]*\n\s+)?\$request\.ContentType = 'application\/json'\s+\$request\.TransferEncoding = 'chunked'\s+\$request\.Body = ''/,
+    );
     expect(storeMsixWorkflow.indexOf("name: Submit and verify Store package")).toBeGreaterThan(
       storeMsixWorkflow.indexOf("uses: actions/upload-artifact@"),
     );

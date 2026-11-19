@@ -45,6 +45,11 @@ function Invoke-StoreRequest {
     if ($null -ne $Body) {
         $request.ContentType = 'application/json'
         $request.Body = ConvertTo-Json -InputObject $Body -Depth 100 -Compress
+    } elseif ($Method -eq 'POST') {
+        # Store requires chunked framing for the empty create and commit requests.
+        $request.ContentType = 'application/json'
+        $request.TransferEncoding = 'chunked'
+        $request.Body = ''
     }
     try {
         $response = Invoke-WebRequest @request
