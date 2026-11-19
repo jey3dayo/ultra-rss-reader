@@ -696,36 +696,30 @@ describe("subscriptions index helpers", () => {
       folderNameById: new Map([["folder-work", "Work"]]),
     });
     const onKeep = vi.fn();
-    const onDefer = vi.fn();
     const onDelete = vi.fn();
 
     const actions = buildSubscriptionDecisionActions({
       selectedRow: rows[0],
       isFlagged: true,
-      labels: { keep: "Keep", defer: "Later", delete: "Delete" },
+      labels: { keep: "Keep", delete: "Delete" },
       onKeep,
-      onDefer,
       onDelete,
     });
 
     expect(actions).toMatchObject({
       keepLabel: "Keep",
-      deferLabel: "Later",
       deleteLabel: "Delete",
     });
     actions?.onKeep();
-    actions?.onDefer();
     actions?.onDelete();
     expect(onKeep).toHaveBeenCalledTimes(1);
-    expect(onDefer).toHaveBeenCalledTimes(1);
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(
       buildSubscriptionDecisionActions({
         selectedRow: rows[0],
         isFlagged: false,
-        labels: { keep: "Keep", defer: "Later", delete: "Delete" },
+        labels: { keep: "Keep", delete: "Delete" },
         onKeep,
-        onDefer,
         onDelete,
       }),
     ).toBeNull();
@@ -739,9 +733,8 @@ describe("subscriptions index helpers", () => {
       folderNameById: new Map([["folder-work", "Work"]]),
     });
     const onKeep = vi.fn();
-    const onDefer = vi.fn();
     const onDelete = vi.fn();
-    const labels = { keep: "Keep", defer: "Later", delete: "Delete" };
+    const labels = { keep: "Keep", delete: "Delete" };
 
     expect(
       buildSubscriptionDecisionActions({
@@ -749,7 +742,6 @@ describe("subscriptions index helpers", () => {
         isFlagged: true,
         labels,
         onKeep,
-        onDefer,
         onDelete,
       }),
     ).toBeNull();
@@ -759,13 +751,12 @@ describe("subscriptions index helpers", () => {
         isFlagged: true,
         labels,
         onKeep,
-        onDefer,
         onDelete,
       }),
     ).toBeNull();
   });
 
-  it("captures the selected row when keep and defer callbacks are generated", () => {
+  it("captures the selected row when keep callback is generated", () => {
     const rows = buildSubscriptionListRows({
       feeds,
       candidateMap: new Map([
@@ -788,28 +779,24 @@ describe("subscriptions index helpers", () => {
       folderNameById: new Map([["folder-work", "Work"]]),
     });
     const onKeep = vi.fn();
-    const onDefer = vi.fn();
     let selectedRow = rows[0];
 
     const actions = buildSubscriptionDecisionActions({
       selectedRow,
       isFlagged: true,
-      labels: { keep: "Keep", defer: "Later", delete: "Delete" },
+      labels: { keep: "Keep", delete: "Delete" },
       onKeep,
-      onDefer,
       onDelete: vi.fn(),
     });
     selectedRow = rows[1];
 
     actions?.onKeep();
-    actions?.onDefer();
 
     expect(selectedRow.feed.id).toBe("feed-active");
     expect(onKeep).toHaveBeenCalledWith(rows[0]);
-    expect(onDefer).toHaveBeenCalledWith(rows[0]);
   });
 
-  it("hides a deferred stale feed from the stale filter", () => {
+  it("hides a kept stale feed from the stale filter", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
@@ -828,7 +815,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "stale",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "updated_at",
     });
@@ -839,8 +825,7 @@ describe("subscriptions index helpers", () => {
       buildVisibleSubscriptionRows({
         rows,
         activeSummaryFilter: "stale",
-        keptFeedIds: new Set(),
-        deferredFeedIds: new Set(["feed-stale"]),
+        keptFeedIds: new Set(["feed-stale"]),
         searchQuery: "",
         sortKey: "updated_at",
       }).map((row) => row.feed.id),
@@ -882,7 +867,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter,
         keptFeedIds: new Set(["feed-stale"]),
-        deferredFeedIds: new Set(),
         searchQuery: "",
         sortKey: "title",
       }).map((row) => row.feed.id);
@@ -916,7 +900,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "fetch_errors",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(),
         searchQuery: "",
         sortKey: "title",
       }).map((row) => row.feed.id),
@@ -936,7 +919,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "all",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "updated_at",
     });
@@ -959,15 +941,13 @@ describe("subscriptions index helpers", () => {
       feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     });
-    const keptFeedIds = new Set(["feed-stale"]);
-    const deferredFeedIds = new Set(["feed-mid"]);
+    const keptFeedIds = new Set(["feed-stale", "feed-mid"]);
 
     expect(
       buildVisibleSubscriptionRows({
         rows,
         activeSummaryFilter: "all",
         keptFeedIds,
-        deferredFeedIds,
         searchQuery: "",
         sortKey: "title",
       }).map((row) => row.feed.id),
@@ -978,7 +958,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "stale",
         keptFeedIds,
-        deferredFeedIds,
         searchQuery: "",
         sortKey: "title",
       }).map((row) => row.feed.id),
@@ -1023,14 +1002,13 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "frequent",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(),
         searchQuery: "",
         sortKey: "title",
       }).map((row) => row.feed.id),
     ).toEqual(["feed-quiet-overloaded"]);
   });
 
-  it("keeps the frequent card count consistent with the filtered list and does not hide deferred overloaded feeds", () => {
+  it("keeps the frequent card count consistent with the filtered list and does not hide kept overloaded feeds", () => {
     const overloadedFeeds = [{ ...feeds[1], unread_count: 100 }, feeds[0], feeds[2], feeds[3]];
     const frequentSummaryMap = new Map([
       [
@@ -1087,13 +1065,12 @@ describe("subscriptions index helpers", () => {
       feedArticleSummaryMap: frequentSummaryMap,
     });
 
-    // An overloaded feed that was deferred must still appear under the
+    // An overloaded feed that was kept must still appear under the
     // informational "frequent" filter (only review/stale hide decided feeds).
     const visibleFeedIds = buildVisibleSubscriptionRows({
       rows,
       activeSummaryFilter: "frequent",
-      keptFeedIds: new Set(),
-      deferredFeedIds: new Set(["feed-active"]),
+      keptFeedIds: new Set(["feed-active"]),
       searchQuery: "",
       sortKey: "title",
     }).map((row) => row.feed.id);
@@ -1117,7 +1094,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "all",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(),
         searchQuery: "work",
         sortKey: "title",
       }).map((row) => row.feed.id),
@@ -1127,7 +1103,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "all",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(),
         searchQuery: "feed",
         sortKey: "unread_count",
       }).map((row) => row.feed.id),
@@ -1137,7 +1112,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "all",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(),
         searchQuery: "EXAMPLE.COM/ACTIVE",
         sortKey: "title",
       }).map((row) => row.feed.id),
@@ -1147,7 +1121,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "all",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(),
         searchQuery: "quiet.xml",
         sortKey: "title",
       }).map((row) => row.feed.id),
@@ -1175,7 +1148,6 @@ describe("subscriptions index helpers", () => {
         rows,
         activeSummaryFilter: "all",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(),
         searchQuery,
         sortKey: "title",
       }).map((row) => row.feed.id);
@@ -1209,7 +1181,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "all",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "updated_at",
     });
@@ -1264,7 +1235,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "all",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "updated_at",
     });
@@ -1302,7 +1272,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "all",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "updated_at",
     });
@@ -1327,7 +1296,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "all",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "unread_count",
     });
@@ -1353,7 +1321,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "all",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "unread_count",
     });
@@ -1401,7 +1368,6 @@ describe("subscriptions index helpers", () => {
       rows,
       activeSummaryFilter: "all",
       keptFeedIds: new Set(),
-      deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "updated_at",
     });

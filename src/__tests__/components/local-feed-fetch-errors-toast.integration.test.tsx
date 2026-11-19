@@ -67,12 +67,12 @@ const feedsByAccount: Record<string, FeedDto[]> = {
   "acc-a": [
     makeFeed("a-error", "acc-a", "A Error Feed"),
     makeFeed("a-keep", "acc-a", "A Keep Feed"),
-    makeFeed("a-later", "acc-a", "A Later Feed"),
+    makeFeed("a-keep-two", "acc-a", "A Keep Two Feed"),
   ],
   "acc-b": [makeFeed("b-error", "acc-b", "B Error Feed"), makeFeed("b-review", "acc-b", "B Review Feed")],
 };
 
-const summaries: FeedArticleSummaryDto[] = ["a-error", "a-keep", "a-later", "b-error", "b-review"].map((feedId) => ({
+const summaries: FeedArticleSummaryDto[] = ["a-error", "a-keep", "a-keep-two", "b-error", "b-review"].map((feedId) => ({
   feed_id: feedId,
   latest_article_at: "2025-01-01T10:00:00Z",
   last_seen_article_at: null,
@@ -167,8 +167,8 @@ describe("fetch error toast navigation", () => {
     await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     await user.click(await screen.findByRole("button", { name: /A Keep Feed/ }));
     await user.click(screen.getByRole("button", { name: "残す" }));
-    await user.click(await screen.findByRole("button", { name: /A Later Feed/ }));
-    await user.click(screen.getByRole("button", { name: "あとで" }));
+    await user.click(await screen.findByRole("button", { name: /A Keep Two Feed/ }));
+    await user.click(screen.getByRole("button", { name: "残す" }));
 
     const group = screen.getByTestId("subscriptions-folder-row-ungrouped");
     await user.click(group);
@@ -185,7 +185,7 @@ describe("fetch error toast navigation", () => {
     await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     await user.click(screen.getByTestId("subscriptions-folder-row-ungrouped"));
     expect(screen.queryByText("A Keep Feed")).not.toBeInTheDocument();
-    expect(screen.queryByText("A Later Feed")).not.toBeInTheDocument();
+    expect(screen.queryByText("A Keep Two Feed")).not.toBeInTheDocument();
   });
 
   it("reapplies the request after manual search while ordinary feed updates retain the manual filter", async () => {
@@ -337,7 +337,6 @@ describe("fetch error toast navigation", () => {
             viewportWidth: window.innerWidth,
           },
           keptFeedIds: [],
-          deferredFeedIds: [],
           searchQuery: "",
         },
       },

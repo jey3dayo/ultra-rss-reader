@@ -4,13 +4,11 @@ import { stateSurfaceButtonVariants } from "@/components/shared/state-surface-bu
 import { Button } from "@/components/ui/button";
 
 type DecisionButtonProps = ComponentProps<typeof Button> & {
-  intent: "keep" | "defer" | "delete";
+  intent: "keep" | "delete";
 };
 
 const decisionIntentClassName: Record<DecisionButtonProps["intent"], string> = {
   keep: stateSurfaceButtonVariants({ tone: "success" }),
-  defer:
-    "border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
   delete: stateSurfaceButtonVariants({ tone: "danger" }),
 };
 

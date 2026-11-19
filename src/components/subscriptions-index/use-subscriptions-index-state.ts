@@ -21,26 +21,11 @@ function clearCheckedFeedIds(current: Set<string>): Set<string> {
   return current.size === 0 ? current : new Set();
 }
 
-function updateSelectedFeedDecision(params: {
-  selectedFeedId: string | null;
-  setPrimary: (updater: (current: Set<string>) => Set<string>) => void;
-  setSecondary: (updater: (current: Set<string>) => Set<string>) => void;
-}) {
-  const { selectedFeedId, setPrimary, setSecondary } = params;
-  if (!selectedFeedId) {
-    return;
-  }
-
-  setPrimary((current) => addFeedIdToSet(current, selectedFeedId));
-  setSecondary((current) => removeFeedIdFromSet(current, selectedFeedId));
-}
-
 type SubscriptionsIndexStateOptions = {
   initialSummaryFilter?: SubscriptionSummaryFilterKey;
   initialSelectedFeedId?: string | null;
   initialExpandedGroups?: Record<string, boolean>;
   initialKeptFeedIds?: string[];
-  initialDeferredFeedIds?: string[];
   initialSearchQuery?: string;
   initialListScrollState?: SubscriptionsWorkspaceListScrollState;
   viewportHeight?: number;
@@ -53,9 +38,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   const viewportWidth = options?.viewportWidth;
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
   const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));
-  const [deferredFeedIds, setDeferredFeedIds] = useState<Set<string>>(
-    () => new Set(options?.initialDeferredFeedIds ?? []),
-  );
   const [storedCheckedFeedIds, setStoredCheckedFeedIds] = useState<Set<string>>(() => new Set());
   const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState(options?.initialSearchQuery ?? "");
@@ -70,11 +52,10 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       rows,
       activeSummaryFilter,
       keptFeedIds,
-      deferredFeedIds,
       searchQuery,
       sortKey: "title",
     });
-  }, [activeSummaryFilter, deferredFeedIds, keptFeedIds, rows, searchQuery]);
+  }, [activeSummaryFilter, keptFeedIds, rows, searchQuery]);
   const checkedFeedIds = useMemo(() => {
     const existingFeedIds = new Set(rows.map((row) => row.feed.id));
     const effective = new Set<string>();
@@ -209,7 +190,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
 
   return {
     activeSummaryFilter,
-    deferredFeedIds,
     expandedGroups,
     keptFeedIds,
     bulkSelectionMode,
@@ -237,20 +217,11 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       }),
     setSearchQuery: updateSearchQuery,
     setSelectedFeedId,
-    markSelectedFeedDeferred: () => {
-      updateSelectedFeedDecision({
-        selectedFeedId,
-        setPrimary: setDeferredFeedIds,
-        setSecondary: setKeptFeedIds,
-      });
-      uncheckSelectedFeed();
-    },
     markSelectedFeedKept: () => {
-      updateSelectedFeedDecision({
-        selectedFeedId,
-        setPrimary: setKeptFeedIds,
-        setSecondary: setDeferredFeedIds,
-      });
+      if (!selectedFeedId) {
+        return;
+      }
+      setKeptFeedIds((current) => addFeedIdToSet(current, selectedFeedId));
       uncheckSelectedFeed();
     },
     startBulkSelection: () => setBulkSelectionMode(true),
@@ -288,7 +259,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
         return next;
       };
       setKeptFeedIds(withoutSucceeded);
-      setDeferredFeedIds(withoutSucceeded);
       if (remainingCount === 0) {
         setStoredCheckedFeedIds(clearCheckedFeedIds);
         setBulkSelectionMode(false);

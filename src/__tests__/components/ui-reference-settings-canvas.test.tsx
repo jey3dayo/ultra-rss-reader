@@ -534,7 +534,6 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "フォルダなし1" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByTestId("reference-workspace-action-cluster")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
-    expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByTestId("reference-detail-panel-frame")).toBeInTheDocument();
     expect(screen.getAllByText("AUTOMATON").length).toBeGreaterThan(0);

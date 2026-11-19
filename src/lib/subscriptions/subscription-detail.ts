@@ -20,10 +20,8 @@ export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean
 
 export type SubscriptionDecisionActions = {
   keepLabel: string;
-  deferLabel: string;
   deleteLabel: string;
   onKeep: () => void;
-  onDefer: () => void;
   onDelete: () => void;
 };
 
@@ -138,24 +136,20 @@ export function buildSubscriptionDecisionActions(params: {
   isFlagged: boolean;
   labels: {
     keep: string;
-    defer: string;
     delete: string;
   };
   onKeep: (selectedRow: SubscriptionListRow) => void;
-  onDefer: (selectedRow: SubscriptionListRow) => void;
   onDelete: () => void;
 }): SubscriptionDecisionActions | null {
-  const { selectedRow, isFlagged, labels, onKeep, onDefer, onDelete } = params;
+  const { selectedRow, isFlagged, labels, onKeep, onDelete } = params;
   if (!selectedRow || !isFlagged || !isSubscriptionRowFlagged(selectedRow.status)) {
     return null;
   }
 
   return {
     keepLabel: labels.keep,
-    deferLabel: labels.defer,
     deleteLabel: labels.delete,
     onKeep: () => onKeep(selectedRow),
-    onDefer: () => onDefer(selectedRow),
     onDelete,
   };
 }

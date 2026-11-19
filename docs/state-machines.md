@@ -312,9 +312,9 @@ owner: project-maintainers
 ### 5.7 購読インデックス（Subscriptions Index）
 
 - 場所: `src/components/subscriptions-index/use-subscriptions-index-state.ts:46-80`
-- 符号化: useState が10個並列 ― `activeAccountId`（ui-store の selectedAccountId とは別の二重管理で、prop変化を effect で追随）／`selectedFeedId`／`keptFeedIds: Set`／`deferredFeedIds: Set`／`searchQuery`／`sortKey`／`expandedGroups`／`activeSummaryFilter`／`listScrollState`／`listScrollResetKey`（スクロールリセット信号が state本体とカウンタの二重）。
-- 弱点: kept ∩ deferred ≠ ∅ が型上可能で、排他は `updateSelectedFeedDecision` を通る操作でのみ成立。初期値（options の `initialKeptFeedIds`／`initialDeferredFeedIds`）は無検証で両 Set に入る。`selectedFeedId` が visibleRows に無い状態は effect で後追い修復。
-- 再開の非対称: ワークスペースを跨いだ復元用 `returnState` に保存されるのは accountId・フィルタ・選択 feed・展開グループ・スクロール・kept/deferred までで、ローカル state の `searchQuery` と `sortKey` は保存されない。閉じて戻ると検索・ソートだけ初期化される。
+- 符号化: useState が9個並列 ― `activeAccountId`（ui-store の selectedAccountId とは別の二重管理で、prop変化を effect で追随）／`selectedFeedId`／`keptFeedIds: Set`／`searchQuery`／`sortKey`／`expandedGroups`／`activeSummaryFilter`／`listScrollState`／`listScrollResetKey`（スクロールリセット信号が state本体とカウンタの二重）。
+- 弱点: `selectedFeedId` が visibleRows に無い状態は effect で後追い修復。
+- 再開の非対称: ワークスペースを跨いだ復元用 `returnState` に保存されるのは accountId・フィルタ・選択 feed・展開グループ・スクロール・kept までで、ローカル state の `searchQuery` と `sortKey` は保存されない。閉じて戻ると検索・ソートだけ初期化される。
 
 ---
 

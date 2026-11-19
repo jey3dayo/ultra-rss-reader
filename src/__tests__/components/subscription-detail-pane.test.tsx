@@ -343,10 +343,8 @@ describe("SubscriptionDetailPane", () => {
   it("delegates decision bar actions and hides management actions while decisions are present", () => {
     const decisionActions = {
       keepLabel: "Keep",
-      deferLabel: "Later",
       deleteLabel: "Delete",
       onKeep: vi.fn(),
-      onDefer: vi.fn(),
       onDelete: vi.fn(),
     };
     const managementActions = {
@@ -360,20 +358,18 @@ describe("SubscriptionDetailPane", () => {
       <SubscriptionDetailPane {...baseProps} decisionActions={decisionActions} managementActions={managementActions} />,
     );
 
-    expect(screen.getByTestId("subscriptions-detail-decision-bar")).toHaveClass("grid-cols-1", "sm:grid-cols-3");
+    expect(screen.getByTestId("subscriptions-detail-decision-bar")).toHaveClass("grid-cols-1", "sm:grid-cols-2");
     expect(screen.queryByTestId("subscriptions-detail-management-bar")).not.toBeInTheDocument();
-    for (const label of ["Keep", "Later", "Delete"]) {
+    for (const label of ["Keep", "Delete"]) {
       const actionButton = screen.getByRole("button", { name: label });
       expect(actionButton).toBeVisible();
       expect(actionButton.querySelector("svg")).toHaveClass("size-4");
     }
 
     fireEvent.click(screen.getByRole("button", { name: "Keep" }));
-    fireEvent.click(screen.getByRole("button", { name: "Later" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
     expect(decisionActions.onKeep).toHaveBeenCalledOnce();
-    expect(decisionActions.onDefer).toHaveBeenCalledOnce();
     expect(decisionActions.onDelete).toHaveBeenCalledOnce();
     expect(managementActions.onEdit).not.toHaveBeenCalled();
     expect(managementActions.onDelete).not.toHaveBeenCalled();

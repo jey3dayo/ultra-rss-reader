@@ -16,7 +16,6 @@ export function resolveBulkUnsubscribeTargets({
     rows: selectedRows,
     activeSummaryFilter: "all",
     keptFeedIds: new Set(),
-    deferredFeedIds: new Set(),
     searchQuery: "",
     sortKey: "title",
   });

@@ -377,11 +377,11 @@ tracker を消す restructure は別タスクとして扱う。
 
 issue が「他 15 件と根拠の形が違う」と書いたとおりで、これは prop 変化への追従ではない。
 依存は `[selectedFeedId, selectedRow, visibleRows]` で、`visibleRows` は同 hook 内で
-search / sort / filter / kept / deferred から算出される派生値である（prop ではない）。
+search / sort / filter / kept から算出される派生値である（prop ではない）。
 
 `selectedRow`（`:164`）は既に render 中で導出済み。effect が維持しているのは**永続する
 `selectedFeedId`** で、これは後続の操作（`markSelectedFeedKept` 等）が参照するため、描画時の
-一時値では代替できない。`key` reset は hook の全 state（`keptFeedIds` / `deferredFeedIds` /
+一時値では代替できない。`key` reset は hook の全 state（`keptFeedIds` /
 `searchQuery` 等）を失う。`visibleRows` は多数の経路から変わるので単一イベントに割り当てられない。
 effect を落とすと `selectedFeedId` が存在しない行を指し続ける回帰になる。
 
@@ -449,7 +449,7 @@ JSX は `SubscriptionsIndexPageView` 1 要素に約 50 prop を渡す形なの�
 `no-derived-state-effect` の remedy は `rules explain` によると
 「render 中に導出する」に加えて **`key` prop による reset** である。これも 2 件とも届かない。
 `use-subscriptions-index-state` は hook なので `key` を持てず、呼び出し元の
-`SubscriptionsIndexPage` を remount すると `keptFeedIds` / `deferredFeedIds` / `searchQuery` /
+`SubscriptionsIndexPage` を remount すると `keptFeedIds` / `searchQuery` /
 スクロール位置まで失う。`useScreenSnapshot` も hook で、remount はラッチの目的
 （フェッチ中に直前スナップショットを見せ続ける）を真正面から壊す。
 

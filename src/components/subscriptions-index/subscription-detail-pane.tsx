@@ -1,4 +1,4 @@
-import { Check, Clock3, Copy, Globe, Pencil, RefreshCw, Rss, Trash2 } from "lucide-react";
+import { Check, Copy, Globe, Pencil, RefreshCw, Rss, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
@@ -72,8 +72,8 @@ type SubscriptionDetailPaneProps = {
 };
 
 type DecisionActionConfig = {
-  key: "keep" | "defer" | "delete";
-  intent: "keep" | "defer" | "delete";
+  key: "keep" | "delete";
+  intent: "keep" | "delete";
   label: string;
   onClick: () => void;
   icon: typeof Check;
@@ -87,13 +87,6 @@ function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions
       label: decisionActions.keepLabel,
       onClick: decisionActions.onKeep,
       icon: Check,
-    },
-    {
-      key: "defer",
-      intent: "defer",
-      label: decisionActions.deferLabel,
-      onClick: decisionActions.onDefer,
-      icon: Clock3,
     },
     {
       key: "delete",
@@ -334,7 +327,7 @@ function DecisionBar({ decisionActions }: DecisionBarProps) {
       variant="section"
       tone="default"
       padding="compact"
-      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 grid shrink-0 grid-cols-1 gap-2.5 rounded-md border-transparent bg-[var(--workspace-low-wire-action-surface)] px-3.5 pt-3.5 shadow-none backdrop-blur-sm sm:grid-cols-3 sm:px-4`}
+      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 grid shrink-0 grid-cols-1 gap-2.5 rounded-md border-transparent bg-[var(--workspace-low-wire-action-surface)] px-3.5 pt-3.5 shadow-none backdrop-blur-sm sm:grid-cols-2 sm:px-4`}
     >
       {buildDecisionActionConfigs(decisionActions).map((action) => {
         const Icon = action.icon;

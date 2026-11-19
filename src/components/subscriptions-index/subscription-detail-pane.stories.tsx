@@ -126,10 +126,8 @@ const meta = {
     dateLocale: "en-US",
     decisionActions: {
       keepLabel: "Keep",
-      deferLabel: "Later",
       deleteLabel: "Delete",
       onKeep: fn(),
-      onDefer: fn(),
       onDelete: fn(),
     },
     managementActions: null,

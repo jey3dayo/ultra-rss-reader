@@ -5,11 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import { DecisionButton } from "@/design-system";
 
 describe("DecisionButton", () => {
-  it("maps keep, defer, and delete intents to distinct styles", () => {
+  it("maps keep and delete intents to distinct styles", () => {
     render(
       <>
         <DecisionButton intent="keep">Keep</DecisionButton>
-        <DecisionButton intent="defer">Later</DecisionButton>
         <DecisionButton intent="delete">Delete</DecisionButton>
       </>,
     );
@@ -18,13 +17,6 @@ describe("DecisionButton", () => {
       "border-state-success-border",
       "bg-state-success-surface",
       "text-state-success-foreground",
-      "min-h-11",
-      "px-3",
-      "sm:px-3.5",
-    );
-    expect(screen.getByRole("button", { name: "Later" })).toHaveClass(
-      "border-border-strong",
-      "bg-surface-1/88",
       "min-h-11",
       "px-3",
       "sm:px-3.5",
