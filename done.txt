@@ -94,3 +94,7 @@ x 2026-10-10 2026-09-28 macOS Reading List Rust 経路の private host 拒否: v
 x 2026-10-13 2026-10-12 記事表示中もアプリ内ブラウザで任意URLを開けるようにしリンクの開き方を統一する(focused jsdom test+macOS実機) +reader note:https://github.com/jey3dayo/ultra-rss-reader/issues/426
 x 2026-11-17 2026-11-17 暗黙ステートマシンのカタログを docs/ に置く +docs note:https://github.com/jey3dayo/ultra-rss-reader/issues/676
 x 2026-11-17 2026-11-17 エラー・中間状態の dev scenario を追加する +frontend note:https://github.com/jey3dayo/ultra-rss-reader/issues/678
+x 2026-11-20 2026-08-16 Store審査結果対応→sideload検証→手動公開(期限:2026-11-16 までに初回提出しないと名前予約が失効) +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
+x 2026-11-20 2026-10-10 macOS配布版で明示許可・再起動・期限切れ・拒否後の再試行・非ASCII認証情報をダミー値で実機検証 +keychain note:https://github.com/jey3dayo/ultra-rss-reader/issues/404 @manual
+x 2026-11-20 2026-10-10 配布版app.logにsync-failed/keyring-*行が出ることと実FreshRSSアカウントでの同期を手動検証 +keychain note:https://github.com/jey3dayo/ultra-rss-reader/pull/394 @manual
+x 2026-11-20 2026-11-17 死に状態・未使用機構を整理する（contentMode loading / isSyncDisabled / nativeLifecycleBlockers / store searchQuery） +frontend note:https://github.com/jey3dayo/ultra-rss-reader/issues/677
