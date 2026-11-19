@@ -27,7 +27,6 @@ type SubscriptionsIndexPageViewProps = {
   subtitle: string;
   summaryCards: SubscriptionSummaryCard[];
   summaryLabels: SubscriptionsOverviewSummaryLabels;
-  reviewCriteriaLabel: string;
   inventoryHeading: string;
   detailHeading: string;
   groups: SubscriptionListGroup[];
@@ -96,7 +95,6 @@ export function SubscriptionsIndexPageView({
   title,
   summaryCards,
   summaryLabels,
-  reviewCriteriaLabel,
   inventoryHeading,
   detailHeading,
   groups,
@@ -166,7 +164,6 @@ export function SubscriptionsIndexPageView({
           <SubscriptionsOverviewSummary
             cards={summaryCards}
             labels={summaryLabels}
-            reviewCriteriaLabel={reviewCriteriaLabel}
             onSelectFilter={onSelectSummaryFilter}
           />
           <div

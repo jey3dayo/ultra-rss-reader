@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Changed
+
+- 購読一覧から「見直し候補」カードと絞り込みを削除し、保存済みの旧絞り込みは全件表示に戻すようにしました。 (#704)
+
 ## [0.67.31] - 2026-11-19
 
 ### Bug Fixes

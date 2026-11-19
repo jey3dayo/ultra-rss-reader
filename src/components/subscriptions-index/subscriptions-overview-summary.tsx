@@ -2,7 +2,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "cn";
 import type { ReactNode } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import { AppTooltip, TooltipProvider } from "@/design-system";
 import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
 
 type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
@@ -28,14 +27,6 @@ const summaryToneClassNames = {
   },
   stale: dangerToneClassNames,
   danger: dangerToneClassNames,
-  review: {
-    card: "border-state-warning-border/78 bg-state-warning-surface/86",
-    activeCard:
-      "border-state-warning-border/95 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-review)]",
-    activeAccent: "bg-state-warning-border",
-    activeBadge: "border-state-warning-border/75 bg-state-warning-surface/92 text-state-warning-foreground",
-    activeValue: "text-state-warning-foreground",
-  },
 } as const satisfies Record<
   SubscriptionSummaryTone,
   {
@@ -91,7 +82,6 @@ function canSelectSummaryFilterCard(card: SubscriptionSummaryCard) {
 type SummaryFilterCardButtonProps = {
   labels: SubscriptionsOverviewSummaryLabels;
   onSelect: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
-  reviewCriteriaLabel?: string;
   renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
   summaryCard: SubscriptionSummaryCard;
 };
@@ -99,12 +89,10 @@ type SummaryFilterCardButtonProps = {
 type SummaryCardViewState = {
   className: string;
   isActionable: boolean;
-  isProminent: boolean;
   toneClasses: (typeof summaryToneClassNames)[SubscriptionSummaryTone];
 };
 
 type SummaryCardRenderModel = {
-  card: SubscriptionSummaryCard;
   value: ReactNode;
   viewState: SummaryCardViewState;
 };
@@ -115,7 +103,6 @@ export type SubscriptionsOverviewSummaryLabels = {
   showFilterAriaLabel: (label: string) => string;
   filterAll: string;
   filter: string;
-  criteria: string;
 };
 
 const DEFAULT_SUMMARY_LABELS: SubscriptionsOverviewSummaryLabels = {
@@ -124,48 +111,25 @@ const DEFAULT_SUMMARY_LABELS: SubscriptionsOverviewSummaryLabels = {
   showFilterAriaLabel: (label) => `${label} を表示`,
   filterAll: "すべて表示",
   filter: "絞り込む",
-  criteria: "条件",
 };
 
 function isZeroCountAttentionCard(card: SubscriptionSummaryCard) {
-  return (
-    (card.filterKey === "review" || card.filterKey === "stale") &&
-    isNumericSummaryValue(card.value) &&
-    Number(card.value) === 0
-  );
-}
-
-function resolveSummaryCardClassName({
-  card,
-  isActiveActionable,
-  isProminent,
-}: {
-  card: SubscriptionSummaryCard;
-  isActiveActionable: boolean;
-  isProminent: boolean;
-}) {
-  const toneClasses = resolveSummaryToneClasses(card.tone);
-
-  return cn(
-    "motion-static-hover-surface relative flex min-h-[76px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-2.5 text-left sm:min-h-[84px] sm:px-4 sm:py-3",
-    toneClasses.card,
-    isProminent && "shadow-[var(--subscriptions-summary-card-shadow)]",
-    isProminent && "sm:col-span-2 lg:col-span-1",
-    isActiveActionable ? toneClasses.activeCard : "shadow-none",
-  );
+  return card.filterKey === "stale" && isNumericSummaryValue(card.value) && Number(card.value) === 0;
 }
 
 function resolveSummaryCardViewState(card: SubscriptionSummaryCard): SummaryCardViewState {
   const isActionable = canSelectSummaryFilterCard(card);
   const isActiveActionable = isActionable && Boolean(card.isActive);
   const displayTone = isZeroCountAttentionCard(card) ? "neutral" : card.tone;
-  const isProminent = card.filterKey === "review" && card.tone === "review" && !isZeroCountAttentionCard(card);
   const toneClasses = resolveSummaryToneClasses(displayTone);
 
   return {
-    className: resolveSummaryCardClassName({ card: { ...card, tone: displayTone }, isActiveActionable, isProminent }),
+    className: cn(
+      "motion-static-hover-surface relative flex min-h-[76px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-2.5 text-left sm:min-h-[84px] sm:px-4 sm:py-3",
+      toneClasses.card,
+      isActiveActionable ? toneClasses.activeCard : "shadow-none",
+    ),
     isActionable,
-    isProminent,
     toneClasses,
   };
 }
@@ -210,19 +174,12 @@ function buildSummaryCardRenderModel(params: {
 }): SummaryCardRenderModel {
   const { card, renderValue } = params;
   return {
-    card,
     value: renderValue?.(card) ?? renderDefaultSummaryValue(card),
     viewState: resolveSummaryCardViewState(card),
   };
 }
 
-function SummaryFilterCardButton({
-  labels,
-  onSelect,
-  reviewCriteriaLabel,
-  renderValue,
-  summaryCard,
-}: SummaryFilterCardButtonProps) {
+function SummaryFilterCardButton({ labels, onSelect, renderValue, summaryCard }: SummaryFilterCardButtonProps) {
   const {
     value,
     viewState: { className: cardClassName, toneClasses },
@@ -232,7 +189,7 @@ function SummaryFilterCardButton({
   });
   const isZeroAttention = isZeroCountAttentionCard(summaryCard);
 
-  const cardButton = (
+  return (
     <button
       type="button"
       className={cn(
@@ -296,16 +253,6 @@ function SummaryFilterCardButton({
       ) : null}
     </button>
   );
-
-  return summaryCard.filterKey === "review" && reviewCriteriaLabel ? (
-    <TooltipProvider>
-      <AppTooltip label={reviewCriteriaLabel} side="bottom" align="start">
-        {cardButton}
-      </AppTooltip>
-    </TooltipProvider>
-  ) : (
-    cardButton
-  );
 }
 
 type SubscriptionsOverviewSummaryProps = {
@@ -313,7 +260,6 @@ type SubscriptionsOverviewSummaryProps = {
   labels?: SubscriptionsOverviewSummaryLabels;
   onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
-  reviewCriteriaLabel?: string;
 };
 
 export function SubscriptionsOverviewSummary({
@@ -321,7 +267,6 @@ export function SubscriptionsOverviewSummary({
   labels = DEFAULT_SUMMARY_LABELS,
   onSelectFilter,
   renderValue,
-  reviewCriteriaLabel,
 }: SubscriptionsOverviewSummaryProps) {
   return (
     <section className="p-0 shadow-none">
@@ -335,7 +280,6 @@ export function SubscriptionsOverviewSummary({
                 key={card.label}
                 labels={labels}
                 onSelect={onSelectFilter}
-                reviewCriteriaLabel={reviewCriteriaLabel}
                 renderValue={renderValue}
                 summaryCard={card}
               />

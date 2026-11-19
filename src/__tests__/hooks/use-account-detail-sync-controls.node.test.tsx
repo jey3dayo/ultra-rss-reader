@@ -410,7 +410,7 @@ describe("useAccountDetailSyncControls", () => {
         kind: "index",
         returnState: {
           accountId: account.id,
-          activeSummaryFilter: "review",
+          activeSummaryFilter: "all",
           selectedFeedId: "kept-feed",
           expandedGroups: { "group:news": false },
           listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },
@@ -476,7 +476,7 @@ describe("useAccountDetailSyncControls", () => {
       kind: "index",
       returnState: {
         accountId: account.id,
-        activeSummaryFilter: "review",
+        activeSummaryFilter: "all",
         selectedFeedId: "kept-feed",
         expandedGroups: { "group:news": false },
         listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },

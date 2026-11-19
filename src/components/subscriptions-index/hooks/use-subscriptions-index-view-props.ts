@@ -211,8 +211,6 @@ export function useSubscriptionsIndexViewProps({
     labels: {
       total: t("summary_total"),
       totalCaption: (count) => t("summary_total_caption", { count }),
-      review: t("summary_review"),
-      reviewCaption: (count) => t("summary_review_caption", { count }),
       stale: t("summary_stale"),
       staleCaption: (count) => t("summary_stale_caption", { count }),
       frequent: t("summary_frequent"),
@@ -302,9 +300,7 @@ export function useSubscriptionsIndexViewProps({
       showFilterAriaLabel: (label) => t("summary_action_show_filter_aria", { label }),
       filterAll: t("summary_action_filter_all"),
       filter: t("summary_action_filter"),
-      criteria: t("summary_criteria_chip"),
     },
-    reviewCriteriaLabel: t("summary_review_criteria"),
     inventoryHeading,
     detailHeading: t("detail_heading"),
     groups: groupedRows,

@@ -18,13 +18,6 @@ const summaryCards = [
     isActive: true,
   },
   {
-    filterKey: "review",
-    label: "Needs review",
-    value: "3",
-    caption: "Low activity or duplicate candidates",
-    tone: "review",
-  },
-  {
     filterKey: "stale",
     label: "Stale feeds",
     value: "8",
@@ -64,11 +57,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const ReviewActive: Story = {
+export const StaleActive: Story = {
   args: {
     cards: summaryCards.map((card) => ({
       ...card,
-      isActive: card.filterKey === "review" && card.isActionable !== false,
+      isActive: card.filterKey === "stale" && card.isActionable !== false,
     })),
   },
 };
