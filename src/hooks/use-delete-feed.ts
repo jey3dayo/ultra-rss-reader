@@ -54,7 +54,7 @@ export function useDeleteFeed() {
       const callbackErrorMessage = callOptionalCallback(variables.onSuccess, "Delete feed success callback failed");
       if (callbackErrorMessage !== null) {
         showToast({
-          message: `Unsubscribe completed, but UI cleanup failed: ${callbackErrorMessage}`,
+          message: t("unsubscribe_cleanup_failed", { message: callbackErrorMessage }),
           severity: "warning",
         });
       }
@@ -70,7 +70,7 @@ export function useDeleteFeed() {
       const callbackErrorMessage = callOptionalCallback(variables.onError, "Delete feed error callback failed");
       if (callbackErrorMessage !== null) {
         showToast({
-          message: `Unsubscribe failed, and UI cleanup failed: ${callbackErrorMessage}`,
+          message: t("unsubscribe_failed_cleanup_failed", { message: callbackErrorMessage }),
           severity: "error",
         });
       }

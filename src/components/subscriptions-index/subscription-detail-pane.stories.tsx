@@ -1,15 +1,29 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import type { ArticleDto, FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
+import type {
+  ArticleDto,
+  FeedArticleSummaryDto,
+  FeedDto,
+  FolderDto,
+  LocalFeedSyncStatusDto,
+} from "@/api/tauri-commands";
+import {
+  buildFolderNameByIdMap,
+  buildSubscriptionReviewCandidates,
+  type SubscriptionReviewSummaryKey,
+} from "@/lib/subscriptions/subscription-review-candidates";
 import {
   resolveSubscriptionUpdatePace,
   SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
 } from "@/lib/subscriptions/subscription-update-frequency";
-import type {
-  SubscriptionDetailCandidate,
-  SubscriptionDetailMetrics,
-  SubscriptionListRow,
-} from "@/lib/subscriptions/subscriptions-index.types";
+import {
+  buildFeedArticleSummaryMap,
+  buildSubscriptionDetailCandidate,
+  buildSubscriptionDetailMetrics,
+  buildSubscriptionListRows,
+  buildSubscriptionReviewCandidateMap,
+} from "@/lib/subscriptions/subscriptions-index";
+import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 
 function formatStoryUpdateFrequencyValue(recentArticleCount: number): string {
@@ -33,16 +47,6 @@ const feed = {
   reader_mode: "inherit",
   web_preview_mode: "inherit",
 } satisfies FeedDto;
-
-const row = {
-  feed,
-  folderId: "folder-1",
-  folderName: "Work",
-  latestArticleAt: "2024-01-01T10:00:00Z",
-  recentArticleCount: 0,
-  status: { tone: "medium", labelKey: "stale_90d" },
-  reasonTooltipKey: "stale_90d",
-} satisfies SubscriptionListRow;
 
 const fetchError = {
   feed_id: "feed-1",
@@ -82,19 +86,89 @@ const previewArticles = [
   },
 ] satisfies ArticleDto[];
 
-const metrics = {
-  latestArticleAt: "2024-01-02T10:00:00Z",
-  starredCount: 1,
-  recentArticleCount: 0,
-  previewArticles,
-} satisfies SubscriptionDetailMetrics;
+const folders = [{ id: "folder-1", account_id: "acc-1", name: "Work", sort_order: 0 }] satisfies FolderDto[];
 
-const detailCandidate = {
-  candidate: null,
-  tone: "medium",
-  statusLabel: "Needs review",
-  reasonBoxBody: "90+ days without a new article / Updated 94 days ago / Unread 0",
-} satisfies SubscriptionDetailCandidate;
+const storyNow = new Date("2024-04-05T00:00:00Z");
+
+const statusLabels = {
+  normal: "No review needed",
+  attention_30d: "Attention",
+  stale_90d: "Long-term inactive",
+  quiet_no_unread: "Quiet",
+} satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
+
+const summaryTexts = {
+  attention_low_activity: "This RSS feed has had no updates for 30+ days. Keep an eye on it for now.",
+  stale_and_inactive: "This RSS feed has been quiet for a long stretch and no unread backlog is keeping it active.",
+  quiet_without_unread: "This RSS feed has had no updates for 60+ days and has no unread items.",
+  stale_but_supported: "This RSS feed has had no updates for 90+ days and should be checked as long-term inactive.",
+  healthy_feed: "This subscription still looks healthy and can stay where it is.",
+} satisfies Record<SubscriptionReviewSummaryKey, string>;
+
+function buildStoryDetail({
+  unreadCount,
+  summary,
+}: {
+  unreadCount: number;
+  summary: Pick<FeedArticleSummaryDto, "latest_article_at" | "starred_count">;
+}) {
+  const storyFeed = { ...feed, unread_count: unreadCount };
+  const feedArticleSummary = {
+    feed_id: storyFeed.id,
+    last_seen_article_at: null,
+    recent_article_count: 0,
+    ...summary,
+  } satisfies FeedArticleSummaryDto;
+  const candidateMap = buildSubscriptionReviewCandidateMap(
+    buildSubscriptionReviewCandidates({
+      feeds: [storyFeed],
+      folders,
+      feedArticleSummaries: [feedArticleSummary],
+      now: storyNow,
+      hiddenFeedIds: new Set(),
+    }),
+  );
+  const [row] = buildSubscriptionListRows({
+    feeds: [storyFeed],
+    candidateMap,
+    feedArticleSummaryMap: buildFeedArticleSummaryMap([feedArticleSummary]),
+    folderNameById: buildFolderNameByIdMap(folders),
+  });
+  if (!row) {
+    throw new Error("Story fixture produced no subscription row");
+  }
+
+  return {
+    row,
+    metrics: buildSubscriptionDetailMetrics({ feed: storyFeed, articles: previewArticles, feedArticleSummary }),
+    detailCandidate: buildSubscriptionDetailCandidate({
+      selectedRow: row,
+      selectedCandidate: candidateMap.get(storyFeed.id) ?? null,
+      labels: {
+        statusLabel: (labelKey) => statusLabels[labelKey],
+        summaryText: (summaryKey) => summaryTexts[summaryKey],
+        reasonFact: (fact) => `Unread ${fact.value}`,
+        reasonLabel: (reasonKey, staleDays) =>
+          reasonKey === "quiet_no_unread"
+            ? `No new RSS article for ${staleDays} days with no unread`
+            : `No new RSS article for ${staleDays} days`,
+      },
+    }),
+  };
+}
+
+const stale = buildStoryDetail({
+  unreadCount: 0,
+  summary: { latest_article_at: "2024-01-02T10:00:00Z", starred_count: 1 },
+});
+const attention = buildStoryDetail({
+  unreadCount: 0,
+  summary: { latest_article_at: "2024-03-02T10:00:00Z", starred_count: 1 },
+});
+const healthy = buildStoryDetail({
+  unreadCount: 3,
+  summary: { latest_article_at: "2024-04-02T10:00:00Z", starred_count: 1 },
+});
 
 const meta = {
   title: "Subscriptions/Detail/SubscriptionDetailPane",
@@ -103,9 +177,9 @@ const meta = {
   args: {
     heading: "Details",
     emptyLabel: "Select a subscription to review its details.",
-    row,
-    metrics,
-    detailCandidate,
+    row: stale.row,
+    metrics: stale.metrics,
+    detailCandidate: stale.detailCandidate,
     folderLabel: "Folder",
     latestArticleLabel: "Latest article",
     latestArticleEmptyLabel: "No fetched articles",
@@ -155,6 +229,9 @@ export const Empty: Story = {
 
 export const WithoutDecisionActions: Story = {
   args: {
+    row: attention.row,
+    metrics: attention.metrics,
+    detailCandidate: attention.detailCandidate,
     decisionActions: null,
     managementActions: {
       editLabel: "Edit",
@@ -167,12 +244,9 @@ export const WithoutDecisionActions: Story = {
 
 export const NotReviewCandidate: Story = {
   args: {
-    detailCandidate: {
-      candidate: null,
-      tone: "neutral",
-      statusLabel: "No review needed",
-      reasonBoxBody: null,
-    },
+    row: healthy.row,
+    metrics: healthy.metrics,
+    detailCandidate: healthy.detailCandidate,
     decisionActions: null,
     managementActions: {
       editLabel: "Edit",
@@ -239,5 +313,6 @@ export const FetchErrorUrlBlocked: Story = {
       ...fetchError,
       error_kind: "private_address_blocked",
     },
+    onEditFeed: fn(),
   },
 };

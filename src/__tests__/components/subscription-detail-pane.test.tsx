@@ -29,7 +29,7 @@ function buildRow(): SubscriptionListRow {
     folderName: null,
     latestArticleAt: null,
     recentArticleCount: 0,
-    status: { tone: "neutral", labelKey: "normal" },
+    status: { labelKey: "normal" },
     reasonTooltipKey: null,
   };
 }
@@ -230,10 +230,10 @@ describe("SubscriptionDetailPane", () => {
     render(
       <SubscriptionDetailPane
         {...baseProps}
-        row={{ ...buildRow(), status: { tone: "medium", labelKey: "stale_90d" } }}
+        row={{ ...buildRow(), status: { labelKey: "stale_90d" } }}
         detailCandidate={{
           candidate: null,
-          tone: "medium",
+          tone: "danger",
           statusLabel: "90日以上未更新",
           reasonBoxBody: "最終更新から120日です。",
         }}
@@ -267,10 +267,10 @@ describe("SubscriptionDetailPane", () => {
     render(
       <SubscriptionDetailPane
         {...baseProps}
-        row={{ ...buildRow(), status: { tone: "medium", labelKey: "stale_90d" } }}
+        row={{ ...buildRow(), status: { labelKey: "stale_90d" } }}
         detailCandidate={{
           candidate: null,
-          tone: "medium",
+          tone: "danger",
           statusLabel: "90日以上未更新",
           reasonBoxBody: "最終更新から120日です。",
         }}

@@ -199,6 +199,8 @@
   "unsubscribe_description": "このフィードの記事も削除されます。",
   "unsubscribed_from": "{{title}} の購読を解除しました",
   "failed_to_unsubscribe": "購読解除に失敗しました: {{message}}",
+  "unsubscribe_cleanup_failed": "購読を解除しましたが、画面の後処理に失敗しました: {{message}}",
+  "unsubscribe_failed_cleanup_failed": "購読解除に失敗し、画面の後処理にも失敗しました: {{message}}",
   "confirm_mark_read_one": "1件の記事を既読にしますか？",
   "confirm_mark_read_other": "{{count, count}}件の記事を既読にしますか？",
   "confirm_mark_feed_read_one": "このフィードの1件を既読にしますか？",

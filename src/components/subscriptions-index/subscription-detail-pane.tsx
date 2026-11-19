@@ -15,6 +15,7 @@ import {
 import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
 import { formatShortDateTime } from "@/lib/datetime";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
+import { resolveFeedDetailTone } from "@/lib/subscriptions/subscription-status-tone";
 import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
@@ -217,7 +218,7 @@ function resolveBadgeLabel(
 }
 
 function resolveBadgeTone(hasFetchError: boolean, detailCandidate: SubscriptionDetailCandidate | null) {
-  return hasFetchError ? "high" : (detailCandidate?.tone ?? "neutral");
+  return resolveFeedDetailTone(hasFetchError ? "danger" : (detailCandidate?.tone ?? "neutral"));
 }
 
 function resolveReasonBox(
@@ -232,7 +233,7 @@ function resolveReasonBox(
   return {
     title: reasonHeading,
     body: detailCandidate.reasonBoxBody,
-    tone: detailCandidate.tone,
+    tone: resolveFeedDetailTone(detailCandidate.tone),
   };
 }
 

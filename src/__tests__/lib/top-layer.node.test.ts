@@ -30,13 +30,27 @@ describe("top-layer DOM helpers", () => {
 
   it("detects nested Escape-owning layers inside a provided root", () => {
     const root = document.createElement("section");
-    const popperWrapper = document.createElement("div");
-    popperWrapper.dataset.radixPopperContentWrapper = "";
-    root.append(popperWrapper);
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    root.append(dialog);
 
     expect(hasOpenNestedEscapeLayer(root)).toBe(true);
     expect(hasOpenNestedEscapeLayer(document.body)).toBe(false);
     expect(hasOpenNestedEscapeLayer(null)).toBe(false);
+  });
+
+  it("treats an open select popup as Escape-owning but not one that is closing", () => {
+    const popup = document.createElement("div");
+    popup.dataset.slot = "select-popup";
+    popup.dataset.closed = "";
+    document.body.append(popup);
+
+    expect(hasOpenNestedEscapeLayer()).toBe(false);
+
+    delete popup.dataset.closed;
+    popup.dataset.open = "";
+
+    expect(hasOpenNestedEscapeLayer()).toBe(true);
   });
 
   it("detects when an open top layer owns focus", () => {

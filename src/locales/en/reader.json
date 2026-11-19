@@ -199,6 +199,8 @@
   "unsubscribe_description": "Articles from this feed will also be deleted.",
   "unsubscribed_from": "Unsubscribed from {{title}}",
   "failed_to_unsubscribe": "Failed to unsubscribe: {{message}}",
+  "unsubscribe_cleanup_failed": "Unsubscribe completed, but UI cleanup failed: {{message}}",
+  "unsubscribe_failed_cleanup_failed": "Unsubscribe failed, and UI cleanup failed: {{message}}",
   "confirm_mark_read_one": "Mark 1 article as read?",
   "confirm_mark_read_other": "Mark {{count, count}} articles as read?",
   "confirm_mark_feed_read_one": "Mark 1 article in this feed as read?",

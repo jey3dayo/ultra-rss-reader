@@ -99,17 +99,17 @@ type SummaryCardRenderModel = {
 };
 
 export type SubscriptionsOverviewSummaryLabels = {
+  regionLabel: string;
   activeBadge: string;
   staticBadge: string;
-  showFilterAriaLabel: (label: string) => string;
   filterAll: string;
   filter: string;
 };
 
 const DEFAULT_SUMMARY_LABELS: SubscriptionsOverviewSummaryLabels = {
+  regionLabel: "購読の概要",
   activeBadge: "表示中",
   staticBadge: "参照",
-  showFilterAriaLabel: (label) => `${label} を表示`,
   filterAll: "すべて表示",
   filter: "絞り込む",
 };
@@ -141,10 +141,6 @@ function resolveActiveBadgeLabel(labels: SubscriptionsOverviewSummaryLabels) {
 
 function resolveStaticBadgeLabel(labels: SubscriptionsOverviewSummaryLabels) {
   return labels.staticBadge;
-}
-
-function resolveSummaryFilterCardAriaLabel(card: SubscriptionSummaryCard, labels: SubscriptionsOverviewSummaryLabels) {
-  return labels.showFilterAriaLabel(card.label);
 }
 
 function resolveActionChipLabel({
@@ -197,7 +193,6 @@ function SummaryFilterCardButton({ labels, onSelect, renderValue, summaryCard }:
         cardClassName,
         "group cursor-pointer hover:border-border-strong/90 focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
       )}
-      aria-description={resolveSummaryFilterCardAriaLabel(summaryCard, labels)}
       aria-pressed={Boolean(summaryCard.isActive)}
       onClick={() => onSelect(summaryCard.filterKey)}
     >
@@ -272,7 +267,7 @@ export function SubscriptionsOverviewSummary({
   renderValue,
 }: SubscriptionsOverviewSummaryProps) {
   return (
-    <section className="p-0 shadow-none">
+    <section aria-label={labels.regionLabel} className="p-0 shadow-none">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3">
         {cards.map((card) => {
           const { value, viewState } = buildSummaryCardRenderModel({ card, renderValue });

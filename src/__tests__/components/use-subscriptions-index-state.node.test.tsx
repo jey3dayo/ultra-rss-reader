@@ -370,7 +370,7 @@ describe("useSubscriptionsIndexState", () => {
     });
 
     it("moves on to the next stale row, then the previous one, as rows are marked kept", async () => {
-      const stale = { tone: "high", labelKey: "stale_90d" } as const;
+      const stale = { labelKey: "stale_90d" } as const;
       const { result } = renderHook(() =>
         useSubscriptionsIndexState([makeRow("alpha", stale), makeRow("beta", stale), makeRow("gamma", stale)], {
           initialSummaryFilter: "stale",
@@ -390,7 +390,7 @@ describe("useSubscriptionsIndexState", () => {
     });
 
     it("starts from the first row when a filter change hides the selection", async () => {
-      const stale = { tone: "high", labelKey: "stale_90d" } as const;
+      const stale = { labelKey: "stale_90d" } as const;
       const rows = [makeRow("alpha"), makeRow("beta", stale), makeRow("delta"), makeRow("gamma", stale)];
       const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialSelectedFeedId: "delta" }));
 
@@ -483,6 +483,23 @@ describe("useSubscriptionsIndexState", () => {
       expect(result.current.bulkSelectionMode).toBe(true);
     });
 
+    it("keeps the checked feeds and list scroll when the active summary filter is selected again", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+      });
+      const scrollResetKey = result.current.listScrollResetKey;
+
+      act(() => {
+        result.current.setActiveSummaryFilter("all");
+      });
+
+      expect(result.current.checkedCount).toBe(1);
+      expect(result.current.listScrollResetKey).toBe(scrollResetKey);
+    });
+
     it("keeps kept rows out of select-all and reports them as skipped", () => {
       const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialKeptFeedIds: ["beta"] }));
 
@@ -497,7 +514,7 @@ describe("useSubscriptionsIndexState", () => {
 
     it("keeps a kept fetch-error row out of select-all even though the stale filter still shows it", () => {
       const failingRow: SubscriptionListRow = {
-        ...makeRow("failing", { tone: "high", labelKey: "stale_90d" }),
+        ...makeRow("failing", { labelKey: "stale_90d" }),
         reasonTooltipKey: "fetch_error",
         fetchError: {
           feed_id: "failing",
@@ -508,7 +525,7 @@ describe("useSubscriptionsIndexState", () => {
           diagnostic_id: null,
         },
       };
-      const staleRow = makeRow("stale", { tone: "high", labelKey: "stale_90d" });
+      const staleRow = makeRow("stale", { labelKey: "stale_90d" });
       const { result } = renderHook(() =>
         useSubscriptionsIndexState([failingRow, staleRow], {
           initialSummaryFilter: "stale",
