@@ -2,6 +2,7 @@ import { cn } from "cn";
 import { Copy } from "lucide-react";
 import type { ReactNode } from "react";
 import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
+import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import {
   SETTINGS_CHANGED_CONTROL_CLASS,
@@ -58,6 +59,9 @@ type AccountCredentialsSectionViewProps = {
   changedFieldLabel?: string;
   cloudflareAccess?: AccountCloudflareAccessSection;
   sectionErrorMessage?: string | null;
+  storageSettingsLabel?: string;
+  storageSettingsDescription?: string;
+  onOpenCredentialStorage?: () => void;
 };
 
 export function AccountCredentialsSectionView({
@@ -90,6 +94,9 @@ export function AccountCredentialsSectionView({
   changedFieldLabel,
   cloudflareAccess,
   sectionErrorMessage,
+  storageSettingsLabel,
+  storageSettingsDescription,
+  onOpenCredentialStorage,
 }: AccountCredentialsSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
   const resolvedExtraRows = extraRows ?? EMPTY_EXTRA_ROWS;
@@ -176,6 +183,14 @@ export function AccountCredentialsSectionView({
           disabled={disabled}
           labelClassName={labelColumnClassName}
         />
+      )}
+      {onOpenCredentialStorage && (
+        <div className="flex flex-wrap items-center gap-2">
+          <SettingsActionButton size="compact" disabled={disabled} onClick={onOpenCredentialStorage}>
+            {storageSettingsLabel}
+          </SettingsActionButton>
+          <span className="text-sm text-foreground-soft">{storageSettingsDescription}</span>
+        </div>
       )}
       {sectionErrorMessage ? (
         <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">

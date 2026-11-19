@@ -2,10 +2,12 @@ import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import type { AccountSyncStatusRow } from "@/components/settings/account-detail/sync-section-view";
+import { useRetryClock } from "@/hooks/use-retry-clock";
 import {
   formatAccountLastSuccessLabel,
   formatAccountSyncRetryDateTime,
   getAccountSyncErrorTranslationKey,
+  getFutureAccountSyncRetry,
 } from "@/lib/account/account-sync-status-format";
 
 type AccountDetailSyncStatusTranslator =
@@ -25,6 +27,7 @@ export function useAccountDetailSyncStatusRows({
   language,
   t,
 }: AccountDetailSyncStatusRowsParams): AccountDetailSyncStatusRowsResult {
+  const now = useRetryClock([syncStatus]);
   return useMemo(() => {
     if (!syncStatus) {
       return [];
@@ -47,9 +50,9 @@ export function useAccountDetailSyncStatusRows({
         label: t("account.automatic_sync_status"),
         value: t("account.automatic_sync_paused_needs_connection_test"),
       });
-    } else if (syncStatus.next_retry_at) {
-      const formattedRetryAt = formatAccountSyncRetryDateTime(syncStatus.next_retry_at, language);
-      rows.push({ label: t("account.next_automatic_retry"), value: formattedRetryAt ?? syncStatus.next_retry_at });
+    } else if (getFutureAccountSyncRetry(syncStatus, now) !== null) {
+      const formattedRetryAt = formatAccountSyncRetryDateTime(syncStatus.next_retry_at ?? undefined, language);
+      if (formattedRetryAt) rows.push({ label: t("account.next_automatic_retry"), value: formattedRetryAt });
     }
 
     if (syncStatus.error_count > 0) {
@@ -68,5 +71,5 @@ export function useAccountDetailSyncStatusRows({
     }
 
     return rows;
-  }, [language, syncStatus, t]);
+  }, [language, now, syncStatus, t]);
 }

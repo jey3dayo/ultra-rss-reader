@@ -56,7 +56,7 @@ describe("useAccountDetailSyncStatusRows", () => {
 
   it("adds the retry row with locale-formatted date-time text", () => {
     const syncStatus = createSyncStatus({
-      next_retry_at: "2026-04-13T10:00:00Z",
+      next_retry_at: "2099-04-13T10:00:00Z",
     });
     const expectedRetryAt = formatExpectedRetryDateTime(syncStatus.next_retry_at, "ja");
 
@@ -76,7 +76,7 @@ describe("useAccountDetailSyncStatusRows", () => {
     ]);
   });
 
-  it("uses the raw retry date when date-time formatting returns null", () => {
+  it("omits an invalid retry date", () => {
     const syncStatus = createSyncStatus({
       next_retry_at: "not-a-date",
     });
@@ -89,17 +89,12 @@ describe("useAccountDetailSyncStatusRows", () => {
       }),
     );
 
-    expect(result.current).toEqual([
-      {
-        label: "label:account.next_automatic_retry",
-        value: "not-a-date",
-      },
-    ]);
+    expect(result.current).toEqual([]);
   });
 
   it("replaces the retry row with the paused automatic sync row while waiting for credential access", () => {
     const syncStatus = createSyncStatus({
-      next_retry_at: "2026-04-13T10:00:00Z",
+      next_retry_at: "2099-04-13T10:00:00Z",
       waiting_for_credential_access: true,
     });
 
@@ -189,7 +184,7 @@ describe("useAccountDetailSyncStatusRows", () => {
 
   it("orders retry, consecutive failures, and last error rows", () => {
     const syncStatus = createSyncStatus({
-      next_retry_at: "2026-04-13T10:00:00Z",
+      next_retry_at: "2099-04-13T10:00:00Z",
       error_count: 3,
       last_error: "Network error: Connection failed",
     });

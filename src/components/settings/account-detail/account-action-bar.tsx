@@ -6,11 +6,14 @@ import { FormActionButtons } from "@/design-system";
 type AccountActionBarProps = {
   hasUnsavedChanges: boolean;
   running: boolean;
+  disabled?: boolean;
   message: string;
   discardLabel: string;
   saveAndTestLabel: string;
   testConnectionLabel: string;
   testingLabel: string;
+  savingLabel?: string;
+  saving?: boolean;
   connectionVerified: boolean;
   connectionVerifiedLabel: string;
   onDiscard: () => void;
@@ -32,11 +35,14 @@ function useUnsavedModeFrozenWhileRunning(hasUnsavedChanges: boolean, running: b
 export function AccountActionBar({
   hasUnsavedChanges,
   running,
+  disabled = false,
   message,
   discardLabel,
   saveAndTestLabel,
   testConnectionLabel,
   testingLabel,
+  savingLabel,
+  saving,
   connectionVerified,
   connectionVerifiedLabel,
   onDiscard,
@@ -50,9 +56,10 @@ export function AccountActionBar({
         <FormActionButtons
           cancelLabel={discardLabel}
           submitLabel={saveAndTestLabel}
-          submittingLabel={testingLabel}
+          submittingLabel={saving ? savingLabel : testingLabel}
           loading={running}
-          cancelDisabled={running}
+          cancelDisabled={running || disabled}
+          submitDisabled={disabled}
           onCancel={onDiscard}
           onSubmit={onTestConnection}
         />
@@ -66,6 +73,7 @@ export function AccountActionBar({
         size="compact"
         onClick={onTestConnection}
         loading={running}
+        disabled={disabled}
         loadingLabel={testingLabel}
         success={connectionVerified}
         successLabel={connectionVerifiedLabel}

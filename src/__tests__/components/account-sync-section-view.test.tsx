@@ -23,6 +23,7 @@ describe("AccountSyncSectionView", () => {
             { value: "3600", label: "Every hour" },
           ],
           onChange: () => {},
+          status: { message: "Could not save sync settings", isError: true },
         }}
         syncOnWake={{
           label: "Sync on wake",
@@ -53,6 +54,7 @@ describe("AccountSyncSectionView", () => {
 
     expect(screen.getByRole("heading", { level: 3, name: "Syncing" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sync" })).toHaveTextContent("Every hour");
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not save sync settings");
     expect(screen.getByRole("switch", { name: "Sync on wake" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Sync on startup" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Keep read items" })).toHaveTextContent("Forever");

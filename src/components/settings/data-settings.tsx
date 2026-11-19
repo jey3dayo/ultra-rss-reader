@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { CredentialStorageSectionView } from "@/components/settings/credential-storage-section-view";
 import { DataSettingsView } from "@/components/settings/data-settings-view";
@@ -7,7 +7,13 @@ import { useCredentialStorageSetting } from "./hooks/use-credential-storage-sett
 import { useDataSettingsController } from "./hooks/use-data-settings-controller";
 import { useRegisterSettingsDirtyState } from "./hooks/use-settings-dirty-state-registry";
 
-export function DataSettings() {
+export function DataSettings({
+  focusCredentialStorage = false,
+  onCredentialStorageFocused,
+}: {
+  focusCredentialStorage?: boolean;
+  onCredentialStorageFocused?: () => void;
+} = {}) {
   const { t } = useTranslation("settings");
   const showToast = useUiStore((s) => s.showToast);
   const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
@@ -17,23 +23,45 @@ export function DataSettings() {
     setSettingsLoading,
   });
   const credentialStorage = useCredentialStorageSetting({ t, showToast });
+  const credentialStorageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusCredentialStorage) return;
+    if (credentialStorage.loadErrorMessage || (credentialStorage.loaded && !credentialStorage.configurable)) {
+      onCredentialStorageFocused?.();
+      return;
+    }
+    if (!credentialStorage.loaded) return;
+    const control = credentialStorageRef.current?.querySelector<HTMLButtonElement>('[role="combobox"]');
+    if (!control) return;
+    control.scrollIntoView({ block: "center" });
+    control.focus();
+    onCredentialStorageFocused?.();
+  }, [
+    focusCredentialStorage,
+    credentialStorage.loaded,
+    credentialStorage.configurable,
+    credentialStorage.loadErrorMessage,
+    onCredentialStorageFocused,
+  ]);
   const credentialStorageSection: ReactNode = (
-    <CredentialStorageSectionView
-      heading={t("data.credential_storage_heading")}
-      label={t("data.credential_storage_label")}
-      description={t("data.credential_storage_description")}
-      osKeychainLabel={t("data.credential_storage_os_keychain")}
-      localFileLabel={t("data.credential_storage_local_file")}
-      localFileWarning={t("data.credential_storage_local_file_warning")}
-      storage={credentialStorage.storage}
-      loaded={credentialStorage.loaded}
-      loadErrorMessage={credentialStorage.loadErrorMessage}
-      configurable={credentialStorage.configurable}
-      saving={credentialStorage.saving}
-      errorMessage={credentialStorage.errorMessage}
-      cleanupNotice={credentialStorage.cleanupNotice}
-      onStorageChange={(next) => void credentialStorage.handleChange(next)}
-    />
+    <div ref={credentialStorageRef}>
+      <CredentialStorageSectionView
+        heading={t("data.credential_storage_heading")}
+        label={t("data.credential_storage_label")}
+        description={t("data.credential_storage_description")}
+        osKeychainLabel={t("data.credential_storage_os_keychain")}
+        localFileLabel={t("data.credential_storage_local_file")}
+        localFileWarning={t("data.credential_storage_local_file_warning")}
+        storage={credentialStorage.storage}
+        loaded={credentialStorage.loaded}
+        loadErrorMessage={credentialStorage.loadErrorMessage}
+        configurable={credentialStorage.configurable}
+        saving={credentialStorage.saving}
+        errorMessage={credentialStorage.errorMessage}
+        cleanupNotice={credentialStorage.cleanupNotice}
+        onStorageChange={(next) => void credentialStorage.handleChange(next)}
+      />
+    </div>
   );
   const dataActionPending =
     controller.vacuuming ||

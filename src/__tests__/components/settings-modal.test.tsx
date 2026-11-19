@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts, type sampleTags } from "@tests/helpers/fixtures";
 import { holdToConfirmRealTime } from "@tests/helpers/hold-to-confirm";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -274,7 +275,7 @@ describe("SettingsModal", () => {
       });
     });
 
-    it("saves the edits, runs the connection test, and closes settings when save is chosen", async () => {
+    it("saves the edits without checking the connection and closes settings", async () => {
       const user = userEvent.setup();
       const verifiedAccount = {
         ...buildAccountsWithValidFreshRss()[1],
@@ -320,34 +321,22 @@ describe("SettingsModal", () => {
 
       await waitFor(() => {
         expect(calls).toContain("update_account_credentials");
-        expect(calls).toContain("test_account_connection");
+        expect(calls).not.toContain("test_account_connection");
       });
       await waitFor(() => {
         expect(useUiStore.getState().settingsOpen).toBe(false);
       });
     });
 
-    it("closes the dialog and keeps settings open when the connection test fails", async () => {
+    it("closes the dialog and keeps the draft when saving fails", async () => {
       const user = userEvent.setup();
-      const account = buildAccountsWithValidFreshRss()[1];
-      let savedServerUrl: string | null = null;
 
-      setupTauriMocks((cmd, args) => {
+      setupTauriMocks((cmd) => {
         if (cmd === "list_accounts") {
-          return buildAccountsWithValidFreshRss().map((listed) =>
-            listed.id === "acc-2" && savedServerUrl !== null ? { ...listed, server_url: savedServerUrl } : listed,
-          );
+          return buildAccountsWithValidFreshRss();
         }
         if (cmd === "update_account_credentials") {
-          const savedAccount = {
-            ...account,
-            server_url: typeof args.serverUrl === "string" ? args.serverUrl : account.server_url,
-          };
-          savedServerUrl = savedAccount.server_url;
-          return savedAccount;
-        }
-        if (cmd === "test_account_connection") {
-          throw new Error("Authentication failed");
+          throw new Error("Save failed");
         }
         return undefined;
       });
@@ -375,6 +364,128 @@ describe("SettingsModal", () => {
       expect(useUiStore.getState().settingsOpen).toBe(true);
       expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
       expect(serverUrlInput).toHaveValue(editedServerUrl);
+    });
+
+    it("guards the storage settings link and focuses the storage selector after discard", async () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      const user = userEvent.setup();
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      const serverUrlInput = await openFreshRssAccountDetail(user);
+      await user.click(await screen.findByRole("button", { name: "Open credential storage" }));
+      const dialog = await screen.findByRole("dialog", { name: "Save your changes?" });
+      await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      expect(serverUrlInput).toHaveValue(editedServerUrl);
+      await user.click(screen.getByRole("button", { name: "Open credential storage" }));
+      await user.click(
+        within(await screen.findByRole("dialog", { name: "Save your changes?" })).getByRole("button", {
+          name: "Discard",
+        }),
+      );
+      const selector = await screen.findByRole("combobox", { name: "Credential storage" });
+      await waitFor(() => expect(selector).toHaveFocus());
+      expect(selector.scrollIntoView).toHaveBeenCalled();
+    });
+
+    it("does not retain a storage focus request after loading fails and Data is reopened", async () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      let failStorageLoad = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "list_accounts") return buildAccountsWithValidFreshRss();
+        if (cmd === "get_credential_storage" && failStorageLoad) throw new Error("storage unavailable");
+        return undefined;
+      });
+      const user = userEvent.setup();
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      await openFreshRssAccountDetail(user);
+      failStorageLoad = true;
+      await user.click(await screen.findByRole("button", { name: "Open credential storage" }));
+      await user.click(
+        within(await screen.findByRole("dialog", { name: "Save your changes?" })).getByRole("button", {
+          name: "Discard",
+        }),
+      );
+      await screen.findByText(/Couldn't load the credential storage setting/);
+      await user.click(screen.getByRole("button", { name: "General" }));
+      failStorageLoad = false;
+      await user.click(screen.getByRole("button", { name: "Data" }));
+      const selector = await screen.findByRole("combobox", { name: "Credential storage" });
+      expect(selector).not.toHaveFocus();
+      expect(selector.scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it("drops the focus request when leaving Data before storage finishes loading", async () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      const storageLoad = createDeferred<unknown>();
+      let delayStorageLoad = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "list_accounts") return buildAccountsWithValidFreshRss();
+        if (cmd === "get_credential_storage" && delayStorageLoad) return storageLoad.promise;
+        return undefined;
+      });
+      const user = userEvent.setup();
+      useUiStore.getState().openSettingsAccount("acc-2");
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      const openStorage = await screen.findByRole("button", { name: "Open credential storage" });
+      delayStorageLoad = true;
+      await user.click(openStorage);
+      await user.click(await screen.findByRole("button", { name: "General" }));
+      await act(async () => storageLoad.resolve({ storage: "os_keychain", configurable: true }));
+      delayStorageLoad = false;
+      await user.click(screen.getByRole("button", { name: "Data" }));
+      const selector = await screen.findByRole("combobox", { name: "Credential storage" });
+      expect(selector).not.toHaveFocus();
+      expect(selector.scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it("locks account edits and storage navigation while checking the connection", async () => {
+      const connection = createDeferred<unknown>();
+      const account = buildAccountsWithValidFreshRss()[1];
+      setupTauriMocks((cmd) => {
+        if (cmd === "list_accounts") return buildAccountsWithValidFreshRss();
+        if (cmd === "test_account_connection") return connection.promise;
+        return undefined;
+      });
+      useUiStore.getState().openSettingsAccount("acc-2");
+      const user = userEvent.setup();
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      await user.click(await screen.findByRole("button", { name: "Check connection" }));
+      expect(await screen.findByRole("button", { name: "Checking…" })).toBeDisabled();
+      expect(screen.getByRole("textbox", { name: "Name" })).toBeDisabled();
+      expect(screen.getByRole("textbox", { name: "Server URL" })).toBeDisabled();
+      expect(screen.getByRole("combobox", { name: "Sync" })).toBeDisabled();
+      expect(screen.getByRole("switch", { name: "Sync on startup" })).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByRole("switch", { name: "Sync on wake up from sleep" })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+      expect(screen.getByRole("combobox", { name: "Keep read items" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Open credential storage" })).toBeDisabled();
+      await act(async () => connection.resolve({ ...account, connection_verification_status: "verified" }));
+      await waitFor(() => expect(screen.getByRole("textbox", { name: "Name" })).toBeEnabled());
+    });
+
+    it("saves the name before credentials when leaving with both drafts", async () => {
+      const calls: string[] = [];
+      const account = buildAccountsWithValidFreshRss()[1];
+      setupTauriMocks((cmd, args) => {
+        calls.push(cmd);
+        if (cmd === "list_accounts") return buildAccountsWithValidFreshRss();
+        if (cmd === "rename_account") return { ...account, name: "Renamed" };
+        if (cmd === "update_account_credentials") return { ...account, name: "Renamed", server_url: args.serverUrl };
+        return undefined;
+      });
+      const user = userEvent.setup();
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      await openFreshRssAccountDetail(user);
+      const name = screen.getByRole("textbox", { name: "Name" });
+      await user.click(name);
+      await user.clear(name);
+      await user.type(name, "Renamed");
+      const dialog = await clickCloseSettings(user);
+      await user.click(within(dialog).getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(useUiStore.getState().settingsOpen).toBe(false));
+      expect(calls.indexOf("rename_account")).toBeLessThan(calls.indexOf("update_account_credentials"));
+      expect(calls).not.toContain("test_account_connection");
     });
   });
 

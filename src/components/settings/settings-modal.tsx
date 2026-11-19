@@ -55,9 +55,11 @@ import {
 function SnapshotBackedAccountDetail({
   account,
   onAccountDeleted,
+  onOpenCredentialStorage,
 }: {
   account: AccountDto;
   onAccountDeleted: (accountId: string) => void;
+  onOpenCredentialStorage: () => void;
 }) {
   const { t, i18n } = useTranslation("settings");
   const syncProgress = useUiStore((s) => s.syncProgress);
@@ -94,6 +96,7 @@ function SnapshotBackedAccountDetail({
     syncStatusRows,
     t,
     canRecoverDevCredentialsStore: platformLoaded && !platformLoadError && usesDevFileCredentials,
+    onOpenCredentialStorage,
   });
 
   return <AccountDetailView {...viewProps} />;
@@ -105,6 +108,9 @@ type SettingsContentProps = {
   settingsCategory: SettingsCategory;
   selectedAccount?: AccountDto;
   onAccountDeleted: (accountId: string) => void;
+  onOpenCredentialStorage: () => void;
+  focusCredentialStorage: boolean;
+  onCredentialStorageFocused: () => void;
 };
 
 function SettingsContent({
@@ -113,9 +119,19 @@ function SettingsContent({
   settingsCategory,
   selectedAccount,
   onAccountDeleted,
+  onOpenCredentialStorage,
+  focusCredentialStorage,
+  onCredentialStorageFocused,
 }: SettingsContentProps) {
   if (selectedAccount) {
-    return <SnapshotBackedAccountDetail account={selectedAccount} onAccountDeleted={onAccountDeleted} />;
+    return (
+      <SnapshotBackedAccountDetail
+        key={selectedAccount.id}
+        account={selectedAccount}
+        onAccountDeleted={onAccountDeleted}
+        onOpenCredentialStorage={onOpenCredentialStorage}
+      />
+    );
   }
   if (settingsCategory === "accounts") {
     if (settingsAddAccount) {
@@ -137,7 +153,12 @@ function SettingsContent({
     case "actions":
       return <ActionsSettings />;
     case "data":
-      return <DataSettings />;
+      return (
+        <DataSettings
+          focusCredentialStorage={focusCredentialStorage}
+          onCredentialStorageFocused={onCredentialStorageFocused}
+        />
+      );
     case "debug":
       return <DebugSettings />;
     default:
@@ -227,6 +248,10 @@ function SettingsModalContent() {
   const dirtyStateLockReason = getPendingSaveLockReason(dirtyStateSnapshot, t);
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
   const [savingBeforeLeave, setSavingBeforeLeave] = useState(false);
+  const [focusCredentialStorage, setFocusCredentialStorage] = useState(false);
+  useEffect(() => {
+    if (!settingsOpen || settingsCategory !== "data") setFocusCredentialStorage(false);
+  }, [settingsOpen, settingsCategory]);
   const guardLeave = (leave: () => void) => {
     if (!dirtyStateSnapshot.dirty) {
       leave();
@@ -275,7 +300,7 @@ function SettingsModalContent() {
       title={t("dirty_state.confirm_title")}
       message={t("dirty_state.confirm_message")}
       saveLabel={t("dirty_state.save")}
-      savingLabel={t("account.testing_connection")}
+      savingLabel={t("dirty_state.saving")}
       discardLabel={t("dirty_state.discard")}
       cancelLabel={t("dirty_state.cancel")}
       saving={savingBeforeLeave}
@@ -335,6 +360,15 @@ function SettingsModalContent() {
         settingsCategory={settingsCategory}
         selectedAccount={selectedVisibleAccount}
         onAccountDeleted={handleAccountDeleted}
+        focusCredentialStorage={focusCredentialStorage}
+        onCredentialStorageFocused={() => setFocusCredentialStorage(false)}
+        onOpenCredentialStorage={() => {
+          if (dirtyStateLockReason || isSetupLocked || settingsLoading) return;
+          guardLeave(() => {
+            setFocusCredentialStorage(true);
+            setSettingsCategory("data");
+          });
+        }}
       />
     ),
     footer,

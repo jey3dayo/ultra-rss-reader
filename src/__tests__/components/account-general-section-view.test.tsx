@@ -23,6 +23,12 @@ describe("AccountGeneralSectionView", () => {
         onStartEditingName={onStartEditingName}
         onNameDraftChange={() => {}}
         onCommitName={() => {}}
+        onCancelName={() => {}}
+        saveLabel="Save"
+        cancelLabel="Cancel"
+        unsavedLabel="Unsaved changes"
+        savedLabel="Saved"
+        savingLabel="Saving…"
         onNameKeyDown={() => {}}
       />,
     );
@@ -60,11 +66,19 @@ describe("AccountGeneralSectionView", () => {
         onStartEditingName={() => {}}
         onNameDraftChange={onNameDraftChange}
         onCommitName={onCommitName}
+        onCancelName={() => {}}
+        saveLabel="Save"
+        cancelLabel="Cancel"
+        unsavedLabel="Unsaved changes"
+        savedLabel="Saved"
+        savingLabel="Saving…"
         onNameKeyDown={onNameKeyDown}
       />,
     );
 
     const input = screen.getByDisplayValue("Personal FreshRSS");
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
     expect(input).toHaveClass("h-11");
     expect(input).toHaveClass("w-full");
 
@@ -74,6 +88,6 @@ describe("AccountGeneralSectionView", () => {
 
     expect(onNameDraftChange).toHaveBeenCalledWith("Renamed account");
     expect(onNameKeyDown).toHaveBeenCalledTimes(1);
-    expect(onCommitName).toHaveBeenCalledTimes(1);
+    expect(onCommitName).not.toHaveBeenCalled();
   });
 });

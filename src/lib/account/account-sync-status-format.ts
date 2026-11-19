@@ -89,6 +89,15 @@ export function formatAccountSyncRetryDateTime(retryAt: string | undefined, lang
   return formatShortDateTime(retryAt, language);
 }
 
+export function getFutureAccountSyncRetry(
+  status: { next_retry_at?: string | null; waiting_for_credential_access?: boolean | null } | undefined,
+  now: number,
+): number | null {
+  if (status?.waiting_for_credential_access) return null;
+  const date = parseDateInput(status?.next_retry_at);
+  return date && date.getTime() > now ? date.getTime() : null;
+}
+
 export function formatAccountLastSuccessLabel(
   lastSuccessAt: string | undefined,
   language: string,

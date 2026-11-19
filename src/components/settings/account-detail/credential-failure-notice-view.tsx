@@ -6,6 +6,8 @@ export type CredentialFailureNoticeViewModel = {
   retryLabel: string;
   onRetry: () => void;
   retryDisabled: boolean;
+  storageSettingsLabel?: string;
+  onOpenCredentialStorage?: () => void;
 };
 
 export function CredentialFailureNoticeBody({ notice }: { notice: CredentialFailureNoticeViewModel }) {
@@ -20,6 +22,16 @@ export function CredentialFailureNoticeBody({ notice }: { notice: CredentialFail
         <SettingsActionButton type="button" size="compact" disabled={notice.retryDisabled} onClick={notice.onRetry}>
           {notice.retryLabel}
         </SettingsActionButton>
+        {notice.storageSettingsLabel && notice.onOpenCredentialStorage && (
+          <SettingsActionButton
+            type="button"
+            size="compact"
+            disabled={notice.retryDisabled}
+            onClick={notice.onOpenCredentialStorage}
+          >
+            {notice.storageSettingsLabel}
+          </SettingsActionButton>
+        )}
       </div>
     </>
   );

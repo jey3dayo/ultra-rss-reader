@@ -25,7 +25,7 @@ type AccountDetailErrorToastOptions = {
   persistMessage?: (message: string) => void;
 };
 
-function formatAccountDetailErrorMessage(
+export function formatAccountDetailErrorMessage(
   t: TFunction<"settings">,
   key: AccountDetailErrorToastKey,
   error: AccountDetailError,

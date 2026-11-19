@@ -18,6 +18,7 @@ type BuildCredentialsSectionParams = {
   isSetupActive: boolean;
   isQuarantined: boolean;
   credentialStoreKind: CredentialStoreKind;
+  onOpenCredentialStorage?: () => void;
 };
 
 export function buildCredentialsSection({
@@ -28,6 +29,7 @@ export function buildCredentialsSection({
   isSetupFailed,
   isQuarantined,
   credentialStoreKind,
+  onOpenCredentialStorage,
 }: BuildCredentialsSectionParams): ReactNode {
   if (!isFreshRssAccount(account)) {
     return undefined;
@@ -49,17 +51,27 @@ export function buildCredentialsSection({
           lines: [t("account.connection_auth_failed_summary")],
           retryLabel: t("account.credential_retry.check"),
           onRetry: () => void controller.handleTestConnection(),
-          retryDisabled: controller.testingConnection,
+          retryDisabled:
+            controller.testingConnection ||
+            controller.credentialSavePending ||
+            controller.savingName ||
+            controller.syncSavePending,
         }
       : undefined;
   const passwordFailureNotice =
     passwordFailure === null
       ? persistedAuthFailureNotice
-      : buildCredentialFailureNotice(passwordFailure, credentialStoreKind, t, controller);
+      : buildCredentialFailureNotice(passwordFailure, credentialStoreKind, t, controller, onOpenCredentialStorage);
   const cloudflareAccessFailureNotice =
     cloudflareAccessFailure === null
       ? undefined
-      : buildCredentialFailureNotice(cloudflareAccessFailure, credentialStoreKind, t, controller);
+      : buildCredentialFailureNotice(
+          cloudflareAccessFailure,
+          credentialStoreKind,
+          t,
+          controller,
+          onOpenCredentialStorage,
+        );
 
   return (
     <AccountCredentialsSectionView
@@ -71,7 +83,14 @@ export function buildCredentialsSection({
             ? t("account.setup_failed_credentials_note")
             : undefined
       }
-      disabled={isSetupSyncing || isQuarantined}
+      disabled={
+        isSetupSyncing ||
+        isQuarantined ||
+        controller.savingName ||
+        controller.testingConnection ||
+        controller.credentialSavePending ||
+        controller.syncSavePending
+      }
       serverUrlLabel={t("account.server_url")}
       serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
       serverUrlPlaceholder={t("account.server_url_placeholder")}
@@ -96,6 +115,9 @@ export function buildCredentialsSection({
       changedFields={controller.changedFields}
       changedFieldLabel={t("dirty_state.field_changed")}
       sectionErrorMessage={controller.credentialsSectionErrorMessage}
+      storageSettingsLabel={t("account.open_credential_storage")}
+      storageSettingsDescription={t("account.credential_storage_shared")}
+      onOpenCredentialStorage={onOpenCredentialStorage}
       cloudflareAccess={{
         status: controller.cloudflareAccessStatus,
         changedIndicator: controller.changedFields.cloudflareAccess ? (

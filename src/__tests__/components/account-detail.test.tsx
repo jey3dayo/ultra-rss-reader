@@ -39,6 +39,7 @@ type AccountDetailViewMockProps = {
     note?: string;
     errorMessage?: string | null;
     isSyncing?: boolean;
+    actionsDisabled?: boolean;
     syncNowLabel?: string;
     syncingLabel?: string;
     onSyncNow?: () => void;
@@ -137,12 +138,20 @@ vi.mock("@/components/settings/account-detail/view", () => ({
           Select 60 days
         </button>
         {props.syncSection.onSyncNow && (
-          <button type="button" onClick={props.syncSection.onSyncNow} disabled={props.syncSection.isSyncing}>
+          <button
+            type="button"
+            onClick={props.syncSection.onSyncNow}
+            disabled={props.syncSection.isSyncing || props.syncSection.actionsDisabled}
+          >
             {props.syncSection.isSyncing ? props.syncSection.syncingLabel : props.syncSection.syncNowLabel}
           </button>
         )}
         {props.syncSection.onSecondaryAction && props.syncSection.secondaryActionLabel ? (
-          <button type="button" onClick={props.syncSection.onSecondaryAction}>
+          <button
+            type="button"
+            onClick={props.syncSection.onSecondaryAction}
+            disabled={props.syncSection.isSyncing || props.syncSection.actionsDisabled}
+          >
             {props.syncSection.secondaryActionLabel}
           </button>
         ) : null}
@@ -517,7 +526,7 @@ describe("AccountDetail", () => {
           last_success_at: "2026-04-13T03:00:00Z",
           last_error: "Network timeout",
           error_count: 2,
-          next_retry_at: "2026-04-13T03:15:00Z",
+          next_retry_at: "2099-04-13T03:15:00Z",
         };
       }
       return null;
@@ -944,11 +953,9 @@ describe("AccountDetail", () => {
 
       await user.click(screen.getByRole("button", { name: "Save & test connection" }));
       await waitFor(() => expect(calls).toContain("test_account_connection"));
-      useUiStore.setState({ toastMessage: null });
-      await user.click(screen.getByRole("button", { name: "Retry setup" }));
+      expect(screen.getByRole("button", { name: "Retry setup" })).toBeDisabled();
+      expect(screen.getByRole("textbox", { name: "Server URL" })).toBeDisabled();
       expect(calls).not.toContain("trigger_sync_account");
-      expect(useUiStore.getState().toastMessage?.message).toContain("Save & test connection");
-      expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveFocus();
 
       await act(async () => verification.resolve({ ...account, connection_verification_status: "verified" }));
       await screen.findByRole("button", { name: "Connection verified" });
@@ -1177,7 +1184,7 @@ describe("AccountDetail", () => {
       await user.type(passwordInput, "new-secret");
       await user.click(screen.getByRole("button", { name: "Save & test connection" }));
 
-      const testingButton = await screen.findByRole("button", { name: "Checking…" });
+      const testingButton = await screen.findByRole("button", { name: "Saving…" });
       expect(testingButton).toBeDisabled();
       expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
       expect(screen.queryByRole("button", { name: "Check connection" })).not.toBeInTheDocument();
@@ -1265,7 +1272,7 @@ describe("AccountDetail", () => {
     });
   });
 
-  it("keeps newer credential drafts when an older explicit save finishes", async () => {
+  it("locks credential fields while saving", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     const resolveCredentialSaves: Array<() => void> = [];
@@ -1339,51 +1346,11 @@ describe("AccountDetail", () => {
       expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(0);
     });
 
-    await user.clear(serverUrlInput);
-    await user.type(serverUrlInput, "https://second-draft.example.com");
-    await user.click(screen.getByRole("button", { name: "Copy server URL" }));
-
-    expect(calls).toContainEqual({
-      cmd: "copy_to_clipboard",
-      args: { text: "https://second-draft.example.com" },
-    });
-
-    if (!resolveCredentialSaves[0]) {
-      throw new Error("credential save promise was never created");
-    }
+    expect(serverUrlInput).toBeDisabled();
+    if (!resolveCredentialSaves[0]) throw new Error("credential save promise was never created");
     resolveCredentialSaves[0]();
     await firstSaveClick;
-
-    await waitFor(() => {
-      expect(serverUrlInput).toHaveValue("https://second-draft.example.com");
-      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(0);
-    });
-
-    const secondSaveButton = await screen.findByRole("button", { name: "Save & test connection" });
-    await waitFor(() => expect(secondSaveButton).toBeEnabled());
-    const secondSaveClick = user.click(secondSaveButton);
-
-    await waitFor(() => {
-      expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(2);
-      expect(calls).toContainEqual({
-        cmd: "update_account_credentials",
-        args: expect.objectContaining({
-          accountId: "acc-1",
-          serverUrl: "https://second-draft.example.com",
-          username: "user",
-        }),
-      });
-    });
-
-    if (!resolveCredentialSaves[1]) {
-      throw new Error("second credential save promise was never created");
-    }
-    resolveCredentialSaves[1]();
-    await secondSaveClick;
-
-    await waitFor(() => {
-      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
-    });
+    await waitFor(() => expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1));
   });
 
   it("lists the last successful sync in the sync section without a header connection status", async () => {

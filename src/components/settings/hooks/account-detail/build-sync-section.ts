@@ -62,6 +62,17 @@ function buildSyncSettingControls(
   t: TFunction<"settings">,
   disabled: boolean,
 ): Pick<SyncSectionProps, "syncInterval" | "syncOnStartup" | "syncOnWake" | "keepReadItems"> {
+  const statusFor = (field: keyof import("./use-account-detail-sync-controls").UpdateAccountSyncParams) => {
+    const status = controller.syncSaveStatus;
+    if (status?.field !== field) return undefined;
+    return {
+      message:
+        status.state === "error"
+          ? (status.message ?? "")
+          : t(status.state === "saving" ? "dirty_state.saving" : "dirty_state.saved"),
+      isError: status.state === "error",
+    };
+  };
   return {
     syncInterval: {
       name: "sync-interval",
@@ -70,18 +81,21 @@ function buildSyncSettingControls(
       options: controller.syncIntervalOptions,
       onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
       disabled,
+      status: statusFor("syncIntervalSecs"),
     },
     syncOnStartup: {
       label: t("account.sync_on_startup"),
       checked: account.sync_on_startup,
       onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
       disabled,
+      status: statusFor("syncOnStartup"),
     },
     syncOnWake: {
       label: t("account.sync_on_wake"),
       checked: account.sync_on_wake,
       onChange: (value) => controller.handleSyncUpdate({ syncOnWake: value }),
       disabled,
+      status: statusFor("syncOnWake"),
     },
     keepReadItems: {
       name: "keep-read-items",
@@ -90,6 +104,7 @@ function buildSyncSettingControls(
       options: controller.keepReadItemsOptions,
       onChange: (value) => controller.handleSyncUpdate({ keepReadItemsDays: Number(value) }),
       disabled,
+      status: statusFor("keepReadItemsDays"),
     },
   };
 }
@@ -178,7 +193,18 @@ export function buildSyncSection({
   return {
     heading: t(SYNC_HEADING_KEYS[phase]),
     note: resolveSyncNote(phase, accountSetupErrorMessage, t),
-    ...buildSyncSettingControls(account, controller, t, isSetupActive || isQuarantined),
+    saveNote: t("account.sync_settings_auto_save"),
+    ...buildSyncSettingControls(
+      account,
+      controller,
+      t,
+      isSetupActive ||
+        isQuarantined ||
+        controller.savingName ||
+        controller.testingConnection ||
+        controller.credentialSavePending ||
+        controller.syncSavePending,
+    ),
     statusRows: syncStatusRows,
     syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),
     syncNowSuccessLabel: t("account.sync_now_succeeded"),
@@ -186,6 +212,11 @@ export function buildSyncSection({
     syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
     onSyncNow: resolveSyncNowHandler(controller, isQuarantined, isSetupActive),
     isSyncing: isSyncing || controller.syncActionInFlight,
+    actionsDisabled:
+      controller.savingName ||
+      controller.testingConnection ||
+      controller.credentialSavePending ||
+      controller.syncSavePending,
     ...buildSecondaryAction(
       controller,
       t,

@@ -26,6 +26,12 @@ describe("AccountDetailView", () => {
           onStartEditingName: vi.fn(),
           onNameDraftChange: vi.fn(),
           onCommitName: vi.fn(),
+          onCancelName: vi.fn(),
+          saveLabel: "Save",
+          cancelLabel: "Cancel",
+          unsavedLabel: "Unsaved changes",
+          savedLabel: "Saved",
+          savingLabel: "Saving…",
           onNameKeyDown: vi.fn(),
         }}
         syncSection={{
@@ -104,6 +110,12 @@ describe("AccountDetailView", () => {
           onStartEditingName: vi.fn(),
           onNameDraftChange: vi.fn(),
           onCommitName: vi.fn(),
+          onCancelName: vi.fn(),
+          saveLabel: "Save",
+          cancelLabel: "Cancel",
+          unsavedLabel: "Unsaved changes",
+          savedLabel: "Saved",
+          savingLabel: "Saving…",
           onNameKeyDown: vi.fn(),
         }}
         syncSection={{
@@ -165,6 +177,12 @@ describe("AccountDetailView", () => {
           onStartEditingName: vi.fn(),
           onNameDraftChange: vi.fn(),
           onCommitName: vi.fn(),
+          onCancelName: vi.fn(),
+          saveLabel: "Save",
+          cancelLabel: "Cancel",
+          unsavedLabel: "Unsaved changes",
+          savedLabel: "Saved",
+          savingLabel: "Saving…",
           onNameKeyDown: vi.fn(),
           disabled: true,
         }}

@@ -414,7 +414,7 @@ describe("useAccountDetailNameEditor", () => {
       result.current.startEditingName();
       result.current.setNameDraft("Stale Name");
     });
-    let saveStaleRename: Promise<void> = Promise.resolve();
+    let saveStaleRename: Promise<boolean> = Promise.resolve(false);
     act(() => {
       saveStaleRename = result.current.commitRename();
     });

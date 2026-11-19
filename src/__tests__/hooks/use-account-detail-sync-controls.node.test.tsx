@@ -88,103 +88,48 @@ describe("useAccountDetailSyncControls", () => {
     appQueryClient.clear();
   });
 
-  it.each<{
-    label: string;
-    first: UpdateAccountSyncParams;
-    second: UpdateAccountSyncParams;
-    expected: Partial<AccountDetailAccount>;
-  }>([
-    {
-      label: "sync interval",
-      first: { syncIntervalSecs: 900 },
-      second: { syncIntervalSecs: 7200 },
-      expected: { sync_interval_secs: 7200 },
-    },
-    {
-      label: "startup sync",
-      first: { syncOnStartup: false },
-      second: { syncOnStartup: true },
-      expected: { sync_on_startup: true },
-    },
-    {
-      label: "wake sync",
-      first: { syncOnWake: true },
-      second: { syncOnWake: false },
-      expected: { sync_on_wake: false },
-    },
-    {
-      label: "retention",
-      first: { keepReadItemsDays: 7 },
-      second: { keepReadItemsDays: 90 },
-      expected: { keep_read_items_days: 90 },
-    },
-  ])("keeps the latest $label update when an older response resolves last", async ({ first, second, expected }) => {
+  it("blocks another sync setting update until the current save finishes", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(queryKeys.accounts.root, [account]);
-    const firstResult = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
-    const secondResult = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
-    updateAccountSyncMock.mockReturnValueOnce(firstResult.promise).mockReturnValueOnce(secondResult.promise);
-
-    const { result } = renderHook(() =>
-      useAccountDetailSyncControls({
-        account,
-        queryClient,
-        t,
-      }),
-    );
-
-    let firstUpdate: Promise<void> | undefined;
-    let secondUpdate: Promise<void> | undefined;
+    const save = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
+    updateAccountSyncMock.mockReturnValueOnce(save.promise);
+    const { result } = renderHook(() => useAccountDetailSyncControls({ account, queryClient, t }));
+    let pending: Promise<void> | undefined;
     act(() => {
-      firstUpdate = result.current.handleSyncUpdate(first);
-      secondUpdate = result.current.handleSyncUpdate(second);
+      pending = result.current.handleSyncUpdate({ syncIntervalSecs: 900 });
+      void result.current.handleSyncUpdate({ syncOnWake: true });
     });
-
-    secondResult.resolve(Result.succeed(makeUpdatedAccount(account, second)));
-    await secondUpdate;
-    firstResult.resolve(Result.succeed(makeUpdatedAccount(account, first)));
-    await firstUpdate;
-
+    expect(updateAccountSyncMock).toHaveBeenCalledTimes(1);
+    expect(result.current.syncSavePending).toBe(true);
+    await act(async () => {
+      save.resolve(Result.succeed(makeUpdatedAccount(account, { syncIntervalSecs: 900 })));
+      await pending;
+    });
+    expect(result.current.syncSaveStatus).toEqual({ field: "syncIntervalSecs", state: "saved" });
     expect(queryClient.getQueryData<AccountDetailAccount[]>(queryKeys.accounts.root)?.[0]).toEqual(
-      expect.objectContaining(expected),
+      expect.objectContaining({ sync_interval_secs: 900 }),
     );
   });
 
-  it("does not show a stale error toast when an older update fails after a newer update succeeds", async () => {
+  it("keeps the saved settings and reports an error at the changed setting", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(queryKeys.accounts.root, [account]);
-    const firstResult = createDeferred<ReturnType<typeof Result.fail<Error>>>();
-    const secondResult = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
-    updateAccountSyncMock.mockReturnValueOnce(firstResult.promise).mockReturnValueOnce(secondResult.promise);
-
-    const { result } = renderHook(() =>
-      useAccountDetailSyncControls({
-        account,
-        queryClient,
-        t,
+    updateAccountSyncMock.mockResolvedValueOnce(Result.fail(new Error("save failed username=secret-user@example.com")));
+    const { result } = renderHook(() => useAccountDetailSyncControls({ account, queryClient, t }));
+    await act(async () => {
+      await result.current.handleSyncUpdate({ syncIntervalSecs: 900 });
+    });
+    expect(result.current.syncSaveStatus).toEqual(
+      expect.objectContaining({
+        field: "syncIntervalSecs",
+        state: "error",
+        message: expect.stringContaining("save failed"),
       }),
     );
-
-    let firstUpdate: Promise<void> | undefined;
-    let secondUpdate: Promise<void> | undefined;
-    act(() => {
-      firstUpdate = result.current.handleSyncUpdate({ syncIntervalSecs: 900 });
-      secondUpdate = result.current.handleSyncUpdate({
-        syncIntervalSecs: 7200,
-      });
-    });
-
-    secondResult.resolve(Result.succeed(makeUpdatedAccount(account, { syncIntervalSecs: 7200 })));
-    await secondUpdate;
-    firstResult.resolve(Result.fail(new Error("older request failed")));
-    await firstUpdate;
-
-    expect(useUiStore.getState().toastMessage).toBeNull();
-    expect(queryClient.getQueryData<AccountDetailAccount[]>(queryKeys.accounts.root)?.[0]).toEqual(
-      expect.objectContaining({ sync_interval_secs: 7200 }),
-    );
+    expect(result.current.syncSaveStatus?.message).not.toContain("secret-user@example.com");
+    expect(queryClient.getQueryData<AccountDetailAccount[]>(queryKeys.accounts.root)?.[0]).toEqual(account);
   });
 
   it("ignores a late manual sync result after switching selected accounts", async () => {

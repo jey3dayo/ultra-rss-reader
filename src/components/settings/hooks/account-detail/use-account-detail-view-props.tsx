@@ -5,7 +5,7 @@ import type { AccountDetailAccount } from "@/components/settings/account-detail/
 import type { AccountDetailViewProps } from "@/components/settings/account-detail/view";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { isValidOptionalHttpServerUrl } from "@/lib/account/server-url";
-import { useCredentialStoreKind } from "../use-credential-store-kind";
+import { useCredentialStoreInfo } from "../use-credential-store-kind";
 import { isFreshRssAccount, isLocalAccount } from "./account-kind";
 import { buildAccountActionBar } from "./build-account-action-bar";
 import { buildCredentialsSection } from "./build-credentials-section";
@@ -24,6 +24,7 @@ type AccountDetailViewPropsParams = {
   canRecoverDevCredentialsStore: boolean;
   accountSetupState?: AccountSetupSessionState | null;
   accountSetupErrorMessage?: string | null;
+  onOpenCredentialStorage?: () => void;
 };
 
 type AccountDetailViewPropsResult = Pick<
@@ -55,8 +56,9 @@ export function useAccountDetailViewProps({
   canRecoverDevCredentialsStore,
   accountSetupState,
   accountSetupErrorMessage,
+  onOpenCredentialStorage,
 }: AccountDetailViewPropsParams): AccountDetailViewPropsResult {
-  const credentialStoreKind = useCredentialStoreKind();
+  const { kind: credentialStoreKind, configurable: storageConfigurable } = useCredentialStoreInfo();
   const isSetupSyncing = accountSetupState === "syncing";
   const isSetupFailed = accountSetupState === "failed";
   const isSetupActive = isSetupSyncing || isSetupFailed;
@@ -84,6 +86,7 @@ export function useAccountDetailViewProps({
       isSetupActive,
       isQuarantined,
       credentialStoreKind,
+      onOpenCredentialStorage: storageConfigurable ? onOpenCredentialStorage : undefined,
     }),
     syncSection: buildSyncSection({
       account,

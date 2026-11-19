@@ -27,16 +27,23 @@ export function buildAccountActionBar({
   return (
     <AccountActionBar
       hasUnsavedChanges={controller.dirtyState.dirty}
-      running={controller.testingConnection}
+      running={controller.testingConnection || controller.credentialSavePending}
+      disabled={controller.savingName || controller.syncSavePending}
       message={t("dirty_state.unsaved_changes")}
       discardLabel={t("dirty_state.discard")}
       saveAndTestLabel={t("account.save_and_test_connection")}
       testConnectionLabel={t("account.test_connection")}
       testingLabel={t("account.testing_connection")}
+      savingLabel={t("dirty_state.saving")}
+      saving={controller.credentialSavePending}
       connectionVerified={controller.connectionTestSucceeded && !controller.dirtyState.dirty}
       connectionVerifiedLabel={t("account.test_connection_succeeded")}
       onDiscard={controller.discardCredentialDrafts}
-      onTestConnection={() => void controller.handleTestConnection()}
+      onTestConnection={() =>
+        void (controller.dirtyState.dirty
+          ? controller.handleSaveAndTestConnection()
+          : controller.handleTestConnection())
+      }
     />
   );
 }

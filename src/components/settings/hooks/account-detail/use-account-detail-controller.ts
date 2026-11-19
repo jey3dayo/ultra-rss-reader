@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useUiStore } from "@/stores/ui-store";
+import { useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
 import {
   type AccountDetailCredentialsEditorResult,
   useAccountDetailCredentialsEditor,
@@ -52,6 +53,29 @@ export function useAccountDetailController({
     t,
     onAccountDeleted,
   });
+  const pending = nameEditor.savingName || credentialsEditor.dirtyState.pending || syncControls.syncSavePending;
+  useRegisterSettingsDirtyState(
+    {
+      owner: "account",
+      dirty: nameEditor.nameDirty || credentialsEditor.dirtyState.dirty,
+      pending,
+      blockingReason: pending
+        ? "account-save-pending"
+        : nameEditor.nameDirty || credentialsEditor.dirtyState.dirty
+          ? "account-dirty"
+          : null,
+    },
+    {
+      save: async () => {
+        if (nameEditor.nameDirty && !(await nameEditor.commitRename())) return false;
+        return !credentialsEditor.dirtyState.dirty || (await credentialsEditor.commitCredentials());
+      },
+      discard: () => {
+        nameEditor.cancelRename();
+        credentialsEditor.discardCredentialDrafts();
+      },
+    },
+  );
 
   return {
     ...nameEditor,

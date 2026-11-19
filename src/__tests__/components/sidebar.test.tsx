@@ -16,7 +16,7 @@ import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { useKeyboard } from "@/hooks/use-keyboard";
-import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
+import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { resetManualSyncCooldownForTests } from "@/lib/sync/manual-sync";
@@ -2475,8 +2475,8 @@ describe("Sidebar", () => {
   it("shows scheduled retry status in the account switcher after sync warnings refresh account sync status", async () => {
     const user = userEvent.setup();
     let freshRssRetryScheduled = false;
-    const retryAt = "2026-04-13T03:15:00Z";
-    const retryTime = formatAccountSyncRetryTime(retryAt, "en");
+    const retryAt = "2099-04-13T03:15:00Z";
+    const retryTime = formatAccountSyncRetryDateTime(retryAt, "en");
     const expectedStatusLabel = retryTime ? `Retrying at ${retryTime}` : "Retrying soon";
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -2520,6 +2520,30 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(screen.getByText(expectedStatusLabel)).toBeInTheDocument();
     });
+  });
+
+  it("opens settings for an account waiting for credential access without changing the selected account", async () => {
+    const user = userEvent.setup();
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
+        return {
+          last_success_at: null,
+          last_error: null,
+          error_count: 1,
+          next_retry_at: null,
+          waiting_for_credential_access: true,
+        };
+      }
+      return undefined;
+    });
+    render(<Sidebar />, { wrapper: createWrapper() });
+    const attention = await screen.findByRole("button", {
+      name: /FreshRSS needs a connection check.*Open account settings/,
+    });
+    const selectedBefore = usePreferencesStore.getState().prefs.selected_account_id;
+    await user.click(attention);
+    expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    expect(usePreferencesStore.getState().prefs.selected_account_id).toBe(selectedBefore);
   });
 
   it("spins the sync button for manual account sync progress", async () => {
