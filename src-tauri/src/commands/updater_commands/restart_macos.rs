@@ -1,3 +1,4 @@
+#[cfg(any(target_os = "macos", test))]
 use std::path::{Path, PathBuf};
 
 #[cfg(any(target_os = "macos", all(test, unix)))]
@@ -245,7 +246,7 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
 
 /// Finds the .app bundle path from a binary path.
 /// Returns the path to the .app directory (e.g., /Applications/Ultra RSS Reader.app).
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[cfg(any(target_os = "macos", test))]
 fn find_app_bundle(binary_path: &Path) -> Option<PathBuf> {
     let mut current = binary_path;
 

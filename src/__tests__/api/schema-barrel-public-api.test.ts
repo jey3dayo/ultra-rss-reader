@@ -93,8 +93,6 @@ const publicSchemaRuntimeExports = [
   "NullableStarredArticlesSchema",
   "NullableStarredCountSchema",
   "PlatformInfoSchema",
-  "PlatformPermissionDeniedRecoveryListSchema",
-  "PlatformPermissionDeniedRecoverySchema",
   "PreferencesDtoSchema",
   "SettingsProfileImportResultSchema",
   "SettingsProfileSchema",

@@ -15,7 +15,6 @@ pub use feed::{
 };
 pub use platform::{
     DevRuntimeOptionsDto, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto,
-    PlatformPermissionDeniedRecoveryDto, PlatformPermissionDeniedSurfaceDto,
 };
 pub use read_diagnostics::{
     is_valid_read_diagnostic_request_id, ReadDiagnosticCancelReasonArg, ReadDiagnosticContextArg,

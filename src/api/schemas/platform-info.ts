@@ -47,17 +47,7 @@ export const DevRuntimeOptionsSchema = s.strictObject({
   dev_window_height: devWindowDimensionSchema,
 });
 
-const PlatformPermissionDeniedSurfaceSchema = v.picklist(["file", "dialog", "keyring", "clipboard"]);
-
-export const PlatformPermissionDeniedRecoverySchema = s.strictObject({
-  surface: PlatformPermissionDeniedSurfaceSchema,
-  user_action_copy: v.pipe(v.string(), v.trim(), v.minLength(1)),
-});
-
-export const PlatformPermissionDeniedRecoveryListSchema = v.array(PlatformPermissionDeniedRecoverySchema);
-
 export type DevRuntimeOptions = v.InferOutput<typeof DevRuntimeOptionsSchema>;
-export type PlatformPermissionDeniedRecovery = v.InferOutput<typeof PlatformPermissionDeniedRecoverySchema>;
 
 export const CredentialStorageKindSchema = v.picklist(["os_keychain", "local_file"]);
 

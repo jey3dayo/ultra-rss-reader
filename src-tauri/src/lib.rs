@@ -403,7 +403,6 @@ pub fn run() {
             commands::share_commands::add_to_reading_list,
             commands::platform_commands::get_platform_info,
             commands::platform_commands::get_dev_runtime_options,
-            commands::platform_commands::get_platform_permission_denied_recovery,
             commands::platform_commands::reset_oversized_dev_credentials_store,
             commands::credential_storage_commands::get_credential_storage,
             commands::credential_storage_commands::set_credential_storage,

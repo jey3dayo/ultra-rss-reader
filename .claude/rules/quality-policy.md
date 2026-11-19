@@ -50,13 +50,8 @@ Classify each `exports` / `types` finding as false-positive, accepted-risk, narr
 
 A mirrored Rust constant, DTO, command, or capability entry is a Rust-side contract and is not a reason to keep a TypeScript export; only a TypeScript consumer counts. Two shapes of TypeScript consumer are invisible to both Knip and an import-graph search, and both were found the hard way: a test that reads the `.rs` file as text and compares, and a test that extracts symbols from the *TypeScript* source text. `tests/helpers/tauri-mocks.node.test.ts` is the second kind — it scrapes `safeInvoke("…")` command strings out of `src/api/tauri-commands/*.ts` and pins them against the default mock set, so deleting a wrapper with no caller breaks it. Check both before deleting anything at a command or DTO boundary. "We might need it later" is not a reason either. Do not generalise the design-system barrel completeness precedent below to other barrels; check each owner for an actual pinned public surface instead.
 
-Standing accepted risk:
-
-- `getPlatformPermissionDeniedRecovery` (`src/api/tauri-commands/system.ts`) — no production caller, but the mock-parity test above pins it, and `src/dev/mocks.ts` plus the `debug-log-commands` capability allowlist agree with it. Retiring `get_platform_permission_denied_recovery` means retiring all five surfaces together; wiring a caller or retiring it end to end is the open decision. Reviewed 2026-09-08.
-
 Standing false positive:
 
-- `corePreferenceDefaults` (`src/schemas/preference-values.ts`) — `src/__tests__/schemas/preferences-schema-contract.test.ts` imports the module with `?raw` and matches `/export const corePreferenceDefaults = \{([\s\S]*?)\} as const/`. The `export` keyword is part of that contract, so the modifier must stay; reviewed 2026-09-08.
 - `showRestartToast` (`src/hooks/use-updater.ts`) — no static import-graph caller, but `src/__tests__/hooks/use-updater.node.test.ts` dynamically imports the module (`await import("@/hooks/use-updater")`) and calls `updaterModule.showRestartToast(...)` directly. Knip does not trace named-export calls reached through a dynamic `import()` namespace object, so this is a real consumer it cannot model; reviewed 2026-09-23.
 
 Findings already classified once are recorded per-finding in [../../docs/knip-export-classification.md](../../docs/knip-export-classification.md); check there before re-classifying a repeat hit.

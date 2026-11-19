@@ -48,7 +48,7 @@ pub(super) fn load_browser_preview_prefs_from_db(
 /// Loads preferences without allowing a native key monitor to wait behind a database operation.
 /// A lock miss is distinct from a read error: the caller must pass the event through so a
 /// shortcut is not dispatched from a stale or incomplete preference snapshot.
-#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
+#[cfg(any(windows, target_os = "macos"))]
 pub(super) fn try_load_browser_preview_prefs<R: Runtime>(
     app_handle: &AppHandle<R>,
 ) -> Option<Result<HashMap<String, String>, std::io::Error>> {
@@ -56,6 +56,7 @@ pub(super) fn try_load_browser_preview_prefs<R: Runtime>(
     try_load_browser_preview_prefs_from_db(&app_state.db)
 }
 
+#[cfg(any(test, windows, target_os = "macos"))]
 pub(super) fn try_load_browser_preview_prefs_from_db(
     db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
 ) -> Option<Result<HashMap<String, String>, std::io::Error>> {
@@ -186,7 +187,6 @@ pub fn browser_preview_focus_override_source(prefs: &HashMap<String, String>) ->
     )
 }
 
-#[cfg_attr(windows, allow(dead_code))]
 pub fn browser_preview_initialization_script(prefs: &HashMap<String, String>) -> Option<String> {
     let mut scripts = Vec::new();
 

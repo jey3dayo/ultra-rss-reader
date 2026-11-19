@@ -66,7 +66,7 @@ function extractPreferenceValueKnownKeys(source: string): string[] {
 function extractCorePreferenceDefaultKeys(source: string): string[] {
   const block = extractBlock(
     source,
-    /export const corePreferenceDefaults = \{([\s\S]*?)\} as const/,
+    /const corePreferenceDefaults = \{([\s\S]*?)\} as const/,
     "corePreferenceDefaults block",
   );
 

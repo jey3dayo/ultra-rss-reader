@@ -3,16 +3,13 @@ use std::collections::HashMap;
 #[cfg(windows)]
 use tauri::{AppHandle, Runtime};
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 pub(super) struct BrowserPreviewShortcutSpec {
     pref_key: &'static str,
     default_binding: &'static str,
     app_action: &'static str,
-    #[cfg_attr(not(any(test, windows)), allow(dead_code))]
     supports_script_bridge: bool,
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 pub(super) const BROWSER_PREVIEW_SHORTCUT_SPECS: &[BrowserPreviewShortcutSpec] = &[
     BrowserPreviewShortcutSpec {
         pref_key: "shortcut_close_or_clear",
@@ -70,7 +67,6 @@ pub(super) const BROWSER_PREVIEW_SHORTCUT_SPECS: &[BrowserPreviewShortcutSpec] =
     },
 ];
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 pub(super) fn normalize_browser_shortcut(
     key: &str,
     command_or_control: bool,
@@ -105,7 +101,6 @@ pub(super) fn normalize_browser_shortcut(
     Some(parts.join("+"))
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 pub(super) fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
     let mut command_or_control = false;
     let mut alt = false;
@@ -138,7 +133,6 @@ pub(super) fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> 
     normalize_browser_shortcut(key?, command_or_control, shift, alt)
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 pub fn browser_preview_action_for_shortcut(
     prefs: &HashMap<String, String>,
     key: &str,
@@ -158,7 +152,6 @@ pub fn browser_preview_action_for_shortcut(
     })
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 pub(super) fn is_supported_browser_preview_script_action(action: &str) -> bool {
     BROWSER_PREVIEW_SHORTCUT_SPECS
         .iter()
@@ -187,7 +180,6 @@ const MACOS_NS_FUNCTION_KEY_F12: char = '\u{F70F}';
 /// QWERTZ/AZERTY letters) match the same logical key the frontend recorded from
 /// `KeyboardEvent.key`. A fixed keyCode table silently mismatches on any non-US physical
 /// layout.
-#[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
 pub(super) fn browser_shortcut_key_from_macos_event_characters(characters: &str) -> Option<String> {
     let mut chars = characters.chars();
     let first = chars.next()?;
@@ -240,7 +232,7 @@ pub(super) fn browser_preview_action_for_macos_key_event(
     browser_preview_action_for_shortcut(prefs, &key, command_or_control, shift, alt)
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn browser_preview_action_for_virtual_key_from_prefs_result(
     prefs_result: Result<HashMap<String, String>, std::io::Error>,
     virtual_key: u32,
@@ -262,7 +254,7 @@ pub(super) fn browser_preview_action_for_virtual_key_from_prefs_result(
     browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift, alt)
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows, target_os = "macos"))]
 pub(super) fn browser_preview_shortcut_preferences_read_warning(error: &std::io::Error) -> String {
     format!(
         "Failed to load embedded browser shortcut preferences; using default preview shortcuts: {error}"
@@ -287,7 +279,7 @@ pub(super) fn browser_preview_action_for_virtual_key<R: Runtime>(
     )
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn browser_shortcut_key_from_virtual_key_name(virtual_key: u32) -> Option<&'static str> {
     // Keep the stable Win32 VK_* values in a platform-independent pure table so this mapping
     // remains unit-testable on non-Windows hosts; layout-dependent keys use MapVirtualKeyW below.
@@ -320,9 +312,11 @@ pub(super) fn browser_shortcut_key_from_virtual_key_name(virtual_key: u32) -> Op
 /// Windows virtual-key code for the Shift key (`VK_SHIFT` = 0x10), duplicated here as a
 /// plain constant so `synthesize_shift_only_key_state` stays testable without the
 /// `windows` crate's Windows-only bindings.
+#[cfg(any(test, windows))]
 pub(super) const VIRTUAL_KEY_SHIFT_INDEX: usize = 0x10;
 /// `GetKeyState`/`ToUnicode` key-state array convention: the high bit (0x80) marks a key
 /// as currently down.
+#[cfg(any(test, windows))]
 pub(super) const KEY_STATE_DOWN_BIT: u8 = 0x80;
 
 /// Builds a `ToUnicode` key-state array reflecting only the Shift key, leaving Ctrl/Alt
@@ -331,7 +325,7 @@ pub(super) const KEY_STATE_DOWN_BIT: u8 = 0x80;
 /// composition on layouts where Ctrl+Alt changes the produced character, but shortcuts here
 /// are recorded and matched on the base character plus an explicit Shift flag, not on
 /// AltGr composition.
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn synthesize_shift_only_key_state(shift: bool) -> [u8; 256] {
     let mut key_state = [0u8; 256];
     if shift {
@@ -377,7 +371,7 @@ pub(super) fn browser_shortcut_key_from_windows_layout(
     (!character.is_control()).then(|| character.to_string())
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn browser_shortcut_key_from_virtual_key(
     virtual_key: u32,
     shift: bool,

@@ -4,7 +4,7 @@ import { textEncoder } from "./shared";
 
 // Must stay aligned with SETTINGS_PROFILE_IMPORT_MAX_BYTES in src-tauri/src/commands/settings_profile_commands/mod.rs.
 export const SETTINGS_PROFILE_IMPORT_MAX_BYTES = 1024 * 1024;
-export const SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE = `Settings profile import file must be ${SETTINGS_PROFILE_IMPORT_MAX_BYTES} UTF-8 bytes or less`;
+const SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE = `Settings profile import file must be ${SETTINGS_PROFILE_IMPORT_MAX_BYTES} UTF-8 bytes or less`;
 
 export const importSettingsProfileArgs = s.strictObject({
   profileJson: v.pipe(
