@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
@@ -15,6 +15,7 @@ import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { useKeyboard } from "@/hooks/use-keyboard";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
@@ -1881,6 +1882,7 @@ describe("Sidebar", () => {
       layoutMode: "wide",
     });
 
+    renderHook(() => useKeyboard());
     render(
       <>
         <AccountPane />

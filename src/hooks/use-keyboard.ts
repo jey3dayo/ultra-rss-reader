@@ -23,6 +23,7 @@ import { scrollArticleContentByViewport } from "@/lib/reader/reader-content-scro
 import {
   focusArticleListRowTargetWhenReady,
   focusSelectedSidebarTarget,
+  getAccountPaneNavigationTargetSelector,
   isSidebarPaneTarget,
   resolveReaderFocusReturnAction,
   scheduleReaderFocusFrame,
@@ -87,6 +88,15 @@ function handleAccountPaneNavigation(
     !isGlobalShortcutTextEditingTarget(targetElement) &&
     (!targetInSidebarPane || targetInAccountPane || targetInAccountSwitcherMenu);
   if (!shouldRouteAccountPaneKey) {
+    return false;
+  }
+
+  if (
+    normalizedPaneKey === "Enter" &&
+    targetInAccountPane &&
+    isGlobalShortcutNativeActivationTarget(targetElement) &&
+    !targetElement?.closest(getAccountPaneNavigationTargetSelector())
+  ) {
     return false;
   }
 
