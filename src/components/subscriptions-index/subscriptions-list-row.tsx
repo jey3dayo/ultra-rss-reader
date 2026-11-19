@@ -16,6 +16,27 @@ type SubscriptionsListRowProps = {
   onSelectFeed: (feedId: string) => void;
 };
 
+function LatestArticleMeta({
+  latestArticleAt,
+  formatLabel,
+}: {
+  latestArticleAt: string | null;
+  formatLabel: (value: string) => string;
+}) {
+  if (!latestArticleAt) {
+    return null;
+  }
+
+  return (
+    <>
+      <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+        •
+      </span>
+      <span>{formatLabel(latestArticleAt)}</span>
+    </>
+  );
+}
+
 // The checkbox sits in a fixed slot before the row button, so the button keeps its position and is not remounted when selection mode toggles.
 export function SubscriptionsListRow({
   row,
@@ -89,19 +110,7 @@ export function SubscriptionsListRow({
             •
           </span>
           <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-          {row.latestArticleAt ? (
-            <>
-              <span
-                aria-hidden="true"
-                style={{
-                  color: "var(--subscriptions-list-meta-divider)",
-                }}
-              >
-                •
-              </span>
-              <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
-            </>
-          ) : null}
+          <LatestArticleMeta latestArticleAt={row.latestArticleAt} formatLabel={formatLatestArticleLabel} />
         </div>
       }
     />
