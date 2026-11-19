@@ -30,7 +30,7 @@ type ToastAnnouncement = {
   message: string;
 };
 
-export type SubscriptionsIndexNavigationRequest = Readonly<{
+type SubscriptionsIndexNavigationRequest = Readonly<{
   accountId: string | null;
   summaryFilter: SubscriptionSummaryFilterKey;
   retryAction?: import("@/lib/ui/toast.types").ToastAction;
