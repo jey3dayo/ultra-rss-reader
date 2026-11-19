@@ -43,8 +43,8 @@ use backoff::{
     clear_invalid_next_retry_at, increment_error_count, retry_after_seconds_from_app_error,
 };
 use backoff::{
-    complete_failed_account_sync, is_in_backoff, persisted_retry_next_sync, push_scheduler_warning,
-    reset_error_count,
+    clear_invalid_scheduler_next_retry_at, complete_failed_account_sync, is_in_backoff,
+    persisted_retry_next_sync, push_scheduler_warning, reset_error_count,
 };
 #[cfg(test)]
 use scheduling::account_interval;
@@ -279,7 +279,11 @@ fn select_scheduler_due_accounts<'a>(
 ) -> Vec<&'a Account> {
     select_due_accounts_for_tick(accounts, schedules, now, usize::MAX)
         .into_iter()
-        .filter(|account| !is_in_backoff(db, &account.id))
+        .filter(|account| {
+            // Repair corrupt retry state before the pure backoff check reads it.
+            clear_invalid_scheduler_next_retry_at(db, &account.id);
+            !is_in_backoff(db, &account.id)
+        })
         .filter(|account| !backoff::waiting_for_credential_access(db, account))
         .take(MAX_ACCOUNTS_PER_SCHEDULER_TICK)
         .collect()

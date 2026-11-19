@@ -265,7 +265,7 @@ fn scheduler_backoff_reset_reopens_auth_failure_circuit() {
 }
 
 #[test]
-fn is_in_backoff_clears_invalid_next_retry_at_and_allows_retry() {
+fn clearing_invalid_next_retry_at_allows_retry() {
     let db = std::sync::Mutex::new(test_db());
     let account = test_account(60);
     {
@@ -274,6 +274,7 @@ fn is_in_backoff_clears_invalid_next_retry_at_and_allows_retry() {
         insert_scheduler_sync_state(&db_guard, &account.id, 2, Some("not-a-date"));
     }
 
+    clear_invalid_scheduler_next_retry_at(&db, &account.id);
     assert!(!is_in_backoff(&db, &account.id));
 
     let db_guard = db.lock().unwrap();
