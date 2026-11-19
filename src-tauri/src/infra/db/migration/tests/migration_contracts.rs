@@ -696,16 +696,16 @@ fn v29_feed_url_change_restamps_recorded_article_times_and_every_tag_link() {
 }
 
 fn table_column_names(conn: &rusqlite::Connection, table: &str) -> Vec<String> {
-    let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})")).unwrap();
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info({table})"))
+        .unwrap();
     stmt.query_map([], |row| row.get::<_, String>(1))
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap()
 }
 
-fn schema_snapshot(
-    conn: &rusqlite::Connection,
-) -> Vec<(String, String, String, Option<String>)> {
+fn schema_snapshot(conn: &rusqlite::Connection) -> Vec<(String, String, String, Option<String>)> {
     let mut stmt = conn
         .prepare("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY type, name")
         .unwrap();
