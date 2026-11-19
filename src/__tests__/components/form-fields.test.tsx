@@ -149,8 +149,8 @@ describe("Form fields", () => {
     await user.click(await screen.findByRole("combobox", { name: "Article display" }));
 
     expect(await screen.findByRole("option", { name: "Use default" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Reader" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Web Preview" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Article text only" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Article text + Web Preview" })).toBeInTheDocument();
   });
 
   it("feed edit dialog offers a new folder option even when no folders exist yet", async () => {
