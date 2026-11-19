@@ -11,7 +11,7 @@ const startupSyncStorageKeys = [
 ] as const;
 const warnedStartupSyncStorageFailureKinds = new Set<StartupSyncStorageFailureKind>();
 
-function resetStartupSyncStorageFailure(kind: StartupSyncStorageFailureKind): void {
+function noteStartupSyncStorageSuccess(kind: StartupSyncStorageFailureKind): void {
   warnedStartupSyncStorageFailureKinds.delete(kind);
 }
 
@@ -38,7 +38,7 @@ function readStartupSyncStorage(): StartupSyncStorage | null {
   }
   try {
     const storage = window.localStorage;
-    resetStartupSyncStorageFailure("unavailable");
+    noteStartupSyncStorageSuccess("unavailable");
     return storage;
   } catch (error) {
     warnStartupSyncStorageFailureOnce("unavailable", "Startup sync localStorage is unavailable.", error);
@@ -61,7 +61,7 @@ function storageKeysForStartupSync(accountId?: string): readonly string[] {
 function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue: string): void {
   try {
     storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, rawValue);
-    resetStartupSyncStorageFailure("migrate");
+    noteStartupSyncStorageSuccess("migrate");
   } catch (error) {
     warnStartupSyncStorageFailureOnce("migrate", "Failed to migrate startup sync metadata to localStorage.", error);
     return;
@@ -69,7 +69,7 @@ function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue
 
   try {
     storage.removeItem(LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt);
-    resetStartupSyncStorageFailure("cleanup");
+    noteStartupSyncStorageSuccess("cleanup");
   } catch (error) {
     warnStartupSyncStorageFailureOnce(
       "cleanup",
@@ -80,6 +80,9 @@ function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue
   }
 }
 
+// Reads the last trigger time, repairing storage as it goes: invalid values
+// are removed and the legacy key is migrated to the current key. Successful
+// steps also clear their warn-once failure latch (noteStartupSyncStorageSuccess).
 export function getLastStartupSyncTriggeredAt(
   storage = readStartupSyncStorage(),
   now = getCurrentTimeMs(),
@@ -92,7 +95,7 @@ export function getLastStartupSyncTriggeredAt(
   try {
     for (const storageKey of storageKeysForStartupSync(accountId)) {
       const rawValue = storage.getItem(storageKey);
-      resetStartupSyncStorageFailure("read");
+      noteStartupSyncStorageSuccess("read");
       if (!rawValue) {
         continue;
       }
@@ -101,7 +104,7 @@ export function getLastStartupSyncTriggeredAt(
       if (!Number.isFinite(timestamp) || timestamp < 0 || timestamp > now) {
         try {
           storage.removeItem(storageKey);
-          resetStartupSyncStorageFailure("cleanup");
+          noteStartupSyncStorageSuccess("cleanup");
         } catch (error) {
           warnStartupSyncStorageFailureOnce(
             "cleanup",
@@ -147,7 +150,7 @@ export function markStartupSyncTriggered(
   try {
     const storageKey = accountId ? startupSyncAccountStorageKey(accountId) : STORAGE_KEYS.startupSyncLastTriggeredAt;
     storage.setItem(storageKey, String(now));
-    resetStartupSyncStorageFailure("write");
+    noteStartupSyncStorageSuccess("write");
   } catch (error) {
     warnStartupSyncStorageFailureOnce("write", "Failed to write startup sync metadata to localStorage.", error);
     // Ignore storage failures and fall back to process-local guarding only.

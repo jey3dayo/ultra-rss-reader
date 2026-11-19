@@ -216,21 +216,39 @@ pub(super) fn is_in_backoff(db: &Mutex<DbManager>, account_id: &AccountId) -> bo
     let Some(db_guard) = db.lock().ok() else {
         return false;
     };
-    let repo = SqliteSyncStateRepository::new(db_guard.writer());
+    let repo = SqliteSyncStateRepository::new(db_guard.reader());
     let scope_key = SyncStateScopeKey::scheduler();
-    let Some(mut state) = repo.get(account_id, &scope_key).ok().flatten() else {
+    let Some(state) = repo.get(account_id, &scope_key).ok().flatten() else {
         return false;
     };
     if state.error_count == 0 {
         return false;
     }
-    if let Some(ref next_retry) = state.next_retry_at {
-        if let Ok(retry_time) = chrono::DateTime::parse_from_rfc3339(next_retry) {
-            return chrono::Utc::now() < retry_time;
-        }
+    match state.next_retry_at.as_deref() {
+        Some(next_retry) => chrono::DateTime::parse_from_rfc3339(next_retry)
+            .is_ok_and(|retry_time| chrono::Utc::now() < retry_time),
+        None => false,
+    }
+}
+
+/// Clears a persisted next_retry_at that cannot be parsed, so a corrupt value
+/// does not pin the account out of scheduled sync. Kept separate from
+/// is_in_backoff, which stays a pure read.
+pub(super) fn clear_invalid_scheduler_next_retry_at(db: &Mutex<DbManager>, account_id: &AccountId) {
+    let Some(db_guard) = db.lock().ok() else {
+        return;
+    };
+    let repo = SqliteSyncStateRepository::new(db_guard.writer());
+    let scope_key = SyncStateScopeKey::scheduler();
+    let Some(mut state) = repo.get(account_id, &scope_key).ok().flatten() else {
+        return;
+    };
+    let Some(next_retry) = state.next_retry_at.as_deref() else {
+        return;
+    };
+    if chrono::DateTime::parse_from_rfc3339(next_retry).is_err() {
         clear_invalid_next_retry_at(&repo, &mut state);
     }
-    false
 }
 
 fn invalid_next_retry_cleanup_failures() -> &'static Mutex<HashSet<String>> {

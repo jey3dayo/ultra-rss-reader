@@ -67,7 +67,10 @@ export function useSidebarFolderReorderActions({
           accountId,
           orderedFolderIds: buildNameOrderedFolderIds(folderList),
         });
-      } catch {
+      } catch (error) {
+        // The failure is surfaced by the mutation's onError toast; only the
+        // success announcement is skipped here.
+        console.warn("Failed to reset folder order.", error);
         return;
       }
       setLiveRegionMessage(t("folder_reorder_reset"));

@@ -85,7 +85,9 @@ impl From<DomainError> for AppError {
 }
 
 impl AppError {
-    /// Static label safe for release logs; never derived from message content.
+    /// Static label safe for release logs; chosen from the error variant and,
+    /// for user-visible errors, a known message prefix. The label itself never
+    /// contains message text.
     pub fn diagnostic_kind(&self) -> &'static str {
         match self {
             AppError::UserVisible { message } | AppError::CredentialStore { message, .. } => {
