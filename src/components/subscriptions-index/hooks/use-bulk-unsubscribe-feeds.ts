@@ -41,7 +41,8 @@ function setRowState(
   indices: ReadonlyArray<number>,
   next: BulkUnsubscribeRowState,
 ) {
-  return rows.map((row, index) => (indices.includes(index) ? next : row));
+  const targetIndices = new Set(indices);
+  return rows.map((row, index) => (targetIndices.has(index) ? next : row));
 }
 
 function reduceRunState(state: RunState, action: RunAction): RunState {
