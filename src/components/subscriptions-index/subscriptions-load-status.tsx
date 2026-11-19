@@ -10,7 +10,7 @@ export type SubscriptionsLoadFailure = {
 export type SubscriptionsListLoadState =
   | { status: "ready" }
   | { status: "loading"; label: string }
-  | { status: "error"; failure: SubscriptionsLoadFailure };
+  | { status: "error"; failure: SubscriptionsLoadFailure; hasData: boolean };
 
 const SKELETON_ROWS = [
   { id: "first", titleWidthClassName: "w-2/5", metaWidthClassName: "w-48" },

@@ -178,7 +178,9 @@ export function SubscriptionsListPane({
   const selecting = bulkSelection?.mode === true;
   const loading = loadState.status === "loading";
   const showRows = hasRows && !loading;
-  const showEmptyState = !hasRows && loadState.status === "ready";
+  const listUnavailable = loadState.status === "error" && !loadState.hasData;
+  const showEmptyState =
+    !hasRows && (loadState.status === "ready" || (loadState.status === "error" && loadState.hasData));
 
   useLayoutEffect(() => {
     onListScrollTopChangeRef.current = onListScrollTopChange;
@@ -295,7 +297,7 @@ export function SubscriptionsListPane({
               ref={bulkSelection.toggleButtonRef}
               type="button"
               variant="outline"
-              disabled={loading}
+              disabled={loading || listUnavailable}
               onClick={selecting ? bulkSelection.onEnd : bulkSelection.onStart}
               className="min-h-11 shrink-0"
             >

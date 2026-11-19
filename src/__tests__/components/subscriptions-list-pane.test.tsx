@@ -823,7 +823,7 @@ describe("SubscriptionsListPane load state", () => {
   it("replaces the empty state with a retryable alert when loading failed", async () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
-    renderListPane([], { loadState: { status: "error", failure: { ...loadFailure, onRetry } } });
+    renderListPane([], { loadState: { status: "error", failure: { ...loadFailure, onRetry }, hasData: false } });
 
     expect(screen.getByRole("alert")).toHaveTextContent("購読の一覧を読み込めませんでした。");
     expect(screen.queryByText("一致する購読はありません。")).not.toBeInTheDocument();
@@ -833,9 +833,22 @@ describe("SubscriptionsListPane load state", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  it("offers no selection mode while the list could not be loaded, but still explains an empty match when data is cached", () => {
+    const { unmount } = renderListPane([], {
+      loadState: { status: "error", failure: loadFailure, hasData: false },
+      bulkSelection: buildBulkSelection({ mode: false }),
+    });
+    expect(screen.getByRole("button", { name: "まとめて選択" })).toBeDisabled();
+    unmount();
+
+    renderListPane([], { loadState: { status: "error", failure: loadFailure, hasData: true } });
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
+  });
+
   it("keeps the rows beside the alert when a refresh fails and disables retry while it runs", () => {
     renderListPane(buildBulkRows(), {
-      loadState: { status: "error", failure: { ...loadFailure, retrying: true } },
+      loadState: { status: "error", failure: { ...loadFailure, retrying: true }, hasData: true },
     });
 
     expect(screen.getByRole("alert")).toBeInTheDocument();

@@ -41,7 +41,7 @@
   "fetch_error_retry_succeeded": "再取得しました",
   "detail_fetch_error_retry_failed": "フィードを再取得できませんでした",
   "fetch_error_retry_incomplete": "再取得が完了しませんでした。結果を確認してください。",
-  "fetch_error_refresh_failed": "再取得は行いましたが、最新の取得状態を読み込めませんでした。表示が古い可能性があります。もう一度「再取得」を実行してください。",
+  "fetch_error_refresh_failed": "再取得は行いましたが、画面の表示を最新にできませんでした。表示が古い可能性があります。もう一度「再取得」を実行してください。",
   "detail_fetch_error_diagnostic_copied": "診断番号をコピーしました",
   "detail_fetch_error_diagnostic_copy_failed": "診断番号をコピーできませんでした",
   "decision_keep": "残す",

@@ -50,6 +50,7 @@ export function resolveListLoadState(params: {
     return {
       status: "error",
       failure: { message: labels.failure, retryLabel: labels.retry, retrying: feeds.fetching, onRetry: feeds.retry },
+      hasData: feeds.hasData,
     };
   }
   return accountSelected && rowsPending ? { status: "loading", label: labels.loading } : { status: "ready" };

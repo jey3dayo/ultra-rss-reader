@@ -241,6 +241,7 @@ export const LoadFailed: Story = {
         retrying: false,
         onRetry: fn(),
       },
+      hasData: false,
     },
   },
 };

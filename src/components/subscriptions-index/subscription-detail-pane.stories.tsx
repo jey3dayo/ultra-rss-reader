@@ -194,7 +194,7 @@ export const FetchError: Story = {
           busy: "同期処理中です。完了後に再取得してください。",
           incomplete: "再取得が完了しませんでした。結果を確認してください。",
           failed: "フィードを再取得できませんでした",
-          "refresh-failed": "再取得は行いましたが、最新の取得状態を読み込めませんでした。",
+          "refresh-failed": "再取得は行いましたが、画面の表示を最新にできませんでした。",
         })[kind],
     },
     onRetryFeed: fn(),

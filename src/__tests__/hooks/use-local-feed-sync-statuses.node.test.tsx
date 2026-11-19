@@ -178,11 +178,14 @@ describe("useLocalFeedSyncStatuses", () => {
       return statusReads === 1 ? Promise.resolve(Result.succeed([failedStatus])) : refreshedStatuses.promise;
     });
     vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.succeed(successfulSync));
+    const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
     const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
 
     await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
     act(() => result.current.retryFeed("feed-1"));
     await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBe("succeeded"));
+    // The error card disappears with the refreshed statuses, so success is also announced outside it.
+    expect(toastSpy).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       refreshedStatuses.resolve(Result.succeed([]));
@@ -275,7 +278,15 @@ describe("useLocalFeedSyncStatuses", () => {
           resolveSync = resolve;
         }),
     );
-    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([failedStatus]));
+    let acc1StatusReads = 0;
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockImplementation(async (accountId) => {
+      if (accountId !== "acc-1") return Result.succeed([failedStatus]);
+      acc1StatusReads += 1;
+      // The status read after the retry carries a newer attempt time than the one the outcome was created against.
+      return Result.succeed([
+        acc1StatusReads === 1 ? failedStatus : { ...failedStatus, last_attempt_at: "2026-11-20T12:00:00Z" },
+      ]);
+    });
     const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
     const { result, rerender } = renderHook(({ accountId }) => useLocalFeedSyncStatuses(accountId), {
       initialProps: { accountId: "acc-1" },
@@ -302,7 +313,8 @@ describe("useLocalFeedSyncStatuses", () => {
 
     useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: "acc-1" } });
     rerender({ accountId: "acc-1" });
-    await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBe("incomplete"));
+    await waitFor(() => expect(result.current.statusQuery.data?.[0]?.last_attempt_at).toBe("2026-11-20T12:00:00Z"));
+    expect(result.current.retryOutcomeFor("feed-1")).toBe("incomplete");
   });
 
   it("prevents duplicate requests for one pending account/feed pair", async () => {

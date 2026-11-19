@@ -1,11 +1,13 @@
 import { Result } from "@praha/byethrow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
 import type { SyncResultDto } from "@/api/schemas";
 import { getLocalFeedSyncStatuses, type LocalFeedSyncStatusDto, syncFeed } from "@/api/tauri-commands";
 import { useAccounts } from "@/hooks/use-accounts";
 import { invalidateFeedRetryQueries, queryKeys } from "@/lib/query/query-invalidation";
 import { summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
+import { useUiStore } from "@/stores/ui-store";
 
 export const localFeedSyncStatusesQueryKey = (accountId: string | null) =>
   queryKeys.localFeedSyncStatuses.byAccount(accountId);
@@ -68,7 +70,7 @@ function recordFeedRetryOutcome(variables: FeedRetryVariables, kind: FeedRetryOu
 function settleFeedRetryOutcome(
   variables: FeedRetryVariables,
   refreshed: boolean,
-  settledAttemptAt: string | null,
+  settledAttemptAt: string | null | undefined,
 ): void {
   const key = getPendingFeedRetryKey(variables);
   const outcome = feedRetryOutcomes.get(key);
@@ -87,6 +89,8 @@ function settleFeedRetryOutcome(
 
 export function useLocalFeedSyncStatuses(accountId: string | null) {
   const { data: accounts, isPending: accountsPending } = useAccounts();
+  const { t } = useTranslation("subscriptions");
+  const showToast = useUiStore((state) => state.showToast);
   const queryClient = useQueryClient();
   const normalizedAccountId = accountId?.trim() || null;
   const account = accounts?.find((candidate) => candidate.id === normalizedAccountId);
@@ -107,7 +111,12 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
   const retryMutation = useMutation({
     mutationFn: async ({ feedId }: FeedRetryVariables) => Result.unwrap(await syncFeed(feedId)),
     onSuccess: (result, variables) => {
-      recordFeedRetryOutcome(variables, resolveRetryOutcomeKind(result));
+      const kind = resolveRetryOutcomeKind(result);
+      recordFeedRetryOutcome(variables, kind);
+      // A successful retry clears the error card that would hold its result, so the success needs its own surface.
+      if (kind === "succeeded" && useUiStore.getState().subscriptionsWorkspace?.accountId === variables.accountId) {
+        showToast(t("fetch_error_retry_succeeded"));
+      }
     },
     onError: (_error, variables) => {
       recordFeedRetryOutcome(variables, "failed");
@@ -115,11 +124,14 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
     onSettled: async (_data, _error, variables) => {
       try {
         const refreshed = await invalidateFeedRetryQueries(queryClient, variables.accountId, variables.feedId);
-        const statuses = queryClient.getQueryData<LocalFeedSyncStatusDto[]>(
-          localFeedSyncStatusesQueryKey(variables.accountId),
-        );
-        const settledAttemptAt = statuses?.find((status) => status.feed_id === variables.feedId)?.last_attempt_at;
-        settleFeedRetryOutcome(variables, refreshed, settledAttemptAt ?? null);
+        const statusKey = localFeedSyncStatusesQueryKey(variables.accountId);
+        // An inactive status query is only marked invalid, so its cache still predates the retry and cannot anchor the outcome.
+        const statusRefetched = queryClient.getQueryState(statusKey)?.isInvalidated === false;
+        const statuses = queryClient.getQueryData<LocalFeedSyncStatusDto[]>(statusKey);
+        const settledAttemptAt = statusRefetched
+          ? (statuses?.find((status) => status.feed_id === variables.feedId)?.last_attempt_at ?? null)
+          : undefined;
+        settleFeedRetryOutcome(variables, refreshed, settledAttemptAt);
       } finally {
         pendingFeedRetryKeys.delete(getPendingFeedRetryKey(variables));
         notifyPendingFeedRetryChange();

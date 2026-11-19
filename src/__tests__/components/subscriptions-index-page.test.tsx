@@ -480,7 +480,8 @@ describe("SubscriptionsIndexPage", () => {
     const outcome = await screen.findByTestId("subscriptions-fetch-error-retry-outcome");
     expect(outcome).toHaveTextContent("再取得しました");
     expect(outcome).toHaveAttribute("role", "status");
-    expect(screen.queryByTestId("test-toast-host")).not.toBeInTheDocument();
+    // The card goes away once the statuses refresh, so success is also announced as a toast.
+    expect(await screen.findByTestId("test-toast-host")).toHaveTextContent("再取得しました");
 
     await act(async () => {
       refreshedStatuses.resolve([]);

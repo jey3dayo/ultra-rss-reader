@@ -222,6 +222,13 @@ describe("useDeleteFeed", () => {
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith(expect.objectContaining({ severity: "error", persistent: true }));
     });
+
+    showToastMock.mockClear();
+    await expect(
+      result.current.mutateAsync({ feedId: "feed-1", accountId: "acc-1", title: "Tech Blog" }),
+    ).rejects.toBeDefined();
+    await waitFor(() => expect(showToastMock).toHaveBeenCalledWith(expect.objectContaining({ severity: "error" })));
+    expect(showToastMock).not.toHaveBeenCalledWith(expect.objectContaining({ persistent: true }));
   });
 
   it("localizes a backend database-maintenance-busy failure in the unsubscribe toast", async () => {
