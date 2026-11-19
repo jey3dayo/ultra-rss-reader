@@ -1875,6 +1875,7 @@ describe("Sidebar", () => {
 
   it("opens the account pane from the title and adds an account with the keyboard", async () => {
     const user = userEvent.setup();
+    usePreferencesStore.setState({ prefs: { shortcut_open_command_palette: "Enter" } });
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",

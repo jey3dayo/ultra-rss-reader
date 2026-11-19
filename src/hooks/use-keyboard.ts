@@ -97,7 +97,8 @@ function handleAccountPaneNavigation(
     isGlobalShortcutNativeActivationTarget(targetElement) &&
     !targetElement?.closest(getAccountPaneNavigationTargetSelector())
   ) {
-    return false;
+    // Keep native activation and skip any configured shortcut for this Enter.
+    return true;
   }
 
   if (normalizedPaneKey === "ArrowDown" || normalizedPaneKey === "ArrowUp") {
