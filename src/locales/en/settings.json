@@ -32,7 +32,7 @@
     "unread_count_badge": "Unread count badge",
     "dont_display": "Don't display",
     "all_unread": "All unread",
-    "only_inbox": "Only inbox",
+    "only_inbox": "Unread only",
     "navigation": "Navigation",
     "show_unread": "Show unread in sidebar",
     "show_starred": "Show starred in sidebar",
@@ -373,6 +373,7 @@
       "auth": "Authentication error: {{message}}",
       "validation": "Invalid sync input: {{message}}",
       "keychain": "Credential storage error: {{message}}",
+      "keychain_needs_auth": "Credential access needs attention. Open account settings and choose Save and test connection to allow access for this app session (up to 8 hours). Automatic sync will not open Keychain dialogs.",
       "migration": "Database migration error: {{message}}"
     },
     "sync_failed": "Sync failed: {{message}}",

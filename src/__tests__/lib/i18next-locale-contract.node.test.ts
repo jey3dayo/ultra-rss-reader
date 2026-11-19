@@ -633,7 +633,7 @@ describe("i18next locale contract", () => {
         cmdClickPreviewAction: settings.reading.cmd_click_browser,
       }).toEqual(expected);
       expect(reader.browser_view).toBe(settings.reading.in_app_browser);
-      expect(reader.display_mode_preview).toBe(settings.reading.in_app_browser);
+      expect(reader.display_mode_preview).toBe(settings.reading.preview);
       expect(reader.open_in_browser).toBe(reader.view_in_browser);
       expect(reader.shortcuts.view_in_browser).toBe(reader.view_in_browser);
       expect(reader.shortcuts.open_external_browser.toLowerCase()).toBe(reader.open_in_external_browser.toLowerCase());
@@ -703,8 +703,8 @@ describe("i18next locale contract", () => {
     const pluralCountCases = [
       {
         key: "subscriptions:summary_total_caption",
-        en: { one: "1 feed in this workspace", other: "2 feeds in this workspace" },
-        ja: { one: "このワークスペースで 1 件の購読", other: "このワークスペースで 2 件の購読" },
+        en: { one: "1 subscription in this account", other: "2 subscriptions in this account" },
+        ja: { one: "このアカウントで 1 件の購読", other: "このアカウントで 2 件の購読" },
       },
       {
         key: "subscriptions:summary_review_caption",
@@ -713,7 +713,10 @@ describe("i18next locale contract", () => {
       },
       {
         key: "subscriptions:summary_stale_caption",
-        en: { one: "1 feed has had no updates for 90+ days", other: "2 feeds have had no updates for 90+ days" },
+        en: {
+          one: "1 subscription has had no updates for 90+ days",
+          other: "2 subscriptions have had no updates for 90+ days",
+        },
         ja: { one: "1 件が90日以上未更新です", other: "2 件が90日以上未更新です" },
       },
     ] as const;

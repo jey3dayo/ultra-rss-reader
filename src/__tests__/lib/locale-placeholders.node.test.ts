@@ -409,7 +409,7 @@ describe("locale interpolation placeholders", () => {
     expect(enReader.view_in_browser).toContain("Web Preview");
     expect(enReader.open_in_external_browser.toLowerCase()).toContain("external browser");
     expect(enReader.browser_view).toBe(enReading.in_app_browser);
-    expect(enReader.display_mode_preview).toBe(enReading.in_app_browser);
+    expect(enReader.display_mode_preview).toBe(enReading.preview);
     expect(enReaderShortcuts.view_in_browser).toContain("Web Preview");
     expect(enReaderShortcuts.open_external_browser.toLowerCase()).toContain("external browser");
     expect(enReading.preview).toContain("Web Preview");
@@ -422,7 +422,7 @@ describe("locale interpolation placeholders", () => {
     expect(jaReader.view_in_browser).toContain("Webプレビュー");
     expect(jaReader.open_in_external_browser).toContain("外部ブラウザ");
     expect(jaReader.browser_view).toBe(jaReading.in_app_browser);
-    expect(jaReader.display_mode_preview).toBe(jaReading.in_app_browser);
+    expect(jaReader.display_mode_preview).toBe(jaReading.preview);
     expect(jaReaderShortcuts.view_in_browser).toContain("Webプレビュー");
     expect(jaReaderShortcuts.open_external_browser).toContain("外部ブラウザ");
     expect(jaReading.preview).toContain("Webプレビュー");

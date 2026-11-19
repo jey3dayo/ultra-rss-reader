@@ -64,8 +64,8 @@ export const SettingsRow: Story = {
         <GradientSwitch {...args} aria-label="バックグラウンドでリンクを開く" />
       </div>
       <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-        <span className="text-sm text-foreground">⌘クリックでアプリ内ブラウザを開く</span>
-        <GradientSwitch defaultChecked aria-label="⌘クリックでアプリ内ブラウザを開く" />
+        <span className="text-sm text-foreground">⌘クリックでWebプレビューを開く</span>
+        <GradientSwitch defaultChecked aria-label="⌘クリックでWebプレビューを開く" />
       </div>
       <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
         <span className="text-sm text-foreground">実行前に確認する</span>
