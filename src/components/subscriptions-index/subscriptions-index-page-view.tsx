@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import {
   WORKSPACE_CANVAS_CLASS,
@@ -62,6 +63,7 @@ type SubscriptionsIndexPageViewProps = {
   dateLocale: string;
   listScrollResetKey: number;
   listScrollTop: number;
+  scrollRegionRef: RefObject<HTMLDivElement | null>;
   folderLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel: string;
@@ -79,7 +81,6 @@ type SubscriptionsIndexPageViewProps = {
   displayModeValue: string;
   decisionActions: SubscriptionDecisionActions | null;
   managementActions: SubscriptionManagementActions | null;
-  backLabel: string;
   closeLabel: string;
   isGroupExpanded: (groupKey: string) => boolean;
   onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
@@ -87,7 +88,6 @@ type SubscriptionsIndexPageViewProps = {
   onListScrollTopChange: (scrollTop: number) => void;
   onSearchQueryChange: (query: string) => void;
   onToggleGroup: (groupKey: string) => void;
-  onBack: () => void;
   onClose: () => void;
 };
 
@@ -122,6 +122,7 @@ export function SubscriptionsIndexPageView({
   dateLocale,
   listScrollResetKey,
   listScrollTop,
+  scrollRegionRef,
   folderLabel,
   latestArticleLabel,
   latestArticleEmptyLabel,
@@ -139,7 +140,6 @@ export function SubscriptionsIndexPageView({
   displayModeValue,
   decisionActions,
   managementActions,
-  backLabel,
   closeLabel,
   isGroupExpanded,
   onSelectSummaryFilter,
@@ -147,7 +147,6 @@ export function SubscriptionsIndexPageView({
   onListScrollTopChange,
   onSearchQueryChange,
   onToggleGroup,
-  onBack,
   onClose,
 }: SubscriptionsIndexPageViewProps) {
   const platformKind = usePlatformStore((state) => state.platform.kind);
@@ -158,7 +157,7 @@ export function SubscriptionsIndexPageView({
 
   return (
     <div className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-y-auto bg-background lg:overflow-hidden">
-      <WorkspaceHeader title={title} backLabel={backLabel} onBack={onBack} closeLabel={closeLabel} onClose={onClose} />
+      <WorkspaceHeader title={title} closeLabel={closeLabel} onClose={onClose} />
       <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-2 sm:pt-3`}>
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary
@@ -191,6 +190,7 @@ export function SubscriptionsIndexPageView({
               isGroupExpanded={isGroupExpanded}
               scrollResetKey={listScrollResetKey}
               initialScrollTop={listScrollTop}
+              scrollRegionRef={scrollRegionRef}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}
               onSearchQueryChange={onSearchQueryChange}

@@ -95,7 +95,7 @@ function SubscriptionsIndexPageForAccount() {
     setEditTargetFeed,
   });
 
-  useSubscriptionsIndexEscape(editTargetFeed !== null || deleteTargetFeed !== null, closeSubscriptionsWorkspace);
+  useSubscriptionsIndexEscape(editTargetFeed !== null || deleteTargetFeed !== null, viewProps.onClose);
 
   return (
     <>

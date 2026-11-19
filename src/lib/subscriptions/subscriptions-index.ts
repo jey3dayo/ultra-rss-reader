@@ -31,7 +31,7 @@ export {
   resolveSelectedSubscriptionDisplayModeLabel,
 } from "./subscription-detail";
 
-export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
+type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
 
 function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
   let count = 0;

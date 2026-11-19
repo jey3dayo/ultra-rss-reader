@@ -607,9 +607,19 @@ describe("useAccountDetailSyncControls", () => {
   });
 
   it.each([
-    { label: "dirty", dirty: true, pending: false },
-    { label: "pending", dirty: false, pending: true },
-  ])("keeps settings open when a $label settings change would be abandoned", async ({ dirty, pending }) => {
+    {
+      label: "dirty",
+      dirty: true,
+      pending: false,
+      message: "Settings have unsaved changes. Save or discard them, close settings, then try again.",
+    },
+    {
+      label: "pending",
+      dirty: false,
+      pending: true,
+      message: "Settings are being updated. Wait for this to finish, close settings, then try again.",
+    },
+  ])("keeps settings open and explains a $label settings change", async ({ dirty, pending, message }) => {
     const account = makeLocalAccount("local-account");
     appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
     useUiStore.setState({ selectedAccountId: "current-account", settingsOpen: true });
@@ -628,6 +638,12 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().settingsOpen).toBe(true);
     expect(useUiStore.getState().selectedAccountId).toBe("current-account");
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message,
+      severity: "warning",
+      persistent: true,
+      actions: [action],
+    });
   });
 
   it("keeps settings open when the settings dirty state appears during account lookup", async () => {
@@ -671,6 +687,11 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().settingsOpen).toBe(true);
     expect(useUiStore.getState().selectedAccountId).toBe("current-account");
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "Account setup must finish before leaving settings. Complete setup, close settings, then try again.",
+      severity: "warning",
+      actions: [{ label: "View details" }],
+    });
   });
 
   it("allows toast and sync progress updates while the account lookup is pending", async () => {
