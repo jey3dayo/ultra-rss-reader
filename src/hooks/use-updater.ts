@@ -24,8 +24,6 @@ import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-even
 import { isDatabaseMaintenanceBusyMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
-export { showRestartToast } from "@/hooks/updater/updater-toasts";
-
 type UpdateInfo = UpdateInfoDto;
 
 const STARTUP_UPDATE_CHECK_DELAY_MS = 1_500;
