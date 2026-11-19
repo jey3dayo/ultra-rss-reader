@@ -4,8 +4,8 @@ import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-cou
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   hasSubscriptionReviewReason,
+  isSubscriptionReviewCandidate,
   resolveLatestKnownArticleAt,
-  summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscriptions/subscription-review-candidates";
 import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
 import type {
@@ -289,6 +289,10 @@ export function buildSubscriptionListGroups(
 
   const sortedGroups = Array.from(groups.values());
   sortedGroups.sort((left, right) => {
+    if ((left.folderId === null) !== (right.folderId === null)) {
+      return left.folderId === null ? 1 : -1;
+    }
+
     const labelOrder = left.label.localeCompare(right.label);
     if (labelOrder !== 0) {
       return labelOrder;
@@ -366,24 +370,16 @@ export function resolveSubscriptionRowStatus({
   candidate?: SubscriptionReviewCandidate;
 }): SubscriptionRowStatus {
   if (!candidate) {
-    return { tone: "neutral", labelKey: "normal" };
+    return { labelKey: "normal" };
   }
 
   if (hasSubscriptionReviewReason(candidate, "attention_30d")) {
-    return { tone: "low", labelKey: "attention_30d" };
+    return { labelKey: "attention_30d" };
   }
 
-  if (summarizeSubscriptionReviewCandidate(candidate).tone === "low") {
-    return { tone: "neutral", labelKey: "normal" };
+  if (!isSubscriptionReviewCandidate(candidate)) {
+    return { labelKey: "normal" };
   }
 
-  if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
-    return { tone: "medium", labelKey: "stale_90d" };
-  }
-
-  if (hasSubscriptionReviewReason(candidate, "quiet_no_unread")) {
-    return { tone: "medium", labelKey: "quiet_no_unread" };
-  }
-
-  return { tone: "medium", labelKey: "review" };
+  return { labelKey: hasSubscriptionReviewReason(candidate, "stale_90d") ? "stale_90d" : "quiet_no_unread" };
 }

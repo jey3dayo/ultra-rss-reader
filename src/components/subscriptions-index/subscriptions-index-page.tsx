@@ -285,10 +285,13 @@ function SubscriptionsIndexPageForAccount({
     navigate: viewProps.navigateToSummaryFilter,
     hasOpenDialog,
   }));
-  useSubscriptionsIndexEscape(hasOpenDialog, onClose, selectOpen, {
-    active: viewProps.bulk.selectionMode,
-    end: viewProps.bulk.endSelection,
-  });
+  useSubscriptionsIndexEscape(
+    hasOpenDialog,
+    onClose,
+    selectOpen,
+    { active: viewProps.bulk.selectionMode, end: viewProps.bulk.endSelection },
+    viewProps.search,
+  );
 
   return (
     <>

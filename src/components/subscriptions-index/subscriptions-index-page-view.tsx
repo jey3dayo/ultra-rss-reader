@@ -59,7 +59,7 @@ type SubscriptionsIndexPageViewProps = {
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel: string;
   formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string | null) => string;
+  formatLatestArticleLabel: (value: string) => string;
   dateLocale: string;
   listScrollResetKey: number;
   listScrollTop: number;

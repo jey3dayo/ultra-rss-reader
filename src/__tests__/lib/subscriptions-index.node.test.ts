@@ -264,7 +264,7 @@ describe("subscriptions index helpers", () => {
           folderName: "Work",
           latestArticleAt: firstCandidate.latestArticleAt,
           recentArticleCount: 0,
-          status: { tone: "medium", labelKey: "stale_90d" },
+          status: { labelKey: "stale_90d" },
           reasonTooltipKey: "stale_90d",
         },
         candidateMap,
@@ -298,19 +298,19 @@ describe("subscriptions index helpers", () => {
       resolveSubscriptionRowStatus({
         candidate: candidateMap.get("feed-stale"),
       }),
-    ).toEqual({ tone: "medium", labelKey: "stale_90d" });
+    ).toEqual({ labelKey: "stale_90d" });
 
     expect(
       resolveSubscriptionRowStatus({
         candidate: candidateMap.get("feed-active"),
       }),
-    ).toEqual({ tone: "neutral", labelKey: "normal" });
+    ).toEqual({ labelKey: "normal" });
 
     expect(
       resolveSubscriptionRowStatus({
         candidate: candidateMap.get("feed-dormant"),
       }),
-    ).toEqual({ tone: "neutral", labelKey: "normal" });
+    ).toEqual({ labelKey: "normal" });
 
     expect(
       resolveSubscriptionRowStatus({
@@ -326,7 +326,7 @@ describe("subscriptions index helpers", () => {
           reasonKeys: [],
         },
       }),
-    ).toEqual({ tone: "neutral", labelKey: "normal" });
+    ).toEqual({ labelKey: "normal" });
   });
 
   it("labels 30-day feeds as attention without making them decision candidates", () => {
@@ -346,10 +346,7 @@ describe("subscriptions index helpers", () => {
       hiddenFeedIds: new Set(),
     });
 
-    expect(resolveSubscriptionRowStatus({ candidate: attentionCandidate })).toEqual({
-      tone: "low",
-      labelKey: "attention_30d",
-    });
+    expect(resolveSubscriptionRowStatus({ candidate: attentionCandidate })).toEqual({ labelKey: "attention_30d" });
   });
 
   it("builds latest-article metrics and preview rows for the right detail pane", () => {
@@ -579,7 +576,7 @@ describe("subscriptions index helpers", () => {
       folderId: "folder-work",
       folderName: "Work",
       latestArticleAt: "2025-11-01T10:00:00Z",
-      status: { tone: "medium", labelKey: "stale_90d" },
+      status: { labelKey: "stale_90d" },
       reasonTooltipKey: "stale_90d",
     });
     expect(
@@ -656,19 +653,19 @@ describe("subscriptions index helpers", () => {
     expect(
       resolveSubscriptionRowReasonTooltipKey({
         latestArticleAt: "2026-04-01T09:00:00Z",
-        status: { tone: "medium", labelKey: "quiet_no_unread" },
+        status: { labelKey: "quiet_no_unread" },
       }),
     ).toBe("quiet_no_unread");
     expect(
       resolveSubscriptionRowReasonTooltipKey({
         latestArticleAt: null,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
       }),
     ).toBe("no_articles");
     expect(
       resolveSubscriptionRowReasonTooltipKey({
         latestArticleAt: "2026-04-01T09:00:00Z",
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
       }),
     ).toBeNull();
   });
@@ -1343,16 +1340,16 @@ describe("subscriptions index helpers", () => {
 
     expect(buildSubscriptionListGroups(rows, "No Folder")).toMatchObject([
       {
-        key: "subscription-list:0-sentinel:no-folder",
-        label: "No Folder",
-        rows: [rows[1], rows[2], rows[3]],
-        folderId: null,
-      },
-      {
         key: "subscription-list:1-folder:folder-work",
         label: "Work",
         rows: [rows[0]],
         folderId: "folder-work",
+      },
+      {
+        key: "subscription-list:0-sentinel:no-folder",
+        label: "No Folder",
+        rows: [rows[1], rows[2], rows[3]],
+        folderId: null,
       },
     ]);
   });
@@ -1416,7 +1413,23 @@ describe("subscriptions index helpers", () => {
     ]);
   });
 
-  it("keeps the no-folder group stable when its label matches a folder label", () => {
+  it("keeps the no-folder group last even when its label sorts before every folder label", () => {
+    const rows = buildSubscriptionListRows({
+      feeds: [
+        { ...feeds[0], id: "feed-folder", folder_id: "folder-zeta", title: "Folder feed" },
+        { ...feeds[1], id: "feed-no-folder", folder_id: null, title: "No folder feed" },
+      ],
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map([["folder-zeta", "Zeta"]]),
+    });
+
+    const groups = buildSubscriptionListGroups(rows, "Alpha");
+
+    expect(groups.map((group) => group.folderId)).toEqual(["folder-zeta", null]);
+  });
+
+  it("keeps the no-folder group last when its label matches a folder label", () => {
     const sameLabelFeeds: FeedDto[] = [
       {
         ...feeds[0],
@@ -1441,8 +1454,8 @@ describe("subscriptions index helpers", () => {
     const groups = buildSubscriptionListGroups(rows, "Archive");
 
     expect(groups.map((group) => group.key)).toEqual([
-      "subscription-list:0-sentinel:no-folder",
       "subscription-list:1-folder:folder-archive",
+      "subscription-list:0-sentinel:no-folder",
     ]);
   });
 
@@ -1473,16 +1486,16 @@ describe("subscriptions index helpers", () => {
     expect(groups).toHaveLength(2);
     expect(groups).toMatchObject([
       {
-        key: "subscription-list:0-sentinel:no-folder",
-        label: "No Folder",
-        rows: [rows[1]],
-        folderId: null,
-      },
-      {
         key: "subscription-list:1-folder:__ungrouped__",
         label: "Real Ungrouped",
         rows: [rows[0]],
         folderId: "__ungrouped__",
+      },
+      {
+        key: "subscription-list:0-sentinel:no-folder",
+        label: "No Folder",
+        rows: [rows[1]],
+        folderId: null,
       },
     ]);
   });
@@ -1554,7 +1567,7 @@ describe("subscriptions index helpers", () => {
         folderName: "Work",
         latestArticleAt: selectedCandidate?.latestArticleAt ?? null,
         recentArticleCount: 0,
-        status: { tone: "medium", labelKey: "stale_90d" },
+        status: { labelKey: "stale_90d" },
         reasonTooltipKey: "stale_90d",
       },
       selectedCandidate,
@@ -1568,7 +1581,7 @@ describe("subscriptions index helpers", () => {
 
     expect(detail).toMatchObject({
       candidate: selectedCandidate,
-      tone: "high",
+      tone: "danger",
       statusLabel: "stale_90d",
       reasonBoxBody: "stale_90d:155 / unread_count:0",
     });
@@ -1582,7 +1595,7 @@ describe("subscriptions index helpers", () => {
         folderName: "Work",
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: "normal",
       },
       selectedCandidate: null,
@@ -1605,7 +1618,7 @@ describe("subscriptions index helpers", () => {
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: "normal",
       },
       selectedCandidate: {

@@ -815,7 +815,6 @@ describe("buildSubscriptionReviewCandidates", () => {
   });
 
   it("resolves review reason fact translation keys", () => {
-    expect(resolveSubscriptionReviewReasonFactTranslationKey("stale_days")).toBe("fact_stale_days");
     expect(resolveSubscriptionReviewReasonFactTranslationKey("unread_count")).toBe("fact_unread_count");
   });
   it("marks a feed as stale from last_seen_article_at when its stored articles were purged", () => {

@@ -38,6 +38,9 @@ vi.mock("react-i18next", () => ({
       if (key === "failed_to_unsubscribe") {
         return `Failed to unsubscribe: ${options?.message ?? ""}`;
       }
+      if (key === "unsubscribe_cleanup_failed" || key === "unsubscribe_failed_cleanup_failed") {
+        return `${key}: ${options?.message ?? ""}`;
+      }
       return key;
     },
   }),
@@ -139,7 +142,7 @@ describe("useDeleteFeed", () => {
     expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
     expect(showToastMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: "Unsubscribe completed, but UI cleanup failed: callback boom",
+        message: "unsubscribe_cleanup_failed: callback boom",
         severity: "warning",
       }),
     );
@@ -252,7 +255,7 @@ describe("useDeleteFeed", () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(showToastMock).toHaveBeenCalledTimes(1);
     expect(showToastMock).toHaveBeenCalledWith(
-      expect.objectContaining({ message: "Unsubscribe failed, and UI cleanup failed: callback boom" }),
+      expect.objectContaining({ message: "unsubscribe_failed_cleanup_failed: callback boom" }),
     );
   });
 
@@ -321,7 +324,7 @@ describe("useDeleteFeed", () => {
     );
     expect(showToastMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: "Unsubscribe failed, and UI cleanup failed: callback boom",
+        message: "unsubscribe_failed_cleanup_failed: callback boom",
         severity: "error",
       }),
     );

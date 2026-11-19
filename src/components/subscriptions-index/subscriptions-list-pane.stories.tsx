@@ -29,7 +29,7 @@ const rows = [
     folderName: "Work",
     latestArticleAt: "2024-01-01T10:00:00Z",
     recentArticleCount: 0,
-    status: { tone: "medium", labelKey: "stale_90d" },
+    status: { labelKey: "stale_90d" },
     reasonTooltipKey: "stale_90d",
   },
   {
@@ -45,7 +45,7 @@ const rows = [
     folderName: "Design",
     latestArticleAt: "2026-04-01T10:00:00Z",
     recentArticleCount: 0,
-    status: { tone: "neutral", labelKey: "normal" },
+    status: { labelKey: "normal" },
     reasonTooltipKey: null,
   },
   {
@@ -61,8 +61,8 @@ const rows = [
     folderName: null,
     latestArticleAt: null,
     recentArticleCount: 0,
-    status: { tone: "medium", labelKey: "review" },
-    reasonTooltipKey: "review",
+    status: { labelKey: "quiet_no_unread" },
+    reasonTooltipKey: "quiet_no_unread",
   },
 ] satisfies SubscriptionListRow[];
 
@@ -84,7 +84,7 @@ const readerAlignedRows = [
     folderName: "Misc",
     latestArticleAt: "2026-05-07T10:00:00Z",
     recentArticleCount: 0,
-    status: { tone: "neutral", labelKey: "normal" },
+    status: { labelKey: "normal" },
     reasonTooltipKey: "normal",
   },
   {
@@ -100,7 +100,7 @@ const readerAlignedRows = [
     folderName: "Misc",
     latestArticleAt: null,
     recentArticleCount: 0,
-    status: { tone: "neutral", labelKey: "normal" },
+    status: { labelKey: "normal" },
     reasonTooltipKey: "no_articles",
   },
   {
@@ -116,7 +116,7 @@ const readerAlignedRows = [
     folderName: "News",
     latestArticleAt: "2026-05-07T10:00:00Z",
     recentArticleCount: 0,
-    status: { tone: "neutral", labelKey: "normal" },
+    status: { labelKey: "normal" },
     reasonTooltipKey: null,
   },
   {
@@ -132,7 +132,7 @@ const readerAlignedRows = [
     folderName: "Tech",
     latestArticleAt: "2026-05-06T10:00:00Z",
     recentArticleCount: 0,
-    status: { tone: "neutral", labelKey: "normal" },
+    status: { labelKey: "normal" },
     reasonTooltipKey: null,
   },
 ] satisfies SubscriptionListRow[];
@@ -146,16 +146,14 @@ const readerAlignedGroups = [
 const statusLabels = {
   normal: "No action",
   attention_30d: "Attention",
-  review: "Review",
   stale_90d: "Long-term inactive",
-  quiet_no_unread: "Review candidate",
+  quiet_no_unread: "Quiet",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
 
 const reasonTooltipLabels = {
   no_articles: "No fetched articles yet",
   normal: "No action needed",
   attention_30d: "Latest article is older than 30 days",
-  review: "Review signal",
   stale_90d: "Latest article is older than 90 days",
   quiet_no_unread: "Latest article is older than 60 days and the feed has no unread items",
 } satisfies Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;

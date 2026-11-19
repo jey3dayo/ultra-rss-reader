@@ -116,11 +116,14 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
 
   const selectSummaryFilter = useCallback(
     (filterKey: SubscriptionSummaryFilterKey) => {
+      if (filterKey === activeSummaryFilter) {
+        return;
+      }
       setActiveSummaryFilter(filterKey);
       setStoredCheckedFeedIds(clearCheckedFeedIds);
       resetListScrollState();
     },
-    [resetListScrollState],
+    [activeSummaryFilter, resetListScrollState],
   );
 
   const navigateToSummaryFilter = useCallback(

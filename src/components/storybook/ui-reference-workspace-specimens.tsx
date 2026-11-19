@@ -60,7 +60,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderName: "Design",
         latestArticleAt: "2026-04-29T08:00:00Z",
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: null,
         feed: {
           id: "feed-cafict",
@@ -81,8 +81,8 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderName: "Design",
         latestArticleAt: "2026-04-21T11:30:00Z",
         recentArticleCount: 0,
-        status: { tone: "medium", labelKey: "review" },
-        reasonTooltipKey: "review",
+        status: { labelKey: "quiet_no_unread" },
+        reasonTooltipKey: "quiet_no_unread",
         feed: {
           id: "feed-99diy",
           account_id: "account-local",
@@ -109,7 +109,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "medium", labelKey: "stale_90d" },
+        status: { labelKey: "stale_90d" },
         reasonTooltipKey: "stale_90d",
         feed: {
           id: "feed-archive",
@@ -266,20 +266,18 @@ export function SubscriptionGroupDisclosureSpecimen() {
           statusLabels={{
             normal: "確認済み",
             attention_30d: "注意",
-            review: "確認待ち",
             stale_90d: "長期未更新",
-            quiet_no_unread: "見直し候補",
+            quiet_no_unread: "静か",
           }}
           reasonTooltipLabels={{
             no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
             normal: "最近も動きがあります",
             attention_30d: "RSS上の最終記事から30日以上たっているため注意表示です",
-            review: "見直しの判断材料があります",
             stale_90d: "RSS上の最終記事から90日以上経過しています",
             quiet_no_unread: "RSS上の最終記事から60日以上なく、未読もありません",
           }}
           formatUnreadCountLabel={(count) => `${count} unread`}
-          formatLatestArticleLabel={(value) => (value ? "最終更新あり" : "更新なし")}
+          formatLatestArticleLabel={() => "最終更新あり"}
           isGroupExpanded={(groupKey) => expandedGroups.has(groupKey)}
           onSelectFeed={setSelectedFeedId}
           onSearchQueryChange={() => undefined}

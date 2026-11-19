@@ -13,7 +13,7 @@ export type SubscriptionReviewSummaryKey =
   | "stale_but_supported"
   | "healthy_feed";
 
-export type SubscriptionReviewReasonFactKey = "stale_days" | "unread_count";
+export type SubscriptionReviewReasonFactKey = "unread_count";
 
 type SubscriptionReviewSummaryTranslationKey =
   | "detail_reason_attention"
@@ -21,7 +21,7 @@ type SubscriptionReviewSummaryTranslationKey =
   | "detail_reason_quiet_without_unread"
   | "detail_reason_stale_but_supported"
   | "detail_reason_normal";
-type SubscriptionReviewReasonFactTranslationKey = "fact_stale_days" | "fact_unread_count";
+type SubscriptionReviewReasonFactTranslationKey = "fact_unread_count";
 
 const SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY = {
   attention_low_activity: "detail_reason_attention",
@@ -32,7 +32,6 @@ const SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY = {
 } satisfies Record<SubscriptionReviewSummaryKey, SubscriptionReviewSummaryTranslationKey>;
 
 const SUBSCRIPTION_REVIEW_REASON_FACT_TRANSLATION_KEY_BY_FACT = {
-  stale_days: "fact_stale_days",
   unread_count: "fact_unread_count",
 } satisfies Record<SubscriptionReviewReasonFactKey, SubscriptionReviewReasonFactTranslationKey>;
 
@@ -65,6 +64,12 @@ export function hasSubscriptionReviewReason(
   reasonKey: SubscriptionReviewReasonKey,
 ): boolean {
   return candidate.reasonKeys.includes(reasonKey);
+}
+
+export function isSubscriptionReviewCandidate(candidate: SubscriptionReviewCandidate): boolean {
+  return (
+    hasSubscriptionReviewReason(candidate, "stale_90d") || hasSubscriptionReviewReason(candidate, "quiet_no_unread")
+  );
 }
 
 export function resolveSubscriptionReviewSummaryTranslationKey(

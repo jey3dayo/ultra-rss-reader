@@ -12,9 +12,9 @@ function getRequiredHTMLElement(element: Element | null, description: string) {
 
 describe("SubscriptionsOverviewSummary", () => {
   const englishLabels = {
+    regionLabel: "Subscription overview",
     activeBadge: "Showing",
     staticBadge: "Reference",
-    showFilterAriaLabel: (label: string) => `Show ${label}`,
     filterAll: "Show all",
     filter: "Filter",
   };
@@ -103,9 +103,10 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Stale feeds 2 Check these feeds Filter" })).toHaveAccessibleDescription(
-      "Show Stale feeds",
-    );
+    const card = screen.getByRole("button", { name: "Stale feeds 2 Check these feeds Filter" });
+    expect(card).not.toHaveAccessibleDescription();
+    expect(card).not.toHaveAttribute("aria-description");
+    expect(screen.getByRole("region", { name: "Subscription overview" })).toContainElement(card);
   });
 
   it("reserves the active badge slot to avoid layout shift", () => {

@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { AppTooltip, Checkbox, FeedFavicon, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
+import { resolveSubscriptionStatusTone } from "@/lib/subscriptions/subscription-status-tone";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 
@@ -11,21 +12,9 @@ type SubscriptionsListRowProps = {
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel: string;
   formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string | null) => string;
+  formatLatestArticleLabel: (value: string) => string;
   onSelectFeed: (feedId: string) => void;
 };
-
-function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) {
-  if (labelKey === "review") {
-    return "warning";
-  }
-
-  if (labelKey === "stale_90d") {
-    return "danger";
-  }
-
-  return "neutral";
-}
 
 // The checkbox sits in a fixed slot before the row button, so the button keeps its position and is not remounted when selection mode toggles.
 export function SubscriptionsListRow({
@@ -80,7 +69,10 @@ export function SubscriptionsListRow({
       }
       description={
         <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-(length:--font-size-2xs) text-foreground-soft">
-          <LabelChip tone={row.fetchError ? "danger" : resolveStatusTone(row.status.labelKey)} size="compact">
+          <LabelChip
+            tone={row.fetchError ? "danger" : resolveSubscriptionStatusTone(row.status.labelKey)}
+            size="compact"
+          >
             {row.fetchError ? fetchErrorLabel : statusLabels[row.status.labelKey]}
           </LabelChip>
           {bulkSelection && selecting && bulkSelection.keptFeedIds.has(row.feed.id) ? (
@@ -97,15 +89,19 @@ export function SubscriptionsListRow({
             •
           </span>
           <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-          <span
-            aria-hidden="true"
-            style={{
-              color: "var(--subscriptions-list-meta-divider)",
-            }}
-          >
-            •
-          </span>
-          <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
+          {row.latestArticleAt ? (
+            <>
+              <span
+                aria-hidden="true"
+                style={{
+                  color: "var(--subscriptions-list-meta-divider)",
+                }}
+              >
+                •
+              </span>
+              <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
+            </>
+          ) : null}
         </div>
       }
     />

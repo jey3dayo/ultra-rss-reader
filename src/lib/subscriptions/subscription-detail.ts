@@ -5,8 +5,10 @@ import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscripti
 import {
   buildSubscriptionReviewReasonFacts,
   resolveLatestKnownArticleAt,
+  type SubscriptionReviewReasonFactKey,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscriptions/subscription-review-candidates";
+import { resolveSubscriptionStatusTone } from "@/lib/subscriptions/subscription-status-tone";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -31,7 +33,7 @@ export function buildSubscriptionDetailCandidate(params: {
   labels: {
     statusLabel: (labelKey: SubscriptionRowStatus["labelKey"]) => string;
     summaryText: (summaryKey: ReturnType<typeof summarizeSubscriptionReviewCandidate>["summaryKey"]) => string;
-    reasonFact: (fact: { key: "stale_days" | "unread_count"; value: number }) => string;
+    reasonFact: (fact: { key: SubscriptionReviewReasonFactKey; value: number }) => string;
     reasonLabel: (reasonKey: SubscriptionReviewCandidate["reasonKeys"][number], staleDays: number | null) => string;
   };
 }): SubscriptionDetailCandidate | null {
@@ -43,7 +45,7 @@ export function buildSubscriptionDetailCandidate(params: {
   if (!selectedCandidate) {
     return {
       candidate: null,
-      tone: "neutral",
+      tone: resolveSubscriptionStatusTone("normal"),
       statusLabel: labels.statusLabel("normal"),
       reasonBoxBody: null,
     };
@@ -59,7 +61,7 @@ export function buildSubscriptionDetailCandidate(params: {
 
   return {
     candidate: selectedCandidate,
-    tone: summary.tone,
+    tone: resolveSubscriptionStatusTone(selectedRow.status.labelKey),
     statusLabel: labels.statusLabel(selectedRow.status.labelKey),
     // Every feed has a candidate record; only one with reasons has anything to explain.
     reasonBoxBody:

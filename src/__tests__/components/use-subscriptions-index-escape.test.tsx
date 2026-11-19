@@ -55,6 +55,97 @@ describe("useSubscriptionsIndexEscape", () => {
     expect(close).not.toHaveBeenCalled();
   });
 
+  describe("search query", () => {
+    function appendSearchInput() {
+      const input = document.createElement("input");
+      input.type = "search";
+      document.body.append(input);
+      return input;
+    }
+
+    it("clears the query before ending bulk selection or closing the workspace", () => {
+      const close = vi.fn();
+      const end = vi.fn();
+      const clear = vi.fn();
+      renderHook(() =>
+        useSubscriptionsIndexEscape(false, close, false, { active: true, end }, { active: true, clear }),
+      );
+      const input = appendSearchInput();
+
+      pressEscape(input);
+
+      expect(clear).toHaveBeenCalledTimes(1);
+      expect(end).not.toHaveBeenCalled();
+      expect(close).not.toHaveBeenCalled();
+    });
+
+    it("clears the query on Escape outside the search input", () => {
+      const close = vi.fn();
+      const clear = vi.fn();
+      renderHook(() => useSubscriptionsIndexEscape(false, close, false, undefined, { active: true, clear }));
+
+      pressEscape();
+
+      expect(clear).toHaveBeenCalledTimes(1);
+      expect(close).not.toHaveBeenCalled();
+    });
+
+    it("takes over Escape from the search input so the browser does not clear it a second time", () => {
+      renderHook(() => useSubscriptionsIndexEscape(false, vi.fn(), false, undefined, { active: true, clear: vi.fn() }));
+      const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+
+      appendSearchInput().dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("falls through to bulk selection and then the workspace once the query is empty", () => {
+      const close = vi.fn();
+      const end = vi.fn();
+      const clear = vi.fn();
+      const { rerender } = renderHook(
+        ({ bulkActive }) =>
+          useSubscriptionsIndexEscape(false, close, false, { active: bulkActive, end }, { active: false, clear }),
+        { initialProps: { bulkActive: true } },
+      );
+      const input = appendSearchInput();
+
+      pressEscape(input);
+      expect(end).toHaveBeenCalledTimes(1);
+
+      rerender({ bulkActive: false });
+      pressEscape(input);
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(clear).not.toHaveBeenCalled();
+    });
+
+    it("still leaves Escape to other text fields while a query is active", () => {
+      const close = vi.fn();
+      const clear = vi.fn();
+      renderHook(() => useSubscriptionsIndexEscape(false, close, false, undefined, { active: true, clear }));
+      const input = document.createElement("input");
+      document.body.append(input);
+
+      pressEscape(input);
+
+      expect(clear).not.toHaveBeenCalled();
+      expect(close).not.toHaveBeenCalled();
+    });
+
+    it("leaves Escape to an open select popup even with a query active", () => {
+      const clear = vi.fn();
+      renderHook(() => useSubscriptionsIndexEscape(false, vi.fn(), false, undefined, { active: true, clear }));
+      const popup = document.createElement("div");
+      popup.dataset.slot = "select-popup";
+      popup.dataset.open = "";
+      document.body.append(popup);
+
+      pressEscape(appendSearchInput());
+
+      expect(clear).not.toHaveBeenCalled();
+    });
+  });
+
   it("does nothing while a dialog is open, even during bulk selection", () => {
     const close = vi.fn();
     const end = vi.fn();

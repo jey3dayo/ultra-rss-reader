@@ -27,16 +27,14 @@ function buildFeed(overrides: Partial<FeedDto>): FeedDto {
 const statusLabels = {
   normal: "対応不要",
   attention_30d: "注意",
-  review: "見直し候補",
   stale_90d: "長期未更新",
-  quiet_no_unread: "見直し候補",
+  quiet_no_unread: "静か",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
 
 const reasonTooltipLabels = {
   no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
   normal: "最近も動きがあります。今はそのままでよさそうです。",
   attention_30d: "最終記事から30日以上たっているため注意表示です",
-  review: "見直しの判断材料があります",
   stale_90d: "最後に取得した記事から90日以上経過しています",
   quiet_no_unread: "更新停止が続いていて、未読もありません",
 } satisfies Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
@@ -124,7 +122,7 @@ function buildBulkRows(): SubscriptionListRow[] {
     folderName: null,
     latestArticleAt: null,
     recentArticleCount: 0,
-    status: { tone: "neutral", labelKey: "normal" },
+    status: { labelKey: "normal" },
     reasonTooltipKey: null,
   }));
 }
@@ -268,7 +266,7 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: null,
       },
     ]);
@@ -284,7 +282,7 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: null,
       },
     ]);
@@ -299,7 +297,7 @@ describe("SubscriptionsListPane", () => {
       folderName: null,
       latestArticleAt: null,
       recentArticleCount: 0,
-      status: { tone: "neutral", labelKey: "normal" },
+      status: { labelKey: "normal" },
       reasonTooltipKey: null,
     } satisfies SubscriptionListRow;
 
@@ -353,7 +351,7 @@ describe("SubscriptionsListPane", () => {
       />,
     );
 
-    expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("一致する購読はありません。");
     expect(screen.getByRole("button", { name: "検索をクリア" })).toHaveClass("min-h-11");
 
     await user.click(screen.getByRole("button", { name: "検索をクリア" }));
@@ -371,14 +369,14 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: "no_articles",
       },
     ]);
 
     const row = screen.getByRole("button", { name: /No Article Feed/ });
     expect(row).toHaveAccessibleName(/対応不要/);
-    expect(row).toHaveAccessibleName(/取得記事なし/);
+    expect(row).not.toHaveAccessibleName(/取得記事なし/);
 
     await user.hover(row);
 
@@ -397,7 +395,7 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: "2025-01-01T00:00:00Z",
         recentArticleCount: 0,
-        status: { tone: "medium", labelKey: "quiet_no_unread" },
+        status: { labelKey: "quiet_no_unread" },
         reasonTooltipKey: "quiet_no_unread",
       },
     ]);
@@ -417,7 +415,7 @@ describe("SubscriptionsListPane", () => {
       folderName: null,
       latestArticleAt: null,
       recentArticleCount: 0,
-      status: { tone: "neutral", labelKey: "normal" },
+      status: { labelKey: "normal" },
       reasonTooltipKey: "normal",
     } satisfies SubscriptionListRow;
 
@@ -454,7 +452,7 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: "2026-05-07T00:00:00Z",
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: null,
       },
     ]);
@@ -480,7 +478,7 @@ describe("SubscriptionsListPane", () => {
           folderName: null,
           latestArticleAt: null,
           recentArticleCount: 0,
-          status: { tone: "neutral", labelKey: "normal" },
+          status: { labelKey: "normal" },
           reasonTooltipKey: null,
         },
       ],
@@ -516,7 +514,7 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: null,
       } satisfies SubscriptionListRow;
 
@@ -592,7 +590,7 @@ describe("SubscriptionsListPane", () => {
             folderName: null,
             latestArticleAt: null,
             recentArticleCount: 0,
-            status: { tone: "neutral", labelKey: "normal" },
+            status: { labelKey: "normal" },
             reasonTooltipKey: null,
           },
         ],
@@ -634,7 +632,7 @@ describe("SubscriptionsListPane", () => {
             folderName: null,
             latestArticleAt: null,
             recentArticleCount: 0,
-            status: { tone: "neutral", labelKey: "normal" },
+            status: { labelKey: "normal" },
             reasonTooltipKey: null,
           },
         ],
@@ -666,7 +664,7 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: null,
       } satisfies SubscriptionListRow;
       const groups = [{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }];
@@ -718,7 +716,7 @@ describe("SubscriptionsListPane", () => {
         folderName: null,
         latestArticleAt: null,
         recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
+        status: { labelKey: "normal" },
         reasonTooltipKey: null,
       } satisfies SubscriptionListRow;
       const groups = [{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }];
@@ -768,7 +766,7 @@ describe("SubscriptionsListPane", () => {
       folderName: "Same Folder",
       latestArticleAt: null,
       recentArticleCount: 0,
-      status: { tone: "neutral", labelKey: "normal" },
+      status: { labelKey: "normal" },
       reasonTooltipKey: null,
     } satisfies SubscriptionListRow;
     const secondRow = {
@@ -777,7 +775,7 @@ describe("SubscriptionsListPane", () => {
       folderName: "Same Folder",
       latestArticleAt: null,
       recentArticleCount: 0,
-      status: { tone: "neutral", labelKey: "normal" },
+      status: { labelKey: "normal" },
       reasonTooltipKey: null,
     } satisfies SubscriptionListRow;
 

@@ -55,7 +55,7 @@ type SubscriptionsListPaneProps = {
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel?: string;
   formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string | null) => string;
+  formatLatestArticleLabel: (value: string) => string;
   isGroupExpanded: (groupKey: string) => boolean;
   initialScrollTop?: number;
   scrollRegionRef?: RefObject<HTMLDivElement | null>;
@@ -82,7 +82,9 @@ function SubscriptionsListEmptyState({
       {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
       className={`${MOTION_CONTENT_SWAP_CLASS_NAME} rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft`}
     >
-      <p className="text-foreground-soft">{emptyLabel}</p>
+      <p role="status" className="text-foreground-soft">
+        {emptyLabel}
+      </p>
       {searchQuery.length > 0 ? (
         <Button
           type="button"

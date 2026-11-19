@@ -320,9 +320,9 @@ export function useSubscriptionsIndexViewProps({
   const viewProps = {
     summaryCards,
     summaryLabels: {
+      regionLabel: t("summary_region_label"),
       activeBadge: t("summary_active_badge"),
       staticBadge: t("summary_static_badge"),
-      showFilterAriaLabel: (label) => t("summary_action_show_filter_aria", { label }),
       filterAll: t("summary_action_filter_all"),
       filter: t("summary_action_filter"),
     },
@@ -397,7 +397,6 @@ export function useSubscriptionsIndexViewProps({
     statusLabels: {
       normal: t("status_normal"),
       attention_30d: t("status_attention_30d"),
-      review: t("status_review"),
       stale_90d: t("status_stale_90d"),
       quiet_no_unread: t("status_quiet_no_unread"),
     },
@@ -405,7 +404,6 @@ export function useSubscriptionsIndexViewProps({
       no_articles: t("tooltip_reason_no_articles"),
       normal: t("detail_reason_normal"),
       attention_30d: t("tooltip_reason_attention_30d"),
-      review: t("tooltip_reason_review"),
       stale_90d: t("tooltip_reason_stale_90d"),
       quiet_no_unread: t("tooltip_reason_quiet_no_unread"),
       fetch_error: t("status_fetch_error"),
@@ -413,9 +411,7 @@ export function useSubscriptionsIndexViewProps({
     fetchErrorLabel: t("status_fetch_error"),
     formatUnreadCountLabel: (count) => t("meta_unread_count", { count }),
     formatLatestArticleLabel: (value) =>
-      value
-        ? t("meta_latest_article", { date: formatSubscriptionDate(value, i18n.language) })
-        : t("meta_latest_article_none"),
+      t("meta_latest_article", { date: formatSubscriptionDate(value, i18n.language) }),
     dateLocale: i18n.language,
     folderLabel: t("folder"),
     listScrollResetKey: state.listScrollResetKey,
@@ -494,9 +490,14 @@ export function useSubscriptionsIndexViewProps({
     applyResult: state.applyBulkUnsubscribeResult,
     endSelection: state.endBulkSelection,
   };
+  const search = {
+    active: state.searchQuery.length > 0,
+    clear: () => state.setSearchQuery(""),
+  };
   return {
     viewProps,
     captureState,
+    search,
     navigateToSummaryFilter: state.navigateToSummaryFilter,
     purgeUnsubscribedFeed: state.purgeUnsubscribedFeed,
     bulk,
