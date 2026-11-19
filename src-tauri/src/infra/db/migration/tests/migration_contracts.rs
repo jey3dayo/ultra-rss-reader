@@ -120,31 +120,18 @@ fn v24_file_migration_matches_inline_contract() {
 
 #[test]
 fn v24_allows_duplicate_feed_icon_url_column_only() {
-    let mut conn = open_in_memory();
+    let conn = open_in_memory();
     migrate_to_v29(&conn);
-    set_schema_version(&conn, 23).unwrap();
-
-    // The schema already carries every migration's result (icon_url
-    // included), so this pass exercises the duplicate-tolerant paths of
-    // V24 and later. Later migrations legitimately add columns during
-    // this pass, so the no-op comparison below is taken against the
-    // post-migration state, not against the v29 state.
-    let result = run_migrations(&mut conn).unwrap();
-    assert_eq!(result.from_version, 23);
-    assert_eq!(result.to_version, LATEST_VERSION);
-    assert!(conn.prepare("SELECT icon_url FROM feeds LIMIT 0").is_ok());
 
     let feeds_columns_before = table_column_names(&conn, "feeds");
     let schema_before = schema_snapshot(&conn);
 
-    // V24 goes through add_column_if_missing, so re-running the range
-    // against a schema that already has feeds.icon_url must tolerate the
-    // duplicate: exactly one icon_url column afterwards, and the re-run
-    // must leave the rest of the schema untouched.
-    set_schema_version(&conn, 23).unwrap();
-    let rerun = run_migrations(&mut conn).unwrap();
-    assert_eq!(rerun.from_version, 23);
-    assert_eq!(rerun.to_version, LATEST_VERSION);
+    // V24 goes through add_column_if_missing, so applying it against a
+    // schema that already has feeds.icon_url must tolerate the duplicate:
+    // exactly one icon_url column afterwards, and the schema is left
+    // untouched. V24 is applied directly so later migrations (which
+    // legitimately add columns) stay out of the comparison.
+    apply_v24_feed_icon_url(&conn).unwrap();
 
     let feeds_columns_after = table_column_names(&conn, "feeds");
     assert_eq!(
