@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { FeedDto } from "@/api/tauri-commands";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 
 function buildFeed(overrides: Partial<FeedDto>): FeedDto {
@@ -238,4 +239,36 @@ export const ReaderAligned: Story = {
     formatUnreadCountLabel: (count: number) => `未読 ${count}件`,
     formatLatestArticleLabel: formatJapaneseStoryLatestArticleLabel,
   },
+};
+
+const bulkSelection = {
+  mode: true,
+  checkedFeedIds: new Set(["feed-2"]),
+  keptFeedIds: new Set(["feed-3"]),
+  checkedCount: 1,
+  hiddenCheckedCount: 0,
+  allVisibleCheckState: "some",
+  skippedKeptCount: 1,
+  toggleButtonRef: { current: null },
+  labels: {
+    start: "Select multiple",
+    end: "Done selecting",
+    selectAllVisible: (count) => `Select all shown (${count})`,
+    selectAllVisibleAria: "Select all shown feeds",
+    skippedKept: (count) => `${count} feed marked Keep is not included`,
+    rowSelectAria: (title) => `Select ${title}`,
+    keptChip: "Keep",
+    selectedCount: (count) => `${count} selected`,
+    selectedCountHidden: (count, hidden) => `${count} selected (${hidden} hidden by search)`,
+    unsubscribeAction: "Unsubscribe…",
+  },
+  onStart: fn(),
+  onEnd: fn(),
+  onToggleFeed: fn(),
+  onToggleAllVisible: fn(),
+  onRequestUnsubscribe: fn(),
+} satisfies SubscriptionsBulkSelection;
+
+export const BulkSelecting: Story = {
+  args: { bulkSelection },
 };

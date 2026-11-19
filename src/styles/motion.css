@@ -231,6 +231,29 @@ html.vertical-wipe-transition::view-transition-new(root) {
   animation: motion-list-item-enter var(--motion-duration-contextual) var(--motion-ease-standard);
 }
 
+@keyframes motion-bulk-action-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enter only: the bar unmounts with the selection mode and has no exit motion. */
+.motion-bulk-action-bar-enter {
+  animation: motion-bulk-action-bar-enter var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-bulk-action-bar-enter {
+    animation-name: motion-list-item-enter;
+  }
+}
+
 @keyframes motion-settings-modal-enter {
   from {
     opacity: 0;

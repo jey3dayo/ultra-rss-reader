@@ -13,6 +13,7 @@ import { copyValueToClipboard } from "@/lib/runtime/clipboard";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import { useUiStore } from "@/stores/ui-store";
+import { BulkUnsubscribeDialog } from "./bulk-unsubscribe-dialog";
 import { useSubscriptionsFeedDialogs } from "./hooks/use-subscriptions-feed-dialogs";
 import { useSubscriptionsIndexEscape } from "./hooks/use-subscriptions-index-escape";
 import { useSubscriptionsIndexViewProps } from "./hooks/use-subscriptions-index-view-props";
@@ -199,6 +200,10 @@ function SubscriptionsIndexPageForAccount({
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkDialogSession, setBulkDialogSession] = useState(0);
+  const bulkToggleRef = useRef<HTMLButtonElement>(null);
+  const focusBulkToggleAfterCloseRef = useRef(false);
   const reviewClock = useSubscriptionsReviewClock();
   const viewportHeight = useSyncExternalStore(subscribeToViewport, getViewportHeight);
 
@@ -238,14 +243,30 @@ function SubscriptionsIndexPageForAccount({
     },
     setDeleteTargetFeed,
     setEditTargetFeed,
+    onRequestBulkUnsubscribe: () => {
+      setBulkDialogSession((session) => session + 1);
+      setBulkDialogOpen(true);
+    },
+    bulkToggleRef,
   });
+  const hasOpenDialog = editTargetFeed !== null || deleteTargetFeed !== null || bulkDialogOpen;
+
+  useEffect(() => {
+    if (!bulkDialogOpen && focusBulkToggleAfterCloseRef.current) {
+      focusBulkToggleAfterCloseRef.current = false;
+      bulkToggleRef.current?.focus();
+    }
+  }, [bulkDialogOpen]);
 
   useImperativeHandle(ref, () => ({
     captureState: viewProps.captureState,
     navigate: viewProps.navigateToSummaryFilter,
-    hasOpenDialog: editTargetFeed !== null || deleteTargetFeed !== null,
+    hasOpenDialog,
   }));
-  useSubscriptionsIndexEscape(editTargetFeed !== null || deleteTargetFeed !== null, onClose, selectOpen);
+  useSubscriptionsIndexEscape(hasOpenDialog, onClose, selectOpen, {
+    active: viewProps.bulk.selectionMode,
+    end: viewProps.bulk.endSelection,
+  });
 
   return (
     <>
@@ -263,6 +284,18 @@ function SubscriptionsIndexPageForAccount({
           }}
         />
       ) : null}
+
+      <BulkUnsubscribeDialog
+        key={bulkDialogSession}
+        open={bulkDialogOpen}
+        accountId={selectedAccountId}
+        targets={viewProps.bulk.targets}
+        onSettled={viewProps.bulk.applyResult}
+        onClose={({ allSucceeded }) => {
+          focusBulkToggleAfterCloseRef.current = allSucceeded;
+          setBulkDialogOpen(false);
+        }}
+      />
 
       {deleteTargetFeed ? (
         <UnsubscribeDialog

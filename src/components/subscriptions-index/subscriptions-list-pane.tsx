@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import { ChevronDown, Folder, Search } from "lucide-react";
 import { type RefObject, useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
@@ -9,11 +10,27 @@ import {
   MOTION_STATE_CLOSED,
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
-import { AppTooltip, Button, FeedFavicon, Input, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
+import { Button, Input } from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import {
+  SubscriptionsBulkActionBar,
+  SubscriptionsBulkSelectAllRow,
+  type SubscriptionsBulkSelection,
+} from "./subscriptions-bulk-selection";
+import { SubscriptionsListRow } from "./subscriptions-list-row";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
+
+// Selecting keeps each checkbox and row button as grid siblings, so toggling the mode never remounts the row buttons.
+const subscriptionRowsVariants = cva("pl-9 pt-1", {
+  variants: {
+    selecting: {
+      true: "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5",
+      false: "space-y-1.5",
+    },
+  },
+});
 
 type SubscriptionGroupDisclosureButtonProps = {
   group: SubscriptionListGroup;
@@ -43,23 +60,12 @@ type SubscriptionsListPaneProps = {
   viewportWidth?: number;
   scrollReady?: boolean;
   scrollResetKey?: number;
+  bulkSelection?: SubscriptionsBulkSelection;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
   onSearchQueryChange: (query: string) => void;
   onToggleGroup: (groupKey: string) => void;
 };
-
-function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) {
-  if (labelKey === "review") {
-    return "warning";
-  }
-
-  if (labelKey === "stale_90d") {
-    return "danger";
-  }
-
-  return "neutral";
-}
 
 function SubscriptionGroupDisclosureButton({
   group,
@@ -120,6 +126,7 @@ export function SubscriptionsListPane({
   viewportWidth = 1024,
   scrollReady = true,
   scrollResetKey = 0,
+  bulkSelection,
   onSelectFeed,
   onListScrollTopChange,
   onSearchQueryChange,
@@ -138,6 +145,7 @@ export function SubscriptionsListPane({
   const onListScrollTopChangeRef = useRef(onListScrollTopChange);
   const totalRowCount = countSubscriptionGroupRows(groups);
   const hasRows = totalRowCount > 0;
+  const selecting = bulkSelection?.mode === true;
 
   useLayoutEffect(() => {
     onListScrollTopChangeRef.current = onListScrollTopChange;
@@ -208,6 +216,23 @@ export function SubscriptionsListPane({
     [clearPendingScrollTopCommit, commitPendingScrollTop],
   );
 
+  const searchField = (
+    <div className="relative w-full min-w-0 sm:max-w-[20rem]">
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-soft"
+      />
+      <Input
+        type="search"
+        value={searchQuery}
+        aria-label={searchLabel}
+        placeholder={searchPlaceholder}
+        onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
+        className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-3 text-[0.88rem] shadow-none"
+      />
+    </div>
+  );
+
   return (
     <section
       aria-labelledby={headingId}
@@ -230,20 +255,22 @@ export function SubscriptionsListPane({
             </span>
           ) : null}
         </div>
-        <div className="relative w-full sm:max-w-[20rem]">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-soft"
-          />
-          <Input
-            type="search"
-            value={searchQuery}
-            aria-label={searchLabel}
-            placeholder={searchPlaceholder}
-            onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
-            className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-3 text-[0.88rem] shadow-none"
-          />
-        </div>
+        {bulkSelection ? (
+          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:justify-end">
+            {searchField}
+            <Button
+              ref={bulkSelection.toggleButtonRef}
+              type="button"
+              variant="outline"
+              onClick={selecting ? bulkSelection.onEnd : bulkSelection.onStart}
+              className="min-h-11 shrink-0"
+            >
+              {selecting ? bulkSelection.labels.end : bulkSelection.labels.start}
+            </Button>
+          </div>
+        ) : (
+          searchField
+        )}
       </div>
       <div
         ref={scrollRegionRef}
@@ -251,6 +278,9 @@ export function SubscriptionsListPane({
         className="space-y-3 pr-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
+        {bulkSelection && selecting && hasRows ? (
+          <SubscriptionsBulkSelectAllRow bulkSelection={bulkSelection} visibleRowCount={totalRowCount} />
+        ) : null}
         {!hasRows ? (
           <div
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
@@ -293,95 +323,22 @@ export function SubscriptionsListPane({
                   <div className="motion-disclosure-body">
                     <div
                       data-testid={`subscriptions-folder-rows-${group.folderId ?? "ungrouped"}`}
-                      className="space-y-1.5 pl-9 pt-1"
+                      className={subscriptionRowsVariants({ selecting })}
                     >
-                      {group.rows.map((row) => {
-                        const isSelected = selectedFeedId === row.feed.id;
-                        const rowButton = (
-                          <NavRowButton
-                            key={row.feed.id}
-                            selected={isSelected}
-                            aria-pressed={isSelected}
-                            onClick={() => onSelectFeed(row.feed.id)}
-                            className={cn(
-                              "motion-list-item-enter motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
-                              isSelected
-                                ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
-                                : "bg-surface-1/36 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
-                            )}
-                            leading={
-                              <span
-                                className={cn(
-                                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-[background-color,border-color] duration-200 ease-standard motion-reduce:transition-none",
-                                  isSelected ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
-                                )}
-                                style={{
-                                  borderColor: "var(--subscriptions-list-divider)",
-                                  backgroundColor: isSelected
-                                    ? "var(--subscriptions-list-favicon-surface)"
-                                    : "var(--subscriptions-list-favicon-surface-muted)",
-                                }}
-                              >
-                                <FeedFavicon
-                                  title={row.feed.title}
-                                  url={row.feed.url}
-                                  siteUrl={row.feed.site_url}
-                                  iconUrl={row.feed.icon_url}
-                                  size="md"
-                                />
-                              </span>
-                            }
-                            title={
-                              <div className="flex items-center gap-2">
-                                <span className="text-[0.95rem] font-semibold tracking-[-0.02em] text-foreground">
-                                  {row.feed.title}
-                                </span>
-                              </div>
-                            }
-                            description={
-                              <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-(length:--font-size-2xs) text-foreground-soft">
-                                <LabelChip
-                                  tone={row.fetchError ? "danger" : resolveStatusTone(row.status.labelKey)}
-                                  size="compact"
-                                >
-                                  {row.fetchError ? fetchErrorLabel : statusLabels[row.status.labelKey]}
-                                </LabelChip>
-                                <span
-                                  aria-hidden="true"
-                                  style={{
-                                    color: "var(--subscriptions-list-meta-divider)",
-                                  }}
-                                >
-                                  •
-                                </span>
-                                <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-                                <span
-                                  aria-hidden="true"
-                                  style={{
-                                    color: "var(--subscriptions-list-meta-divider)",
-                                  }}
-                                >
-                                  •
-                                </span>
-                                <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
-                              </div>
-                            }
-                          />
-                        );
-                        const reasonTooltipLabel = row.reasonTooltipKey
-                          ? (reasonTooltipLabels[row.reasonTooltipKey] ?? (row.fetchError ? fetchErrorLabel : null))
-                          : null;
-
-                        return reasonTooltipLabel ? (
-                          <TooltipProvider key={row.feed.id}>
-                            <AppTooltip label={reasonTooltipLabel} side="top" align="start">
-                              {rowButton}
-                            </AppTooltip>
-                          </TooltipProvider>
-                        ) : (
-                          rowButton
-                        );
-                      })}
+                      {group.rows.map((row) => (
+                        <SubscriptionsListRow
+                          key={row.feed.id}
+                          row={row}
+                          selected={selectedFeedId === row.feed.id}
+                          bulkSelection={bulkSelection}
+                          statusLabels={statusLabels}
+                          reasonTooltipLabels={reasonTooltipLabels}
+                          fetchErrorLabel={fetchErrorLabel}
+                          formatUnreadCountLabel={formatUnreadCountLabel}
+                          formatLatestArticleLabel={formatLatestArticleLabel}
+                          onSelectFeed={onSelectFeed}
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -390,6 +347,7 @@ export function SubscriptionsListPane({
           })
         )}
       </div>
+      {bulkSelection && selecting ? <SubscriptionsBulkActionBar bulkSelection={bulkSelection} /> : null}
     </section>
   );
 }

@@ -27,6 +27,7 @@ export * from "@/components/shared/feed-favicon";
 export * from "@/components/shared/form-action-buttons";
 export * from "@/components/shared/form-dialog-shell";
 export * from "@/components/shared/gradient-switch";
+export * from "@/components/shared/hold-to-confirm";
 export * from "@/components/shared/icon-toolbar-control";
 export * from "@/components/shared/icon-toolbar-control-styles";
 export * from "@/components/shared/indeterminate-progress";

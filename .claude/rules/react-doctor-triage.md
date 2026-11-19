@@ -31,6 +31,7 @@ paths:
   - "src/components/settings/add-account/account-config-form.tsx"
   - "src/components/shared/confirm-dialog-view.tsx"
   - "src/components/shared/destructive-confirm-dialog-view.tsx"
+  - "src/components/shared/hold-to-confirm.ts"
   - "src/components/storybook/ui-reference-shell-specimens.tsx"
   - "src/components/subscriptions-index/hooks/use-subscriptions-feed-dialogs.ts"
   - "src/components/subscriptions-index/subscriptions-index-page.tsx"
@@ -368,7 +369,7 @@ Standing accepted risk:
   `FeedContextMenuContent` keep the dialog mounted with `open={false}`, so the confirmation for
   the departed account would stay on screen. Reviewed 2026-09-11.
 
-- `confirm-dialog-view.tsx` — the hold-to-confirm effect calls `cancelHold()` when `enabled`
+- `hold-to-confirm.ts` (shared by `confirm-dialog-view.tsx` and the bulk unsubscribe dialog) — the hold-to-confirm effect calls `cancelHold()` when `enabled`
   goes false. Disabling the button detaches its pointer handlers, so a release can no longer
   end the press; without the reset a later re-enable resumes a progress fill with no timer
   behind it. None of the three remedies reaches that: `holding` drives an imperative
