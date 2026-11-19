@@ -66,7 +66,6 @@ pub(crate) fn main_window_close_decision(
 }
 
 #[cfg(test)]
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SecondLaunchDecision {
     FocusExistingWindow,
@@ -74,7 +73,6 @@ pub(crate) enum SecondLaunchDecision {
 }
 
 #[cfg(test)]
-#[allow(dead_code)]
 pub(crate) fn second_launch_decision(
     sync_in_flight: bool,
     update_download_in_flight: bool,

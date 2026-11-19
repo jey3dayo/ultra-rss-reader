@@ -50,7 +50,6 @@ const expectedCommandOwnerAllowlists = {
   "database-commands": ["get_database_info", "vacuum_database", "backup_database"],
   "debug-log-commands": [
     "get_dev_runtime_options",
-    "get_platform_permission_denied_recovery",
     "open_log_dir",
     "record_read_diagnostics_batch",
     "reset_oversized_dev_credentials_store",

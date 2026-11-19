@@ -4,12 +4,15 @@
 
 use std::collections::HashMap;
 
+#[cfg(any(test, windows))]
 use serde::Deserialize;
 
+#[cfg(any(test, windows))]
 use super::prefs::is_supported_browser_preview_bridge_action;
+#[cfg(any(test, windows))]
 use super::BrowserWebviewState;
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -18,14 +21,14 @@ pub(super) struct BrowserPreviewBridgeMessage {
     url: String,
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn normalize_browser_preview_bridge_url(url: &str) -> Option<String> {
     let mut parsed = reqwest::Url::parse(url).ok()?;
     parsed.set_fragment(None);
     Some(normalize_unreserved_percent_encoding(parsed.as_str()))
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn normalize_unreserved_percent_encoding(value: &str) -> String {
     let mut normalized = String::with_capacity(value.len());
     let bytes = value.as_bytes();
@@ -56,7 +59,7 @@ pub(super) fn normalize_unreserved_percent_encoding(value: &str) -> String {
     normalized
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn hex_value(value: u8) -> Option<u8> {
     match value {
         b'0'..=b'9' => Some(value - b'0'),
@@ -66,7 +69,7 @@ pub(super) fn hex_value(value: u8) -> Option<u8> {
     }
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn hex_digit(value: u8) -> char {
     match value {
         0..=9 => (b'0' + value) as char,
@@ -75,7 +78,7 @@ pub(super) fn hex_digit(value: u8) -> char {
     }
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn browser_preview_bridge_url_matches(message_url: &str, snapshot_url: &str) -> bool {
     if message_url == snapshot_url {
         return true;
@@ -86,7 +89,7 @@ pub(super) fn browser_preview_bridge_url_matches(message_url: &str, snapshot_url
         .is_some_and(|(message_url, snapshot_url)| message_url == snapshot_url)
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn should_accept_browser_preview_bridge_message(
     message: &BrowserPreviewBridgeMessage,
     snapshot: Option<&BrowserWebviewState>,
@@ -96,7 +99,7 @@ pub(super) fn should_accept_browser_preview_bridge_message(
             .is_some_and(|state| browser_preview_bridge_url_matches(&message.url, &state.url))
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(any(test, windows))]
 pub(super) fn browser_preview_bridge_message_action(
     raw_message: &str,
     snapshot: Option<&BrowserWebviewState>,

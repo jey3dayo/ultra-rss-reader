@@ -174,9 +174,6 @@ export {
   DevRuntimeOptionsSchema,
   type PlatformInfo,
   PlatformInfoSchema,
-  type PlatformPermissionDeniedRecovery,
-  PlatformPermissionDeniedRecoveryListSchema,
-  PlatformPermissionDeniedRecoverySchema,
 } from "./platform-info";
 export { type PreferencesDto, PreferencesDtoSchema } from "./preferences";
 export {

@@ -206,7 +206,7 @@ function resolveLegacyPreferenceValue(key: string, value: string): string {
   return value;
 }
 
-export const corePreferenceDefaults = {
+const corePreferenceDefaults = {
   language: "system",
   unread_badge: "dont_display",
   open_links: "in_app",

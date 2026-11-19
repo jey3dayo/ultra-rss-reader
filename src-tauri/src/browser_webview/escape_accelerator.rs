@@ -72,7 +72,7 @@ fn is_browser_close_grace_action(action: &str) -> bool {
     )
 }
 
-#[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
+#[cfg(any(test, target_os = "macos"))]
 pub(super) fn should_handle_macos_browser_escape_key(
     key_code: u16,
     browser_webview_open: bool,

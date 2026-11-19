@@ -60,7 +60,6 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "export_opml_to_file",
   "export_settings_profile",
   "get_article_tags",
-  "get_platform_permission_denied_recovery",
   "import_opml",
   "import_settings_profile",
   "list_articles_by_tag",
@@ -410,7 +409,6 @@ describe("setupTauriMocks fixture isolation", () => {
     expect(orderedCommandDifference(unhandledCommands, schemaCommands)).toEqual([
       "download_update",
       "export_settings_profile",
-      "get_platform_permission_denied_recovery",
       "restart_app",
       "vacuum_database",
     ]);
