@@ -61,12 +61,15 @@ export function buildSubscriptionDetailCandidate(params: {
     candidate: selectedCandidate,
     tone: summary.tone,
     statusLabel: labels.statusLabel(selectedRow.status.labelKey),
+    // Every feed has a candidate record; only one with reasons has anything to explain.
     reasonBoxBody:
-      reasonFacts.length > 0
-        ? [primaryReasonLabel, ...reasonFacts.map((fact) => labels.reasonFact(fact))]
-            .filter((value): value is string => value !== null)
-            .join(" / ")
-        : summaryText,
+      selectedCandidate.reasonKeys.length === 0
+        ? null
+        : reasonFacts.length > 0
+          ? [primaryReasonLabel, ...reasonFacts.map((fact) => labels.reasonFact(fact))]
+              .filter((value): value is string => value !== null)
+              .join(" / ")
+          : summaryText,
   };
 }
 

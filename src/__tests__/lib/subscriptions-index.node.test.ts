@@ -1596,4 +1596,37 @@ describe("subscriptions index helpers", () => {
 
     expect(detail).toEqual({ candidate: null, tone: "neutral", statusLabel: "normal", reasonBoxBody: null });
   });
+
+  it("builds no reason box body for a candidate record without review reasons", () => {
+    const detail = buildSubscriptionDetailCandidate({
+      selectedRow: {
+        feed: feeds[1],
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        recentArticleCount: 0,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: "normal",
+      },
+      selectedCandidate: {
+        feedId: "feed-active",
+        title: "Active Feed",
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        staleDays: null,
+        unreadCount: 3,
+        starredCount: 0,
+        reasonKeys: [],
+      },
+      labels: {
+        statusLabel: (labelKey) => labelKey,
+        summaryText: (summaryKey) => summaryKey,
+        reasonFact: (fact) => `${fact.key}:${fact.value}`,
+        reasonLabel: (reasonKey, staleDays) => `${reasonKey}:${staleDays}`,
+      },
+    });
+
+    expect(detail?.reasonBoxBody).toBeNull();
+  });
 });
