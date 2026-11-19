@@ -130,9 +130,9 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
     expect(summary).toContain("scan excludes: node_modules / dist / src-tauri/target");
     expect(summary).toContain("unparsed similarity blocks: 0");
-    expect(summary).toContain("scan baseline function pairs: 38");
+    expect(summary).toContain("scan baseline function pairs: 46");
     expect(summary).toContain("allowlisted false positives present: 2");
-    expect(summary).toContain("allowlisted false positives absent: 5");
+    expect(summary).toContain("allowlisted false positives absent: 8");
     expect(summary).not.toContain("TODO baseline");
     expect(summary).toContain("absent article-auto-mark-vs-browser-webview-sync");
   });
@@ -147,8 +147,8 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
 
     const summary = buildSimilarityCssSummary(sampleCssReport);
     expect(summary).toContain("current command: mise exec -- similarity-css --threshold 0.9 --min-size 3 src/");
-    expect(summary).toContain("scan baseline rules: 98");
-    expect(summary).toContain("scan baseline similar styles: 8");
+    expect(summary).toContain("scan baseline rules: 101");
+    expect(summary).toContain("scan baseline similar styles: 9");
 
     expect(buildSimilarityCssSummary(sampleCssReport, 0.87, "src/lib")).toContain(
       "current command: mise exec -- similarity-css --threshold 0.87 --min-size 3 src/lib",
