@@ -445,6 +445,13 @@ describe("useSubscriptionsIndexState", () => {
       });
 
       expect(result.current.allVisibleCheckState).toBe("some");
+
+      act(() => {
+        result.current.toggleAllVisibleChecked();
+      });
+
+      expect([...result.current.checkedFeedIds].sort()).toEqual(["alpha", "beta", "gamma"]);
+      expect(result.current.allVisibleCheckState).toBe("all");
     });
 
     it("unchecks the focused feed when it is marked kept or deferred and stays in selection mode", () => {

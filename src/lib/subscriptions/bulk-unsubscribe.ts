@@ -31,7 +31,7 @@ export function resolveBulkSelectableFeedIds({
   visibleRows: SubscriptionListRow[];
   keptFeedIds: ReadonlySet<string>;
 }): { feedIds: string[]; skippedKeptCount: number } {
-  // Fetch-error rows stay visible in the stale filter even when kept, so kept-ness is checked here, not inferred from the filter.
+  // The stale filter keeps kept fetch-error rows visible, so kept-ness is checked per row, not inferred from the filter.
   const feedIds: string[] = [];
   let skippedKeptCount = 0;
   for (const row of visibleRows) {

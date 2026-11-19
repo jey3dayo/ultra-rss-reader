@@ -17,6 +17,10 @@ import type {
   SubscriptionsWorkspaceListScrollState,
 } from "@/schemas/subscriptions-workspace";
 
+function clearCheckedFeedIds(current: Set<string>): Set<string> {
+  return current.size === 0 ? current : new Set();
+}
+
 function updateSelectedFeedDecision(params: {
   selectedFeedId: string | null;
   setPrimary: (updater: (current: Set<string>) => Set<string>) => void;
@@ -128,7 +132,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   const selectSummaryFilter = useCallback(
     (filterKey: SubscriptionSummaryFilterKey) => {
       setActiveSummaryFilter(filterKey);
-      setStoredCheckedFeedIds(new Set());
+      setStoredCheckedFeedIds(clearCheckedFeedIds);
       resetListScrollState();
     },
     [resetListScrollState],
@@ -137,7 +141,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   const navigateToSummaryFilter = useCallback(
     (filterKey: SubscriptionSummaryFilterKey) => {
       setActiveSummaryFilter(filterKey);
-      setStoredCheckedFeedIds(new Set());
+      setStoredCheckedFeedIds(clearCheckedFeedIds);
       setSearchQuery("");
       setSelectedFeedId(null);
       resetListScrollState();
@@ -251,7 +255,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     },
     startBulkSelection: () => setBulkSelectionMode(true),
     endBulkSelection: () => {
-      setStoredCheckedFeedIds(new Set());
+      setStoredCheckedFeedIds(clearCheckedFeedIds);
       setBulkSelectionMode(false);
     },
     toggleFeedChecked: (feedId: string) =>
@@ -272,6 +276,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
         return next;
       });
     },
+    // Decides from the checked set of this render, so callers must not change the selection while the run is in flight.
     applyBulkUnsubscribeResult: (succeededFeedIds: readonly string[]) => {
       const succeeded = new Set(succeededFeedIds);
       const remainingCount = [...checkedFeedIds].filter((feedId) => !succeeded.has(feedId)).length;
@@ -285,7 +290,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       setKeptFeedIds(withoutSucceeded);
       setDeferredFeedIds(withoutSucceeded);
       if (remainingCount === 0) {
-        setStoredCheckedFeedIds(new Set());
+        setStoredCheckedFeedIds(clearCheckedFeedIds);
         setBulkSelectionMode(false);
       } else {
         setStoredCheckedFeedIds(withoutSucceeded);
