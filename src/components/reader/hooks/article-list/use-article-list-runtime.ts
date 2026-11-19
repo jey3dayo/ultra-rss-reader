@@ -9,7 +9,6 @@ export function useArticleListRuntime() {
   const sources = useArticleListSources({
     selection: uiState.selection,
     selectedAccountId: uiState.selectedAccountId,
-    selectedArticleId: uiState.selectedArticleId,
     retainedArticleIds: uiState.retainedArticleIds,
     viewMode: uiState.viewMode,
   });

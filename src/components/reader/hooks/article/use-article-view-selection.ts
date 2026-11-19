@@ -235,7 +235,6 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const sources = useArticleListSources({
     selection,
     selectedAccountId,
-    selectedArticleId,
     retainedArticleIds,
     viewMode,
   });

@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AppError } from "@/api/schemas/error";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
 import { ArticleView } from "@/components/reader/article-view";
@@ -514,27 +515,32 @@ describe("ArticleList", () => {
     });
   });
 
-  it("shows a search-specific empty state and lets the user clear the query", async () => {
+  it("shows search failures before no matches and lets the user clear a successful empty search", async () => {
     useUiStore.getState().selectAccount("acc-1");
 
     const user = userEvent.setup();
-    render(<ArticleList />, { wrapper: createWrapper() });
+    const { wrapper, queryClient } = createQueryWrapper();
+    let searchError: AppError | null = { type: "Retryable", message: "Network offline" };
+    setupTauriMocks((cmd) => {
+      if (cmd === "search_articles") {
+        if (searchError) throw searchError;
+        return [];
+      }
+      return undefined;
+    });
+    render(<ArticleList />, { wrapper });
 
     await user.click(await screen.findByRole("button", { name: "Search articles" }));
     await user.type(screen.getByRole("textbox", { name: "Search articles" }), "Nope");
 
-    await waitFor(() => {
-      expect(screen.getByText('No matches for "Nope"')).toBeInTheDocument();
-      expect(screen.getByText("Try a different keyword or clear the current search.")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
-    });
+    expect(await screen.findByText("Cannot refresh articles")).toBeInTheDocument();
+    expect(screen.queryByText('No matches for "Nope"')).not.toBeInTheDocument();
+    searchError = null;
+    await queryClient.invalidateQueries();
 
+    await screen.findByText('No matches for "Nope"');
     await user.click(screen.getByRole("button", { name: "Clear search" }));
-
-    await waitFor(() => {
-      expect(screen.queryByText('No matches for "Nope"')).not.toBeInTheDocument();
-      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(sampleArticles[0].title)).toBeInTheDocument();
   });
 
   // The next-article control must follow the list that navigation actually walks. While search is
@@ -1107,32 +1113,7 @@ describe("ArticleList", () => {
     });
   });
 
-  it("omits the selected feed display preset control from the header", async () => {
-    const feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
-    const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-
-    setupTauriMocks((cmd, args) => {
-      commands.push({ cmd, args });
-      switch (cmd) {
-        case "list_feeds":
-          return feeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            feeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
-        case "list_articles_by_tag":
-          return [];
-        case "search_articles":
-          return [];
-        case "update_feed_display_settings":
-          return null;
-        default:
-          return undefined;
-      }
-    });
-
+  it("edits the selected feed in place from the list menu and restores list focus on cancel", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
 
@@ -1143,7 +1124,30 @@ describe("ArticleList", () => {
     });
 
     expect(screen.queryByRole("combobox", { name: "Article display" })).not.toBeInTheDocument();
-    expect(commands.some((call) => call.cmd === "update_feed_display_settings")).toBe(false);
+
+    const user = userEvent.setup();
+    const row = screen.getByRole("option", { name: /First Article/ });
+    row.focus();
+    fireEvent.contextMenu(screen.getByTestId("article-list-scroll-content"));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit feed…" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Edit feed" });
+    const title = within(dialog).getByRole("textbox", { name: "Title" });
+    expect(title).toHaveValue(sampleFeeds[0].title);
+    await waitFor(() => expect(title).toHaveFocus());
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(row).toHaveFocus());
+
+    fireEvent.contextMenu(screen.getByTestId("article-list-scroll-content"));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit feed…" }));
+    await screen.findByRole("dialog", { name: "Edit feed" });
+    act(() => useUiStore.getState().selectAccount("acc-2"));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit feed" })).not.toBeInTheDocument());
+    act(() => useUiStore.getState().selectAccount("acc-1"));
+    await screen.findByText(sampleArticles[0].title);
+    expect(screen.queryByRole("dialog", { name: "Edit feed" })).not.toBeInTheDocument();
   });
 
   it("renders feed articles even when account-wide loading is still pending", async () => {

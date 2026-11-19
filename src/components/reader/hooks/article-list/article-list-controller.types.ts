@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, RefObject } from "react";
+import type { AppError } from "@/api/schemas/error";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { WebPreviewSessionMode } from "@/lib/articles/article-display";
 import type { KeyboardShortcutPrefs } from "@/lib/keyboard/keyboard-shortcuts";
@@ -11,6 +12,7 @@ import type { ArticleGroupsViewGroup } from "../../article-groups-view";
 import type { ArticleListBodyProps } from "../../article-list-body";
 import type { ArticleListFooterProps } from "../../article-list-footer";
 import type { ArticleListHeaderProps } from "../../article-list-header";
+import type { FeedEditDialogProps } from "../../feed-edit-dialog.types";
 import type { ArticleListSetupState } from "./use-article-list-body-props";
 
 export type ArticleListSelection =
@@ -26,6 +28,7 @@ export type UseArticleListViewPropsResult = {
   headerProps: ArticleListHeaderProps;
   bodyProps: ArticleListBodyProps;
   footerProps: ArticleListFooterProps;
+  feedEditDialogProps?: FeedEditDialogProps;
 };
 
 export type UseArticleListInteractionsParams = {
@@ -57,9 +60,12 @@ export type UseArticleListViewStateParams = {
   feedCount?: number;
   showSearch: boolean;
   trimmedDebouncedQuery: string;
-  searchResults: unknown[] | undefined;
   isSearching: boolean;
   filteredArticleCount: number;
+  isArticlesError: boolean;
+  articlesError: AppError | null;
+  isSearchError: boolean;
+  searchError: AppError | null;
 };
 
 export type UseArticleListViewStateResult = {
@@ -121,6 +127,8 @@ type ArticleListPresentationSource = {
   accountCount?: number;
   feeds: FeedDto[] | undefined;
   isLoadingArticles: boolean;
+  isArticlesError: boolean;
+  articlesError: AppError | null;
   feedId: string | null;
   filteredArticles: ArticleDto[];
   groupedArticles: Record<string, ArticleDto[]>;
@@ -133,18 +141,7 @@ type ArticleListPresentationSource = {
   isFetchingNextPage?: boolean;
 };
 
-type ArticleListPresentationSearch = {
-  showSearch: boolean;
-  searchQuery: string;
-  searchInputRef: RefObject<HTMLInputElement | null>;
-  trimmedDebouncedQuery: string;
-  searchResults: unknown[] | undefined;
-  isSearching: boolean;
-  openSearch: () => void;
-  handleToggleSearch: () => void;
-  handleCloseSearch: () => void;
-  setSearchQuery: (value: string) => void;
-};
+type ArticleListPresentationSearch = Omit<UseArticleListSearchResult, "searchResults">;
 
 type ArticleListPresentationSelectionState = {
   selectedArticleId: string | null;
@@ -251,6 +248,8 @@ export type UseArticleListSearchResult = {
   trimmedDebouncedQuery: string;
   searchResults: ArticleDto[] | undefined;
   isSearching: boolean;
+  isSearchError: boolean;
+  searchError: AppError | null;
   openSearch: () => void;
   handleToggleSearch: () => void;
   handleCloseSearch: () => void;
@@ -260,7 +259,6 @@ export type UseArticleListSearchResult = {
 export type UseArticleListSourcesParams = {
   selection: ArticleListSelection;
   selectedAccountId: string | null;
-  selectedArticleId: string | null;
   retainedArticleIds: Set<string>;
   viewMode: ViewMode;
 };
@@ -270,6 +268,8 @@ export type UseArticleListSourcesResult = {
   feeds: FeedDto[] | undefined;
   articles: ArticleDto[] | undefined;
   isLoadingArticles: boolean;
+  isArticlesError: boolean;
+  articlesError: AppError | null;
   fetchNextPage?: () => Promise<unknown>;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;

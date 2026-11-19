@@ -4,9 +4,10 @@ import { ARTICLE_LIST_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { ArticleListBody } from "./article-list-body";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
+import { FeedEditDialog } from "./feed-edit-dialog";
 
 export function ArticleList() {
-  const { layoutMode, headerProps, bodyProps, footerProps } = useArticleListController();
+  const { layoutMode, headerProps, bodyProps, footerProps, feedEditDialogProps } = useArticleListController();
 
   return (
     <div
@@ -20,6 +21,7 @@ export function ArticleList() {
       <ArticleListHeader {...headerProps} />
       <ArticleListBody {...bodyProps} />
       <ArticleListFooter {...footerProps} />
+      {feedEditDialogProps ? <FeedEditDialog key={feedEditDialogProps.feed.id} {...feedEditDialogProps} /> : null}
     </div>
   );
 }
