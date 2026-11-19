@@ -4,7 +4,7 @@ title: Microsoft Store Distribution
 description: How the MSIX build for the Microsoft Store differs from the direct download, how to ship an update through Partner Center, and the known runtime constraints of the packaged app.
 resource: urn:ultra-rss-reader:docs:microsoft-store-distribution
 tags: [category/release, audience/maintainer, environment/windows]
-timestamp: 2026-11-15
+timestamp: 2026-11-19
 audience: maintainer
 owner: project-maintainers
 ---
@@ -37,7 +37,7 @@ The Publisher value and the rest of the Product Identity are in `msix/Package.ap
 | --- | --- | --- |
 | `src-tauri/tauri.store.conf.json` | Merged over `tauri.conf.json` with `--config` | Turns off updater artifacts and replaces the updater config with an empty one |
 | `msix/Package.appxmanifest`, `msix/Assets/` | Generated once by `winapp manifest generate`, then committed | MSIX identity, version, capabilities, and tile assets |
-| `.github/workflows/store-msix.yml` | Successful tag-push Release workflow completion, published stable GitHub Release, or manual `workflow_dispatch` | Builds and uploads the `store-msix` artifact; when a published stable release is verified and credentials exist, creates a Microsoft Store draft using `msstore` |
+| `.github/workflows/store-msix.yml` | Successful tag-push Release workflow completion, published stable GitHub Release, or manual `workflow_dispatch` | Builds and uploads the `store-msix` artifact. For an eligible release, calls `scripts/release/submit-store.ps1` to submit through the Store API |
 
 The manifest lives under `msix/` instead of the repository root because `Assets/` would collide with the existing `assets/` directory on case-insensitive file systems.
 
@@ -60,14 +60,22 @@ The MSIX contains only the exe, `Assets/`, and the PRI file. `WebView2Loader.dll
 The Store version does not update itself. Each new version is a resubmission.
 
 1. Bump the version with `node scripts/release/bump-version.ts <version>`; it updates the MSIX manifest and the other version sources.
-2. Publishing a stable GitHub Release starts **Store MSIX**. A successful tag-push Release workflow also starts it, but submission is skipped unless the release is already published. The workflow checks the tag and built MSIX version, then uploads a Store draft without submitting it for certification. A Release workflow dispatch does not start the fallback.
-3. For a manual build, run **Store MSIX** with the default `submit: false`. To submit, select `submit: true` and an explicit published stable `refs/tags/vX.Y.Z` ref. Missing secrets or a missing `MSSTORE_PRICE_ID` skip submission while leaving the build successful. A `MSSTORE_PRICE_ID` that is not `Tier<number>` also skips only the submission and reports an error annotation, so the MSIX build and the `store-msix` artifact are kept for a manual submission.
-4. Configure these secrets and the variable under **Settings → Environments → microsoft-store**:
+2. Publishing a stable GitHub Release starts **Store MSIX**. A successful tag-push Release workflow also starts it, but submission is skipped unless the release is already published. A Release workflow dispatch does not start this fallback. The workflow verifies the tag, source SHA, and built MSIX version, then saves the `store-msix` artifact before attempting Store submission.
+3. For an eligible release with credentials configured, the workflow creates a draft, uploads the package, and commits it through the submission API for certification. The API value `targetPublishMode: Immediate` requests automatic publication after certification. The workflow immediately reads back the same submission and checks the exact configured price tier, package filename, release version (`X.Y.Z.0`), and publish mode. Package ingestion is asynchronous, so the workflow polls for up to five minutes for the version and `Uploaded` status. Certification and public availability can finish after those checks pass.
+4. Manual dispatch keeps the following modes. Submission requires `ref: refs/tags/vX.Y.Z` for a published stable release. The submission script comes from the exact workflow commit, so a workflow run from main can also build an older release tag.
+
+   | `submit` | `auto_commit` | Result |
+   | --- | --- | --- |
+   | `false` (default) | Either | Build and save the MSIX artifact |
+   | `true` | `true` (default) | Create a draft, commit for certification, and publish automatically after certification |
+   | `true` | `false` | Create an API-managed draft and leave it pending with `targetPublishMode: Manual` |
+
+   Missing credentials skip Store submission. For a requested, eligible submission, the workflow saves the artifact and then fails before contacting the Store if `MSSTORE_PRICE_ID` is unset or malformed, including when credentials are missing. The accepted format is case-sensitive ASCII `Tier` followed by one or more digits, with no whitespace. Partner Center validates whether the tier is available for the product when the script updates the draft. A rejected update stops before commit and leaves the draft for inspection.
+5. Configure these secrets and the variable under **Settings → Environments → microsoft-store**:
 
    | Secret | Partner Center / Microsoft Entra value |
    | --- | --- |
    | `MSSTORE_TENANT_ID` | Microsoft Entra tenant ID |
-   | `MSSTORE_SELLER_ID` | Partner Center seller ID |
    | `MSSTORE_CLIENT_ID` | Microsoft Entra application client ID |
    | `MSSTORE_CLIENT_SECRET` | Microsoft Entra application client secret |
 
@@ -75,31 +83,32 @@ The Store version does not update itself. Each new version is a resubmission.
    | --- | --- |
    | `MSSTORE_PRICE_ID` | Base price tier of the product, such as `Tier1052`. See [Base price tier](#base-price-tier) |
 
-   The Entra application needs submission permissions. The CLI stores configuration in the ephemeral runner profile and the client secret in Windows Credential Manager.
-5. Review the draft, including pricing, markets, listings, and submission options in Partner Center, then submit it for certification. After certification passes, press "Publish now".
+   The Entra application needs submission permissions. Authentication uses the Entra client-credentials token endpoint and the `https://manage.devcenter.microsoft.com` resource. `MSSTORE_SELLER_ID` is not used by the submission API. Tokens, signed upload URLs, request bodies, and API error bodies are excluded from script output.
+6. For the first automatic release, monitor the created submission through the API until it is `Published` and verify its package version again. Confirm public Store availability and the installed package version.
 
 ### Existing draft and status guard
 
-Submission 2 was observed as a draft; its current contents and whether `msstore publish` replaces it remain unverified. The workflow accepts only one `Submission Status = Published` line and fails closed on errors or other statuses. Once secrets are configured, first run only `msstore submission status 9N85DQ7XKQ20` and inspect the draft; do not publish during this check. Preserve Submission 2 until deciding whether to delete it manually or separately review a workflow change. Deleting it may lose edits; allowing a draft may replace them.
+The script reads the exact application and verifies its ID and last published submission before creating a new draft. Any `pendingApplicationSubmission` stops the run. Creating a submission can also fail with HTTP 409 if a pending submission appears after the read. The script never deletes or reuses a pending submission and only updates and commits the new ID returned by its own create request.
 
-After the guard passes, the workflow runs `msstore publish <msix-path> --appId 9N85DQ7XKQ20 --priceId <MSSTORE_PRICE_ID> --noCommit`. Coordinate manual Partner Center edits with workflow runs: status checking and upload are separate operations.
+After creation, failures preserve the submission for inspection. A rerun stops while it remains pending. Handle drafts from earlier releases separately. Coordinate Partner Center work with automated runs.
+
+The script follows the [submission API sequence](https://learn.microsoft.com/en-us/windows/uwp/monetize/manage-app-submissions): create a clone of the last published submission, mark its old MSIX `PendingDelete`, register the new MSIX as `PendingUpload`, update the draft, upload a ZIP to its Azure Blob SAS URL, and commit the new submission ID. It refuses an unexpected cloned package set instead of removing additional packages. It preserves the cloned metadata and listings, including privacy, website, and support links. Only the package entries, explicit base price tier, and publish mode change.
 
 ### Base price tier
 
-The Store submission API returns this product's base price as `priceId = "Base"` because its price is managed per market. `msstore` before v0.4.4 stops on that value with `App updates are supported only for Free products.`, which looks like a paid-product limit but is not. From v0.4.4, `msstore publish` stops without `--priceId` in that case and deletes the draft it created. With `--priceId` it sends the given tier as the base price. The submission API replaces the whole submission on update, so the price is restated on every run. An empty `priceId` would turn the product free without an error, which is why the workflow refuses to submit when `MSSTORE_PRICE_ID` is unset.
+The Store submission API has returned this product's base price as `priceId = "Base"` because it is managed per market. That value cannot be sent back as a base price tier. The submission API replaces the whole submission on update, and an empty `priceId` can turn the product free without an error. Every run therefore requires an explicit `MSSTORE_PRICE_ID` (currently `Tier1052`) and verifies that exact value before and after commit.
 
-- `--priceId` replaces only the base price. Microsoft has not confirmed that per-market prices in `marketSpecificPricings` survive it; the CLI itself warns that it may flatten them. `--noCommit` is not a dry run: it uploads the package and overwrites the draft's pricing, but the live price does not change until the draft is submitted in Partner Center.
-- Before submitting any draft from this workflow, open **Pricing and availability** in Partner Center and check the base price and every market price (including the Japan price) against the published submission.
-- Tier IDs run `Tier1012` ($0.99) to `Tier1424` ($1,999.99). Between `Tier1012` and `Tier1102` the price rises by $0.10 per tier, so `$0.99 + 0.10 × (tier − 1012)` gives the price: `Tier1032` is $2.99 and `Tier1052` is $4.99. Microsoft publishes no table outside Partner Center ("view table" in **Pricing and availability**), so confirm the tier there before setting the variable.
+- The script changes only `pricing.priceId`, preserving the cloned `marketSpecificPricings`, sales, and other pricing fields. It checks the inherited market-specific price map before commit and on every post-commit read. The [pricing resource documentation](https://learn.microsoft.com/en-us/windows/uwp/monetize/manage-app-submissions#pricing-resource) defines these entries as overrides of the base price. Confirm the actual market prices in Partner Center when changing the configured tier.
+- Microsoft's [base price tier table](https://learn.microsoft.com/windows/apps/publish/msstore-dev-cli/ci-cd-environments#pricing-configuration-for-msix-packaged-apps) includes `Tier1052` ($4.99). Confirm current market prices in Partner Center under **Pricing and availability** before setting the variable.
 - Update `MSSTORE_PRICE_ID` whenever the base price changes in Partner Center. A stale value resets the draft to the old price.
 
-#### Check the draft, then submit or abandon it
+#### Inspecting a draft or failed run
 
-After a run that created a draft, open it in Partner Center and check three things before submitting: the package version matches the release, the base price matches the published submission, and every market price (including Japan and the United States) matches the published submission. `--priceId` may collapse per-market prices, so a matching base price alone is not enough.
+For `submit: true, auto_commit: false`, the package remains `PendingUpload` until the API commit starts ingestion. The API may omit its version until then. The workflow checks the registered filename, price tier, and manual publish mode before leaving the draft. Commit it only through `POST /v1.0/my/applications/9N85DQ7XKQ20/submissions/{submissionId}/commit`, then read that same ID back to verify `ultra-rss-reader.msix`, version `X.Y.Z.0`, `Uploaded`, and the configured tier. Manual publish mode still requires a separate publication step after certification.
 
-If any market price differs, do not submit the draft. Discard the draft and submit the release manually from Partner Center, where the existing per-market prices are carried over without going through `--priceId`. Do not edit the draft beyond checking it: editing an API-created draft in Partner Center takes it out of the API's control. After a price change or a tier correction, fix `MSSTORE_PRICE_ID` before the next run.
+Inspect package and pricing details through the API. Submitting from Partner Center dropped the pending replacement package and certified the old version in [#667](https://github.com/jey3dayo/ultra-rss-reader/issues/667). Microsoft also advises using the API for subsequent edits to an API-created draft. Review any mismatch or ingestion timeout before deciding how to recover. Reruns stop while the submission is pending. [Microsoft Store submission API](https://learn.microsoft.com/en-us/windows/uwp/monetize/manage-app-submissions)
 
-Partner Center allows only one pending submission. If a certified submission is waiting to be published and you want to ship a newer package instead, use "Cancel certification" to return it to draft, then replace the package in that same submission.
+After a price change or a tier correction, update `MSSTORE_PRICE_ID` before the next run. If there is already a draft, inspect it and decide whether to update its price through the API or abandon it.
 
 A sideloaded package with the same version cannot overwrite an installed one. Raise the manifest version, or remove the installed package first. If you used `winapp run`, run `winapp unregister` before `Add-AppxPackage`.
 

@@ -1716,14 +1716,14 @@ describe("repository static contracts", () => {
     expect(manifestVersion).toBe(`${packageJson.version}.0`);
   });
 
-  it("passes the MSIX path positionally to msstore publish", () => {
+  it("runs Store submission tooling from the exact workflow commit with the built MSIX", () => {
     const workflow = readRepoFile(".github/workflows/store-msix.yml");
 
-    expect(workflow).toContain("msstore publish $package.FullName `");
-    expect(workflow).toContain("--appId 9N85DQ7XKQ20 `");
-    expect(workflow).toContain("--priceId $env:MSSTORE_PRICE_ID `");
-    expect(workflow).toContain("--noCommit");
-    expect(workflow).not.toContain("--inputFile");
+    expect(workflow).toContain("ref: $" + "{{ github.workflow_sha }}");
+    expect(workflow).toContain(
+      "./store-workflow/scripts/release/submit-store.ps1 -PackagePath ./msix-out/ultra-rss-reader.msix",
+    );
+    expect(workflow).toContain("-AutoCommit:($env:AUTO_COMMIT -ceq 'true')");
   });
 
   it("keeps release dry-run version sources consistent", () => {

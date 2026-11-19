@@ -857,7 +857,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(storeMsixWorkflow).toContain("cancel-in-progress: false");
     expect(storeMsixWorkflow).toContain('[[ "$release_http_status" == "404" ]]');
 
-    for (const secretName of ["MSSTORE_TENANT_ID", "MSSTORE_SELLER_ID", "MSSTORE_CLIENT_ID", "MSSTORE_CLIENT_SECRET"]) {
+    for (const secretName of ["MSSTORE_TENANT_ID", "MSSTORE_CLIENT_ID", "MSSTORE_CLIENT_SECRET"]) {
       expect(storeMsixWorkflow).toContain(`secrets.${secretName} != ''`);
       expect(storeMsixWorkflow).toContain([secretName, ": $", "{{ secrets.", secretName, " }}"].join(""));
     }
@@ -865,17 +865,14 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(storeMsixWorkflow).toContain("node ./scripts/release/validate-release-config.ts");
     expect(storeMsixWorkflow).toContain('GetEntry("AppxManifest.xml")');
     expect(storeMsixWorkflow).toContain("$identity.Version -ne $expectedVersion");
-    expect(storeMsixWorkflow).toContain("msstore submission status 9N85DQ7XKQ20");
-    expect(storeMsixWorkflow).toContain("Submission Status = ([A-Za-z]+)");
-    expect(storeMsixWorkflow).toContain('$submissionStatus -cne "Published"');
-    expect(storeMsixWorkflow).toContain("$statusExitCode -ne 0");
-    expect(storeMsixWorkflow).not.toContain("msstore submission publish");
-    expect(storeMsixWorkflow).toContain("version: v0.4.4");
     expect(storeMsixWorkflow).toContain(`MSSTORE_PRICE_ID: \${{ vars.MSSTORE_PRICE_ID }}`);
-    expect(storeMsixWorkflow).toContain("^Tier[0-9]+$");
-    expect(storeMsixWorkflow).toContain("::error::MSSTORE_PRICE_ID has an invalid format");
-    // A malformed variable must skip only the submission; failing here would also drop the MSIX artifact.
-    expect(storeMsixWorkflow).not.toMatch(/MSSTORE_PRICE_ID has an invalid format[^\n]*\n\s*exit 1/);
+    expect(storeMsixWorkflow).toMatch(/if \(\$env:MSSTORE_PRICE_ID -cnotmatch '\\ATier\[0-9\]\+\\z'\) \{\s+throw /);
+    expect(storeMsixWorkflow).toContain("steps.intent.outputs.submit_requested == 'true'");
+    expect(storeMsixWorkflow.indexOf("name: Validate Store price tier")).toBeGreaterThan(
+      storeMsixWorkflow.indexOf("uses: actions/upload-artifact@"),
+    );
+    expect(storeMsixWorkflow).toContain("auto_commit:");
+    expect(storeMsixWorkflow).toContain("default: true\n        type: boolean");
 
     const actionRefs = extractWorkflowUses(storeMsixWorkflow).filter((ref) => !ref.startsWith("$/"));
     const lockEntries = extractWorkflowLockEntries(readText(".github/workflows/actions.lock"), "store-msix.yml");

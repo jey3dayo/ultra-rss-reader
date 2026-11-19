@@ -13,9 +13,14 @@ on:
         required: false
         type: string
       submit:
-        description: "Upload the package to a Microsoft Store draft. Refused while another submission is pending."
+        description: "Submit the package to Microsoft Store. Refused while another submission is pending."
         required: false
         default: false
+        type: boolean
+      auto_commit:
+        description: "Commit the Store draft for certification and automatic publication. Disable to leave an API-managed draft."
+        required: false
+        default: true
         type: boolean
 
 permissions:
@@ -55,10 +60,8 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
           MSSTORE_TENANT_ID_SET: ${{ secrets.MSSTORE_TENANT_ID != '' }}
-          MSSTORE_SELLER_ID_SET: ${{ secrets.MSSTORE_SELLER_ID != '' }}
           MSSTORE_CLIENT_ID_SET: ${{ secrets.MSSTORE_CLIENT_ID != '' }}
           MSSTORE_CLIENT_SECRET_SET: ${{ secrets.MSSTORE_CLIENT_SECRET != '' }}
-          MSSTORE_PRICE_ID: ${{ vars.MSSTORE_PRICE_ID }}
         run: |
           set -euo pipefail
 
@@ -124,32 +127,23 @@ jobs:
           fi
 
           missing=()
-          for secret_name in MSSTORE_TENANT_ID MSSTORE_SELLER_ID MSSTORE_CLIENT_ID MSSTORE_CLIENT_SECRET; do
+          for secret_name in MSSTORE_TENANT_ID MSSTORE_CLIENT_ID MSSTORE_CLIENT_SECRET; do
             secret_status_name="${secret_name}_SET"
             if [[ "${!secret_status_name}" != "true" ]]; then
               missing+=("$secret_name")
             fi
           done
 
-          price_id_invalid=false
-          if [[ -z "$MSSTORE_PRICE_ID" ]]; then
-            missing+=("MSSTORE_PRICE_ID")
-          elif [[ ! "$MSSTORE_PRICE_ID" =~ ^Tier[0-9]+$ ]]; then
-            price_id_invalid=true
-          fi
-
           should_submit="$submit_requested"
           if [[ "$submit_requested" == "true" && ${#missing[@]} -gt 0 ]]; then
             should_submit=false
-            echo "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets or variables: $(IFS=,; echo "${missing[*]}")"
+            echo "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets: $(IFS=,; echo "${missing[*]}")"
           fi
-          if [[ "$submit_requested" == "true" && "$price_id_invalid" == "true" ]]; then
-            should_submit=false
-            echo "::error::MSSTORE_PRICE_ID has an invalid format (expected Tier<number>, such as Tier1052); Store package submission skipped and the MSIX build continues"
-          fi
-          echo "should_submit=$should_submit" >> "$GITHUB_OUTPUT"
-
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          {
+            echo "submit_requested=$submit_requested"
+            echo "should_submit=$should_submit"
+            echo "release_tag=$release_tag"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: jdx/mise-action@v4.3.0
 
@@ -236,55 +230,33 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - uses: microsoft/microsoft-store-apppublisher@v1.4
-        if: steps.intent.outputs.should_submit == 'true'
-        with:
-          version: v0.4.4
-
-      - name: Configure Store credentials
-        if: steps.intent.outputs.should_submit == 'true'
-        shell: pwsh
-        env:
-          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
-          MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
-          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
-          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
-        run: |
-          $ErrorActionPreference = "Stop"
-          $PSNativeCommandUseErrorActionPreference = $false
-          msstore reconfigure `
-            --tenantId $env:MSSTORE_TENANT_ID `
-            --sellerId $env:MSSTORE_SELLER_ID `
-            --clientId $env:MSSTORE_CLIENT_ID `
-            --clientSecret $env:MSSTORE_CLIENT_SECRET
-          if ($LASTEXITCODE -ne 0) { throw "Microsoft Store CLI credential configuration failed (exit $LASTEXITCODE)." }
-
-      - name: Submit Store draft
-        if: steps.intent.outputs.should_submit == 'true'
+      - name: Validate Store price tier
+        if: steps.intent.outputs.submit_requested == 'true'
         shell: pwsh
         env:
           MSSTORE_PRICE_ID: ${{ vars.MSSTORE_PRICE_ID }}
         run: |
-          $ErrorActionPreference = "Stop"
-          $PSNativeCommandUseErrorActionPreference = $false
-          $statusOutput = (& msstore submission status 9N85DQ7XKQ20 2>&1 | Out-String)
-          $statusExitCode = $LASTEXITCODE
-          if ($statusExitCode -ne 0) { throw "Could not verify Partner Center submission status; refusing to replace any pending draft (exit $statusExitCode)." }
-          $plainStatus = [System.Text.RegularExpressions.Regex]::Replace($statusOutput, "\u001b\[[0-9;]*[A-Za-z]", "")
-          $statusMatches = [regex]::Matches($plainStatus, '(?m)^\s*Submission Status = ([A-Za-z]+)\s*$')
-          if ($statusMatches.Count -ne 1) {
-            throw "Partner Center submission status output was not recognized; refusing to replace any pending draft."
+          if ($env:MSSTORE_PRICE_ID -cnotmatch '\ATier[0-9]+\z') {
+            throw "MSSTORE_PRICE_ID must be configured as Tier<number>, such as Tier1052. The MSIX artifact has been preserved."
           }
-          $submissionStatus = $statusMatches[0].Groups[1].Value
-          if ($submissionStatus -cne "Published") {
-            throw "Partner Center reports a pending or unknown submission status '$submissionStatus'; refusing to replace any pending draft."
-          }
-          $package = Get-ChildItem msix-out -Filter *.msix -File | Select-Object -First 1
-          if (-not $package) {
-            throw "No .msix package is available for Store submission."
-          }
-          msstore publish $package.FullName `
-            --appId 9N85DQ7XKQ20 `
-            --priceId $env:MSSTORE_PRICE_ID `
-            --noCommit
-          if ($LASTEXITCODE -ne 0) { throw "Microsoft Store draft submission failed (exit $LASTEXITCODE)." }
+
+      - name: Checkout Store submission tooling
+        if: steps.intent.outputs.should_submit == 'true'
+        uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: store-workflow
+          sparse-checkout: scripts/release
+          persist-credentials: false
+
+      - name: Submit and verify Store package
+        if: steps.intent.outputs.should_submit == 'true'
+        shell: pwsh
+        env:
+          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+          MSSTORE_PRICE_ID: ${{ vars.MSSTORE_PRICE_ID }}
+          RELEASE_TAG: ${{ steps.intent.outputs.release_tag }}
+          AUTO_COMMIT: ${{ github.event_name != 'workflow_dispatch' || inputs.auto_commit }}
+        run: ./store-workflow/scripts/release/submit-store.ps1 -PackagePath ./msix-out/ultra-rss-reader.msix -AutoCommit:($env:AUTO_COMMIT -ceq 'true')
