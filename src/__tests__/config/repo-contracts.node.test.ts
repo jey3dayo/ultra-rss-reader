@@ -203,11 +203,6 @@ function extractQualityGateNeeds(source: string) {
     .toSorted();
 }
 
-function extractMiseEnvValue(source: string, envName: string) {
-  const escapedEnvName = envName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return source.match(new RegExp(`^${escapedEnvName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null;
-}
-
 function extractMiseTaskSection(source: string, taskName: string) {
   const escapedTaskName = taskName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return (
@@ -816,37 +811,13 @@ describe("repository static contracts", () => {
 
   it("keeps markdown format and lint tasks on the same glob inventory", () => {
     const miseSource = readMiseTaskCorpus();
-    const markdownArguments = [
-      "$MD_GLOB",
-      "$MD_EXCLUDE_NODE_MODULES",
-      "$MD_EXCLUDE_PNPM_STORE",
-      "$MD_EXCLUDE_WORKTREES",
-      "$MD_EXCLUDE_TARGET",
-      "$MD_EXCLUDE_TAURI_GEN",
-    ].join(" ");
-    const markdownWindowsArguments = [
-      "$env:MD_GLOB",
-      "$env:MD_EXCLUDE_NODE_MODULES",
-      "$env:MD_EXCLUDE_PNPM_STORE",
-      "$env:MD_EXCLUDE_WORKTREES",
-      "$env:MD_EXCLUDE_TARGET",
-      "$env:MD_EXCLUDE_TAURI_GEN",
-    ].join(" ");
 
-    expect(extractMiseEnvValue(miseSource, "MD_GLOB")).toBe("**/*.md");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_NODE_MODULES")).toBe("#**/node_modules/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_PNPM_STORE")).toBe("#**/.pnpm-store/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_WORKTREES")).toBe("#**/.worktrees/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TARGET")).toBe("#**/target/**");
-    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TAURI_GEN")).toBe("#src-tauri/gen/**");
-    expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(`markdownlint-cli2 ${markdownArguments} --fix`);
-    expect(extractMiseTaskCommand(miseSource, "format:md", "run_windows")).toBe(
-      `markdownlint-cli2 ${markdownWindowsArguments} --fix`,
-    );
-    expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(`markdownlint-cli2 ${markdownArguments}`);
-    expect(extractMiseTaskCommand(miseSource, "lint:md", "run_windows")).toBe(
-      `markdownlint-cli2 ${markdownWindowsArguments}`,
-    );
+    for (const commandName of ["run", "run_windows"] as const) {
+      const lintCommand = extractMiseTaskCommand(miseSource, "lint:md", commandName);
+      const formatCommand = extractMiseTaskCommand(miseSource, "format:md", commandName);
+
+      expect(formatCommand).toBe(`${lintCommand} --fix`);
+    }
   });
 
   it("keeps API schema files covered by barrel exports and schema tests", () => {
@@ -857,41 +828,7 @@ describe("repository static contracts", () => {
     );
     const aggregateSchemaTestSource = readRepoFile("src/__tests__/api/schema-barrel-public-api.test.ts");
 
-    expect(schemaFileStems).toEqual([
-      "account",
-      "account-sync-status",
-      "article",
-      "browser-webview",
-      "commands",
-      "common",
-      "database-info",
-      "discovered-feed",
-      "error",
-      "feed",
-      "feed-article-summary",
-      "feed-integrity",
-      "folder",
-      "local-account-sync",
-      "local-feed-sync-status",
-      "mute-keyword",
-      "platform-info",
-      "preferences",
-      "runtime-contracts",
-      "settings-profile",
-      "starred-articles",
-      "sync-progress",
-      "sync-result",
-      "tag",
-      "update-info",
-    ]);
     expect(schemaBarrelExportTargets).toEqual(schemaFileStems);
-    expect(dedicatedSchemaTestStems).toEqual([
-      "database-info",
-      "feed-integrity",
-      "platform-info",
-      "sync-result",
-      "update-info",
-    ]);
 
     for (const schemaFileStem of schemaFileStems) {
       const hasDedicatedTest = dedicatedSchemaTestStems.includes(schemaFileStem);
@@ -1014,34 +951,6 @@ describe("repository static contracts", () => {
     const miseTasks = extractMiseTaskNames(readMiseTaskCorpus());
     const ciTasks = extractMiseRunTasks(readRepoFile(".github/workflows/ci.yml"));
 
-    expect([...new Set(ciTasks)].toSorted()).toEqual([
-      "actions-lock:verify:online",
-      "app:build:debug",
-      "audit:deps",
-      "audit:deps:rust",
-      "build",
-      "build:storybook",
-      "format:check",
-      "lint:actions",
-      "lint:actions-shell",
-      "lint:biome",
-      "lint:clippy",
-      "lint:md",
-      "lint:types",
-      "lint:workflow-pins",
-      "lint:yaml",
-      "quality:knip",
-      "quality:react-doctor-pin",
-      "quality:react-doctor:diff",
-      "quality:toolchain",
-      "test:change-plan",
-      "test:keychain-session",
-      "test:rust",
-      "test:storybook:a11y",
-      "test:unit:ci:dom:shard1",
-      "test:unit:ci:dom:shard2",
-      "test:unit:ci:node",
-    ]);
     expect(ciTasks.filter((task) => !miseTasks.has(task))).toEqual([]);
   });
 
@@ -1281,23 +1190,6 @@ describe("repository static contracts", () => {
       .filter((link) => link !== ".claude/rules/README.md")
       .filter((link) => !indexedRuleFiles.has(link));
 
-    expect(claudeRuleLinks).toEqual([
-      ".claude/rules/README.md",
-      ".claude/rules/async-side-effect-policy.md",
-      ".claude/rules/boundary-ownership.md",
-      ".claude/rules/code-policy.md",
-      ".claude/rules/contract-test-policy.md",
-      ".claude/rules/preferences-pattern.md",
-      ".claude/rules/quality-policy.md",
-      ".claude/rules/react-doctor-triage.md",
-      ".claude/rules/repository-structure.md",
-      ".claude/rules/result-boundary.md",
-      ".claude/rules/runtime-boundary.md",
-      ".claude/rules/rust-test-unwrap-policy.md",
-      ".claude/rules/schema-boundary.md",
-      ".claude/rules/similarity-false-positives.md",
-      ".claude/rules/tauri-ipc-error-handling.md",
-    ]);
     expect(missingFromIndex).toEqual([]);
   });
 

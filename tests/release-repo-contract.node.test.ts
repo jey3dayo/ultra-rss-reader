@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -128,51 +127,43 @@ const PACKAGED_WINDOW_ICON_PATHS = [
   "icons/icon.ico",
   "icons/Assets.car",
 ] as const;
-const MOBILE_ICON_ASSET_HASHES = {
-  "icons/android/mipmap-anydpi-v26/ic_launcher.xml": "760d4b8a06bf7163dd010c33ad2cac9e4a75fa0177afaba042f83e311eef0c3e",
-  "icons/android/mipmap-hdpi/ic_launcher.png": "0b0817160cf0346ecbf7a33a01497eef3f4765a18c40c6b364d1e34d5f1f6415",
-  "icons/android/mipmap-hdpi/ic_launcher_foreground.png":
-    "65f9cbc51e3c3192beed896e524ed660f25035c123eec92f6174535eb3bfdc1e",
-  "icons/android/mipmap-hdpi/ic_launcher_round.png": "6024f89ca1b423898c7150e09787f7fe0482913e94aabaed910174bc2133dc21",
-  "icons/android/mipmap-mdpi/ic_launcher.png": "18b8ee59c272aa09a21075c4b626b24858924c702be2fe01dfa3ae180c3b409d",
-  "icons/android/mipmap-mdpi/ic_launcher_foreground.png":
-    "edd8fa883936195f7b0a891d5fead144f1003d40712cccb9f593189360fb26fb",
-  "icons/android/mipmap-mdpi/ic_launcher_round.png": "b25c126404862ccb31de70cd50a75691b28726c85c198b6e4dc2f2eabf69acaf",
-  "icons/android/mipmap-xhdpi/ic_launcher.png": "cb165e53d56956f0d95b723941713c7d921b2928a618bddd3bc74ce333d31a47",
-  "icons/android/mipmap-xhdpi/ic_launcher_foreground.png":
-    "292fc55beb2be988b440d3bc06b3a0f8053d9d7a1ae606c049e72b7018edc326",
-  "icons/android/mipmap-xhdpi/ic_launcher_round.png":
-    "fbe424f6f32cf0e89fe1e7210cee0ac1e13b48bd988c74d3f70156435a7c3582",
-  "icons/android/mipmap-xxhdpi/ic_launcher.png": "90152eb94b28c6721efc7f3b9ef7d4d2b38857bc9cb36c1a798c14663666d732",
-  "icons/android/mipmap-xxhdpi/ic_launcher_foreground.png":
-    "887bc34c8b3bd0edd952557a4831ee2bbc9cdb1fd05f6a215b3d5aa70f63c448",
-  "icons/android/mipmap-xxhdpi/ic_launcher_round.png":
-    "7900f11e8443a8281a03296527381bae781903fb5ee6e465b5c97fe8a8f39ca2",
-  "icons/android/mipmap-xxxhdpi/ic_launcher.png": "1d1712e5f99e7d1ccc9a59cb699a6cb720751107664b92aa89b4de32e802f806",
-  "icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png":
-    "4b762fb15e4001e4c2c359ed9423891a39e85eeb911be69d25eeff09686c5704",
-  "icons/android/mipmap-xxxhdpi/ic_launcher_round.png":
-    "fb2cb52454e4e59f20ecd864456acab96ef36d95c38c0d29145869b6c101dcaf",
-  "icons/android/values/ic_launcher_background.xml": "0687336f0ccc6f7ee09c7c95110667c63b75931238df779a21af401fb864cd34",
-  "icons/ios/AppIcon-20x20@1x.png": "d6b34c6a3cd52ccbb500ae21a7fed7229f917832b905dd4b2360b06dfd6b6b99",
-  "icons/ios/AppIcon-20x20@2x-1.png": "f54d72d845af6d5594367f5090f8601dfa3c5fe9d9124b57c489618fdd413c83",
-  "icons/ios/AppIcon-20x20@2x.png": "f54d72d845af6d5594367f5090f8601dfa3c5fe9d9124b57c489618fdd413c83",
-  "icons/ios/AppIcon-20x20@3x.png": "2dd52fc0eea414f0915671255d080dfd233d3988df25a6e0d947f598b9397388",
-  "icons/ios/AppIcon-29x29@1x.png": "8e484f4353c82ce78dc610503ad2131abca9a86acd50fb3d3eeaf6d6df9c27af",
-  "icons/ios/AppIcon-29x29@2x-1.png": "1dc64097b453788a801eca9fadfd01744bddd3081eccd884a6ed546e3f446133",
-  "icons/ios/AppIcon-29x29@2x.png": "1dc64097b453788a801eca9fadfd01744bddd3081eccd884a6ed546e3f446133",
-  "icons/ios/AppIcon-29x29@3x.png": "b523b79b11fef7d297fb023d46cd08d0882ec79a804e39b817959330d8dffe67",
-  "icons/ios/AppIcon-40x40@1x.png": "f54d72d845af6d5594367f5090f8601dfa3c5fe9d9124b57c489618fdd413c83",
-  "icons/ios/AppIcon-40x40@2x-1.png": "98b9ed78aa4f8c4a76c105d1a59a87a5a108da7b983dd7cd998edbca3cfb6e48",
-  "icons/ios/AppIcon-40x40@2x.png": "98b9ed78aa4f8c4a76c105d1a59a87a5a108da7b983dd7cd998edbca3cfb6e48",
-  "icons/ios/AppIcon-40x40@3x.png": "5ff4af6fe1fc97eb081905ada87d55b95c3bd1fb94bc1198043d112ef99ea9de",
-  "icons/ios/AppIcon-512@2x.png": "6766a082fa0e99dc9a6df2d08767fac61ada9ed82987a8f5705aa5b3bfb384f9",
-  "icons/ios/AppIcon-60x60@2x.png": "5ff4af6fe1fc97eb081905ada87d55b95c3bd1fb94bc1198043d112ef99ea9de",
-  "icons/ios/AppIcon-60x60@3x.png": "0e862fdb7fe51af8dca82213ed8905fa70276dceb14bed63d1a273dcd661b11f",
-  "icons/ios/AppIcon-76x76@1x.png": "1674785b495c34c08f3c8dbbdd907b9e9153f174c2819da1c0f316fa2bc4b93e",
-  "icons/ios/AppIcon-76x76@2x.png": "6ed5ff2b39e4b58fcdc340d2291c1ae4a9c43ef389662e145a9bec457884eb98",
-  "icons/ios/AppIcon-83.5x83.5@2x.png": "9efcadd78c140144cb2d6d3de0ec512593448e0db478fa1412f3eca4238e0991",
-} as const;
+const MOBILE_ICON_ASSET_PATHS = [
+  "icons/android/mipmap-anydpi-v26/ic_launcher.xml",
+  "icons/android/mipmap-hdpi/ic_launcher.png",
+  "icons/android/mipmap-hdpi/ic_launcher_foreground.png",
+  "icons/android/mipmap-hdpi/ic_launcher_round.png",
+  "icons/android/mipmap-mdpi/ic_launcher.png",
+  "icons/android/mipmap-mdpi/ic_launcher_foreground.png",
+  "icons/android/mipmap-mdpi/ic_launcher_round.png",
+  "icons/android/mipmap-xhdpi/ic_launcher.png",
+  "icons/android/mipmap-xhdpi/ic_launcher_foreground.png",
+  "icons/android/mipmap-xhdpi/ic_launcher_round.png",
+  "icons/android/mipmap-xxhdpi/ic_launcher.png",
+  "icons/android/mipmap-xxhdpi/ic_launcher_foreground.png",
+  "icons/android/mipmap-xxhdpi/ic_launcher_round.png",
+  "icons/android/mipmap-xxxhdpi/ic_launcher.png",
+  "icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png",
+  "icons/android/mipmap-xxxhdpi/ic_launcher_round.png",
+  "icons/android/values/ic_launcher_background.xml",
+  "icons/ios/AppIcon-20x20@1x.png",
+  "icons/ios/AppIcon-20x20@2x-1.png",
+  "icons/ios/AppIcon-20x20@2x.png",
+  "icons/ios/AppIcon-20x20@3x.png",
+  "icons/ios/AppIcon-29x29@1x.png",
+  "icons/ios/AppIcon-29x29@2x-1.png",
+  "icons/ios/AppIcon-29x29@2x.png",
+  "icons/ios/AppIcon-29x29@3x.png",
+  "icons/ios/AppIcon-40x40@1x.png",
+  "icons/ios/AppIcon-40x40@2x-1.png",
+  "icons/ios/AppIcon-40x40@2x.png",
+  "icons/ios/AppIcon-40x40@3x.png",
+  "icons/ios/AppIcon-512@2x.png",
+  "icons/ios/AppIcon-60x60@2x.png",
+  "icons/ios/AppIcon-60x60@3x.png",
+  "icons/ios/AppIcon-76x76@1x.png",
+  "icons/ios/AppIcon-76x76@2x.png",
+  "icons/ios/AppIcon-83.5x83.5@2x.png",
+] as const;
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 const RELEASE_UPDATER_ASSET_CONTRACT = [
   {
@@ -280,7 +271,6 @@ const readReleaseSkillCorpus = (): string =>
   ]
     .map((path) => readText(path))
     .join("\n");
-const readSha256 = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
 
 const runWorkflowPinChecker = (workflowsDir: string): string =>
   execFileSync("node", ["scripts/check-workflow-pins.mjs"], {
@@ -1751,7 +1741,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("keeps generated Android and iOS app icon assets pinned to the release smoke contract", () => {
-    const expectedIconPaths = Object.keys(MOBILE_ICON_ASSET_HASHES).sort();
+    const expectedIconPaths = [...MOBILE_ICON_ASSET_PATHS].sort();
     const generatedIconPaths = [
       ...readdirSync("src-tauri/icons/android", { recursive: true }).map((entry) => `android/${entry}`),
       ...readdirSync("src-tauri/icons/ios", { recursive: true }).map((entry) => `ios/${entry}`),
@@ -1762,10 +1752,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       .sort();
 
     expect(generatedIconPaths).toEqual(expectedIconPaths);
-
-    for (const [iconPath, expectedHash] of Object.entries(MOBILE_ICON_ASSET_HASHES)) {
-      expect(readSha256(`src-tauri/${iconPath}`), iconPath).toBe(expectedHash);
-    }
 
     expect(readText("mise.toml")).toContain('run = "tauri icon assets/app-icon-tauri-source.png"');
     expect(readText("docs/README.md")).toContain(

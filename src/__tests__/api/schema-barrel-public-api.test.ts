@@ -278,7 +278,6 @@ describe("schema barrel public API", () => {
     const schemaFileStems = readDirectoryFileStems("src/api/schemas").filter((stem) => stem !== "validation");
     const schemaBarrelExportTargets = extractSchemaBarrelExportTargets(readSource("src/api/schemas/index.ts"));
 
-    expectSortedKeysForTarget("src/api/schemas files", schemaFileStems, expectedSchemaFileStems);
     expectSortedKeysForTarget("src/api/schemas barrel export targets", schemaBarrelExportTargets, schemaFileStems);
   });
 

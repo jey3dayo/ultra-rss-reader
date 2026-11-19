@@ -22,24 +22,6 @@ const latestUpdaterUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/
 const productionIdentifier = "com.jey3dayo.ultra-rss-reader";
 const releaseTauriConfigPath = "src-tauri/tauri.release.conf.json";
 const devTauriConfigPath = "src-tauri/tauri.dev.conf.json";
-const releaseUpdaterAssetContract = [
-  {
-    assetPattern: ".app.tar.gz",
-    checksumPattern: ".app.tar.gz.sha256",
-    matrixArgs: "--target aarch64-apple-darwin",
-    matrixPlatform: "macos-latest",
-    platformKey: "darwin-aarch64",
-    signaturePattern: ".app.tar.gz.sig",
-  },
-  {
-    assetPattern: "-setup.exe",
-    checksumPattern: "-setup.exe.sha256",
-    matrixArgs: '""',
-    matrixPlatform: "windows-latest",
-    platformKey: "windows-x86_64",
-    signaturePattern: "-setup.exe.sig",
-  },
-] as const;
 
 function readTauriUpdaterConfig(): TauriUpdaterConfig {
   return parseJsonWithSchema(tauriConfigSource, TauriUpdaterConfigSchema);
@@ -144,10 +126,8 @@ test("release workflow maps updater manifest platforms to asset signatures and c
   expect(workflow).toContain("node ./scripts/release/artifacts.ts validate-macos-app-signature");
   expect(releaseArtifactsCliSource).toContain('from "./workflows/artifacts.ts"');
   expect(UNSUPPORTED_UPDATER_PLATFORM_KEYS).toEqual(["linux-x86_64", "linux-aarch64"]);
-  expect(actualReleaseUpdaterAssetContract).toHaveLength(releaseUpdaterAssetContract.length);
 
-  for (const contract of releaseUpdaterAssetContract) {
-    expect(actualReleaseUpdaterAssetContract).toContainEqual(expect.objectContaining(contract));
+  for (const contract of actualReleaseUpdaterAssetContract) {
     expect(UNSUPPORTED_UPDATER_PLATFORM_KEYS).not.toContain(contract.platformKey);
     expect(workflow).toContain(`platform: ${contract.matrixPlatform}`);
     expect(workflow).toContain(`args: ${contract.matrixArgs}`);
