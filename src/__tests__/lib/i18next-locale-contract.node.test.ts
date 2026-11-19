@@ -707,11 +707,6 @@ describe("i18next locale contract", () => {
         ja: { one: "このアカウントで 1 件の購読", other: "このアカウントで 2 件の購読" },
       },
       {
-        key: "subscriptions:summary_review_caption",
-        en: { one: "1 feed is waiting for review", other: "2 feeds are waiting for review" },
-        ja: { one: "1 件が見直し待ちです", other: "2 件が見直し待ちです" },
-      },
-      {
         key: "subscriptions:summary_stale_caption",
         en: {
           one: "1 subscription has had no updates for 90+ days",

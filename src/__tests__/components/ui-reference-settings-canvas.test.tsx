@@ -520,10 +520,9 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
     const summaryFilterCardFrame = screen.getByTestId("reference-summary-filter-card-frame");
     expect(summaryFilterCardFrame.querySelectorAll(".t-digit-group")).toHaveLength(0);
-    expect(within(summaryFilterCardFrame).getByText("12")).toHaveClass("tabular-nums");
-    expect(
-      within(screen.getByTestId("reference-summary-filter-card-frame")).getByRole("button", { name: /確認待ち/ }),
-    ).toHaveAttribute("aria-pressed", "false");
+    const staleFilterCard = within(summaryFilterCardFrame).getByRole("button", { name: /^90日以上未更新/ });
+    expect(within(staleFilterCard).getByText("8")).toHaveClass("tabular-nums");
+    expect(staleFilterCard).toHaveAttribute("aria-pressed", "false");
     expect(
       within(screen.getByTestId("reference-summary-filter-card-frame")).queryByRole("button", { name: /同期状態/ }),
     ).not.toBeInTheDocument();

@@ -1309,9 +1309,9 @@ describe("useUiStore", () => {
   });
 
   it("validates subscriptions index return state before storing it", () => {
-    const returnState = {
+    const legacyReturnState: unknown = {
       accountId: " acc-1 ",
-      activeSummaryFilter: "stale",
+      activeSummaryFilter: "review",
       selectedFeedId: " feed-1 ",
       expandedGroups: {
         "group:subscription-list:1-folder:folder-1": false,
@@ -1323,15 +1323,18 @@ describe("useUiStore", () => {
       },
       keptFeedIds: [" feed-2 "],
       deferredFeedIds: [" feed-3 "],
-    } satisfies Parameters<UiStoreState["openSubscriptionsIndex"]>[0];
+    };
+    const returnState = safeParse(SubscriptionsWorkspaceReturnStateSchema, legacyReturnState);
+    expect(returnState.success).toBe(true);
+    if (!returnState.success) throw new Error("expected legacy subscriptions return state to normalize");
 
-    useUiStore.getState().openSubscriptionsIndex(returnState);
+    useUiStore.getState().openSubscriptionsIndex(returnState.output);
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
       returnState: {
         accountId: "acc-1",
-        activeSummaryFilter: "stale",
+        activeSummaryFilter: "all",
         selectedFeedId: "feed-1",
         expandedGroups: {
           "group:subscription-list:1-folder:folder-1": false,
