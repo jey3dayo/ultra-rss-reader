@@ -1214,7 +1214,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("searchbox")).toHaveValue("");
   });
 
-  it("restores subscriptions state on Escape close and returns focus to the reader pane", async () => {
+  it("closes with Escape during overscroll and returns focus to the reader pane", async () => {
     const user = userEvent.setup();
 
     useUiStore.setState({
@@ -1225,13 +1225,18 @@ describe("SubscriptionsIndexPage", () => {
     });
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+    await screen.findByRole("button", { name: /Example Feed/ });
+    screen.getByTestId("subscriptions-list-scroll-region").scrollTop = -12;
 
     await user.keyboard("{Escape}");
 
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().focusedPane).toBe("content");
-    expect(useUiStore.getState().subscriptionsIndexReturnState?.accountId).toBe("acc-1");
+    expect(useUiStore.getState().subscriptionsIndexReturnState).toMatchObject({
+      accountId: "acc-1",
+      listScrollTop: { scrollTop: 0 },
+    });
   });
 
   it("does not close the subscriptions workspace for an IME commit keydown", async () => {

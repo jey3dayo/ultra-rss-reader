@@ -155,7 +155,7 @@ export function useSubscriptionsIndexViewProps({
       expandedGroups: state.expandedGroups,
       listScrollTop: {
         ...state.listScrollState,
-        scrollTop: scrollRegionRef.current?.scrollTop ?? state.listScrollState.scrollTop,
+        scrollTop: Math.max(0, scrollRegionRef.current?.scrollTop ?? state.listScrollState.scrollTop),
       },
       keptFeedIds: [...state.keptFeedIds],
       deferredFeedIds: [...state.deferredFeedIds],
