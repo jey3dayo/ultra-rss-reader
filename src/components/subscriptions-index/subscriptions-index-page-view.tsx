@@ -12,6 +12,7 @@ import type {
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane, type SubscriptionManagementActions } from "./subscription-detail-pane";
+import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 import {
   SubscriptionsOverviewSummary,
@@ -60,6 +61,7 @@ type SubscriptionsIndexPageViewProps = {
   workspaceScrollRef: RefObject<HTMLDivElement | null>;
   viewportWidth: number;
   scrollReady: boolean;
+  bulkSelection?: SubscriptionsBulkSelection;
   folderLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel: string;
@@ -119,6 +121,7 @@ export function SubscriptionsIndexPageView({
   workspaceScrollRef,
   viewportWidth,
   scrollReady,
+  bulkSelection,
   folderLabel,
   latestArticleLabel,
   latestArticleEmptyLabel,
@@ -187,6 +190,7 @@ export function SubscriptionsIndexPageView({
               workspaceScrollRef={workspaceScrollRef}
               viewportWidth={viewportWidth}
               scrollReady={scrollReady}
+              bulkSelection={bulkSelection}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}
               onSearchQueryChange={onSearchQueryChange}

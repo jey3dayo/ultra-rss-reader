@@ -77,6 +77,8 @@ type UseSubscriptionsIndexViewPropsParams = {
   onCopyDiagnosticId: (diagnosticId: string) => void;
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
+  onRequestBulkUnsubscribe: () => void;
+  bulkToggleRef: RefObject<HTMLButtonElement | null>;
 };
 
 export function useSubscriptionsIndexViewProps({
@@ -103,6 +105,8 @@ export function useSubscriptionsIndexViewProps({
   onCopyDiagnosticId,
   setDeleteTargetFeed,
   setEditTargetFeed,
+  onRequestBulkUnsubscribe,
+  bulkToggleRef,
 }: UseSubscriptionsIndexViewPropsParams) {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
@@ -363,6 +367,33 @@ export function useSubscriptionsIndexViewProps({
     workspaceScrollRef,
     viewportWidth,
     scrollReady: !rowsPending || (!feedListPending && !feedListError && feeds.length === 0),
+    bulkSelection: {
+      mode: state.bulkSelectionMode,
+      checkedFeedIds: state.checkedFeedIds,
+      keptFeedIds: state.keptFeedIds,
+      checkedCount: state.checkedCount,
+      hiddenCheckedCount: state.hiddenCheckedCount,
+      allVisibleCheckState: state.allVisibleCheckState,
+      skippedKeptCount: state.skippedKeptCount,
+      toggleButtonRef: bulkToggleRef,
+      labels: {
+        start: t("bulk_select_start"),
+        end: t("bulk_select_end"),
+        selectAllVisible: (count) => t("bulk_select_all_visible", { count }),
+        selectAllVisibleAria: t("bulk_select_all_visible_aria"),
+        skippedKept: (count) => t("bulk_skipped_kept", { count }),
+        rowSelectAria: (title) => t("bulk_row_select_aria", { title }),
+        keptChip: t("bulk_kept_chip"),
+        selectedCount: (count) => t("bulk_selected_count", { count }),
+        selectedCountHidden: (count, hidden) => t("bulk_selected_count_hidden", { count, hidden }),
+        unsubscribeAction: t("bulk_unsubscribe_action"),
+      },
+      onStart: state.startBulkSelection,
+      onEnd: state.endBulkSelection,
+      onToggleFeed: state.toggleFeedChecked,
+      onToggleAllVisible: state.toggleAllVisibleChecked,
+      onRequestUnsubscribe: onRequestBulkUnsubscribe,
+    },
     latestArticleLabel: t("latest_article"),
     latestArticleEmptyLabel: t("meta_latest_article_none"),
     updateFrequencyLabel: t("update_frequency"),
@@ -396,5 +427,16 @@ export function useSubscriptionsIndexViewProps({
     onSearchQueryChange: state.setSearchQuery,
     onToggleGroup: state.toggleGroup,
   } satisfies SubscriptionsIndexPageViewProps;
-  return { viewProps, captureState, navigateToSummaryFilter: state.navigateToSummaryFilter };
+  const bulk: {
+    selectionMode: boolean;
+    targets: typeof state.bulkTargets;
+    applyResult: typeof state.applyBulkUnsubscribeResult;
+    endSelection: () => void;
+  } = {
+    selectionMode: state.bulkSelectionMode,
+    targets: state.bulkTargets,
+    applyResult: state.applyBulkUnsubscribeResult,
+    endSelection: state.endBulkSelection,
+  };
+  return { viewProps, captureState, navigateToSummaryFilter: state.navigateToSummaryFilter, bulk };
 }

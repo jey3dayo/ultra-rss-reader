@@ -1,6 +1,7 @@
+import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import { ChevronDown, Folder, Search } from "lucide-react";
-import { type RefObject, useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
+import { Fragment, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
@@ -9,11 +10,35 @@ import {
   MOTION_STATE_CLOSED,
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
-import { AppTooltip, Button, FeedFavicon, Input, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
+import {
+  AppTooltip,
+  Button,
+  Checkbox,
+  FeedFavicon,
+  Input,
+  LabelChip,
+  NavRowButton,
+  TooltipProvider,
+} from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import {
+  SubscriptionsBulkActionBar,
+  SubscriptionsBulkSelectAllRow,
+  type SubscriptionsBulkSelection,
+} from "./subscriptions-bulk-selection";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
+
+// Selecting keeps each checkbox and row button as grid siblings, so toggling the mode never remounts the row buttons.
+const subscriptionRowsVariants = cva("pl-9 pt-1", {
+  variants: {
+    selecting: {
+      true: "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5",
+      false: "space-y-1.5",
+    },
+  },
+});
 
 type SubscriptionGroupDisclosureButtonProps = {
   group: SubscriptionListGroup;
@@ -43,6 +68,7 @@ type SubscriptionsListPaneProps = {
   viewportWidth?: number;
   scrollReady?: boolean;
   scrollResetKey?: number;
+  bulkSelection?: SubscriptionsBulkSelection;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
   onSearchQueryChange: (query: string) => void;
@@ -120,6 +146,7 @@ export function SubscriptionsListPane({
   viewportWidth = 1024,
   scrollReady = true,
   scrollResetKey = 0,
+  bulkSelection,
   onSelectFeed,
   onListScrollTopChange,
   onSearchQueryChange,
@@ -138,6 +165,7 @@ export function SubscriptionsListPane({
   const onListScrollTopChangeRef = useRef(onListScrollTopChange);
   const totalRowCount = countSubscriptionGroupRows(groups);
   const hasRows = totalRowCount > 0;
+  const selecting = bulkSelection?.mode === true;
 
   useLayoutEffect(() => {
     onListScrollTopChangeRef.current = onListScrollTopChange;
@@ -208,6 +236,23 @@ export function SubscriptionsListPane({
     [clearPendingScrollTopCommit, commitPendingScrollTop],
   );
 
+  const searchField = (
+    <div className="relative w-full min-w-0 sm:max-w-[20rem]">
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-soft"
+      />
+      <Input
+        type="search"
+        value={searchQuery}
+        aria-label={searchLabel}
+        placeholder={searchPlaceholder}
+        onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
+        className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-3 text-[0.88rem] shadow-none"
+      />
+    </div>
+  );
+
   return (
     <section
       aria-labelledby={headingId}
@@ -230,20 +275,22 @@ export function SubscriptionsListPane({
             </span>
           ) : null}
         </div>
-        <div className="relative w-full sm:max-w-[20rem]">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-soft"
-          />
-          <Input
-            type="search"
-            value={searchQuery}
-            aria-label={searchLabel}
-            placeholder={searchPlaceholder}
-            onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
-            className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-3 text-[0.88rem] shadow-none"
-          />
-        </div>
+        {bulkSelection ? (
+          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:justify-end">
+            {searchField}
+            <Button
+              ref={bulkSelection.toggleButtonRef}
+              type="button"
+              variant="outline"
+              onClick={selecting ? bulkSelection.onEnd : bulkSelection.onStart}
+              className="min-h-11 shrink-0"
+            >
+              {selecting ? bulkSelection.labels.end : bulkSelection.labels.start}
+            </Button>
+          </div>
+        ) : (
+          searchField
+        )}
       </div>
       <div
         ref={scrollRegionRef}
@@ -251,6 +298,9 @@ export function SubscriptionsListPane({
         className="space-y-3 pr-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
+        {bulkSelection && selecting && hasRows ? (
+          <SubscriptionsBulkSelectAllRow bulkSelection={bulkSelection} visibleRowCount={totalRowCount} />
+        ) : null}
         {!hasRows ? (
           <div
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
@@ -293,13 +343,12 @@ export function SubscriptionsListPane({
                   <div className="motion-disclosure-body">
                     <div
                       data-testid={`subscriptions-folder-rows-${group.folderId ?? "ungrouped"}`}
-                      className="space-y-1.5 pl-9 pt-1"
+                      className={subscriptionRowsVariants({ selecting })}
                     >
                       {group.rows.map((row) => {
                         const isSelected = selectedFeedId === row.feed.id;
                         const rowButton = (
                           <NavRowButton
-                            key={row.feed.id}
                             selected={isSelected}
                             aria-pressed={isSelected}
                             onClick={() => onSelectFeed(row.feed.id)}
@@ -346,6 +395,11 @@ export function SubscriptionsListPane({
                                 >
                                   {row.fetchError ? fetchErrorLabel : statusLabels[row.status.labelKey]}
                                 </LabelChip>
+                                {bulkSelection && selecting && bulkSelection.keptFeedIds.has(row.feed.id) ? (
+                                  <LabelChip tone="neutral" size="compact">
+                                    {bulkSelection.labels.keptChip}
+                                  </LabelChip>
+                                ) : null}
                                 <span
                                   aria-hidden="true"
                                   style={{
@@ -372,14 +426,25 @@ export function SubscriptionsListPane({
                           ? (reasonTooltipLabels[row.reasonTooltipKey] ?? (row.fetchError ? fetchErrorLabel : null))
                           : null;
 
-                        return reasonTooltipLabel ? (
-                          <TooltipProvider key={row.feed.id}>
-                            <AppTooltip label={reasonTooltipLabel} side="top" align="start">
-                              {rowButton}
-                            </AppTooltip>
-                          </TooltipProvider>
-                        ) : (
-                          rowButton
+                        return (
+                          <Fragment key={row.feed.id}>
+                            {bulkSelection && selecting ? (
+                              <Checkbox
+                                checked={bulkSelection.checkedFeedIds.has(row.feed.id)}
+                                aria-label={bulkSelection.labels.rowSelectAria(row.feed.title)}
+                                onCheckedChange={() => bulkSelection.onToggleFeed(row.feed.id)}
+                              />
+                            ) : null}
+                            {reasonTooltipLabel ? (
+                              <TooltipProvider>
+                                <AppTooltip label={reasonTooltipLabel} side="top" align="start">
+                                  {rowButton}
+                                </AppTooltip>
+                              </TooltipProvider>
+                            ) : (
+                              rowButton
+                            )}
+                          </Fragment>
                         );
                       })}
                     </div>
@@ -390,6 +455,7 @@ export function SubscriptionsListPane({
           })
         )}
       </div>
+      {bulkSelection && selecting ? <SubscriptionsBulkActionBar bulkSelection={bulkSelection} /> : null}
     </section>
   );
 }

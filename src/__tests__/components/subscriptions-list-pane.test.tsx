@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
+import type { SubscriptionsBulkSelection } from "@/components/subscriptions-index/subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
@@ -49,6 +50,7 @@ function renderListPane(
     onSelectFeed?: (feedId: string) => void;
     onListScrollTopChange?: (scrollTop: number) => void;
     reasonTooltipLabels?: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
+    bulkSelection?: SubscriptionsBulkSelection;
   },
 ) {
   const groups: SubscriptionListGroup[] = options?.groups ?? [
@@ -72,6 +74,7 @@ function renderListPane(
       isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
       initialScrollTop={options?.initialScrollTop}
       scrollResetKey={options?.scrollResetKey}
+      bulkSelection={options?.bulkSelection}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
       onListScrollTopChange={options?.onListScrollTopChange}
       onSearchQueryChange={vi.fn()}
@@ -79,6 +82,179 @@ function renderListPane(
     />,
   );
 }
+
+function buildBulkSelection(overrides: Partial<SubscriptionsBulkSelection> = {}): SubscriptionsBulkSelection {
+  return {
+    mode: true,
+    checkedFeedIds: new Set(),
+    keptFeedIds: new Set(),
+    checkedCount: 0,
+    hiddenCheckedCount: 0,
+    allVisibleCheckState: "none",
+    skippedKeptCount: 0,
+    toggleButtonRef: { current: null },
+    labels: {
+      start: "まとめて選択",
+      end: "選択を終了",
+      selectAllVisible: (count) => `表示中をすべて選択(${count}件)`,
+      selectAllVisibleAria: "表示中の購読をすべて選択",
+      skippedKept: (count) => `「残す」の${count}件は含みません`,
+      rowSelectAria: (title) => `${title}を選択`,
+      keptChip: "残す",
+      selectedCount: (count) => `${count}件を選択中`,
+      selectedCountHidden: (count, hidden) => `${count}件を選択中(検索で非表示${hidden}件)`,
+      unsubscribeAction: "購読解除…",
+    },
+    onStart: vi.fn(),
+    onEnd: vi.fn(),
+    onToggleFeed: vi.fn(),
+    onToggleAllVisible: vi.fn(),
+    onRequestUnsubscribe: vi.fn(),
+    ...overrides,
+  };
+}
+
+function buildBulkRows(): SubscriptionListRow[] {
+  return ["alpha", "beta"].map((id) => ({
+    feed: buildFeed({ id, title: `${id} feed` }),
+    folderId: null,
+    folderName: null,
+    latestArticleAt: null,
+    recentArticleCount: 0,
+    status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: null,
+  }));
+}
+
+describe("SubscriptionsListPane bulk selection", () => {
+  it("shows no checkboxes or action bar until selection mode starts, and offers the start toggle", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    renderListPane(buildBulkRows(), { bulkSelection: buildBulkSelection({ mode: false, onStart }) });
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "まとめて選択" }));
+
+    expect(onStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles the same header button into an end action while selecting", async () => {
+    const user = userEvent.setup();
+    const onEnd = vi.fn();
+    renderListPane(buildBulkRows(), { bulkSelection: buildBulkSelection({ onEnd }) });
+
+    const section = screen.getByRole("region", { name: "全購読" });
+    const headerToggle = within(section).getAllByRole("button", { name: "選択を終了" })[0];
+    await user.click(headerToggle);
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "まとめて選択" })).not.toBeInTheDocument();
+  });
+
+  it("toggles a row checkbox without selecting the row, and still opens the row on click", async () => {
+    const user = userEvent.setup();
+    const onToggleFeed = vi.fn();
+    const onSelectFeed = vi.fn();
+    renderListPane(buildBulkRows(), {
+      onSelectFeed,
+      bulkSelection: buildBulkSelection({ checkedFeedIds: new Set(["beta"]), checkedCount: 1, onToggleFeed }),
+    });
+
+    expect(screen.getByRole("checkbox", { name: "alpha feedを選択" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "beta feedを選択" })).toBeChecked();
+
+    await user.click(screen.getByRole("checkbox", { name: "alpha feedを選択" }));
+    expect(onToggleFeed).toHaveBeenCalledExactlyOnceWith("alpha");
+    expect(onSelectFeed).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /alpha feed/ }));
+    expect(onSelectFeed).toHaveBeenCalledExactlyOnceWith("alpha");
+    expect(onToggleFeed).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the row checkbox outside the row button", () => {
+    renderListPane(buildBulkRows(), { bulkSelection: buildBulkSelection() });
+
+    const checkbox = screen.getByRole("checkbox", { name: "alpha feedを選択" });
+    expect(checkbox.closest("button")).toBeNull();
+  });
+
+  it("reflects the select-all state as checked or indeterminate and toggles it", async () => {
+    const user = userEvent.setup();
+    const onToggleAllVisible = vi.fn();
+    renderListPane(buildBulkRows(), {
+      bulkSelection: buildBulkSelection({ allVisibleCheckState: "some", onToggleAllVisible }),
+    });
+
+    const selectAll = screen.getByRole("checkbox", { name: "表示中の購読をすべて選択" });
+    expect(selectAll).toHaveAttribute("aria-checked", "mixed");
+    expect(screen.getByText("表示中をすべて選択(2件)")).toBeInTheDocument();
+
+    await user.click(screen.getByText("表示中をすべて選択(2件)"));
+    expect(onToggleAllVisible).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows select-all as checked when every visible row is checked", () => {
+    renderListPane(buildBulkRows(), { bulkSelection: buildBulkSelection({ allVisibleCheckState: "all" }) });
+
+    expect(screen.getByRole("checkbox", { name: "表示中の購読をすべて選択" })).toBeChecked();
+  });
+
+  it("notes skipped Keep feeds only when some were skipped", () => {
+    const { unmount } = renderListPane(buildBulkRows(), {
+      bulkSelection: buildBulkSelection({ keptFeedIds: new Set(["alpha"]), skippedKeptCount: 1 }),
+    });
+    expect(screen.getByText("「残す」の1件は含みません")).toBeInTheDocument();
+    unmount();
+
+    renderListPane(buildBulkRows(), { bulkSelection: buildBulkSelection({ keptFeedIds: new Set(["alpha"]) }) });
+    expect(screen.queryByText(/含みません/)).not.toBeInTheDocument();
+  });
+
+  it("marks Keep rows only while selecting", () => {
+    const { unmount } = renderListPane(buildBulkRows(), {
+      bulkSelection: buildBulkSelection({ keptFeedIds: new Set(["alpha"]), skippedKeptCount: 1 }),
+    });
+    expect(within(screen.getByRole("button", { name: /alpha feed/ })).getByText("残す")).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: /beta feed/ })).queryByText("残す")).not.toBeInTheDocument();
+    unmount();
+
+    renderListPane(buildBulkRows(), {
+      bulkSelection: buildBulkSelection({ mode: false, keptFeedIds: new Set(["alpha"]), skippedKeptCount: 1 }),
+    });
+    expect(screen.queryByText("残す")).not.toBeInTheDocument();
+    expect(screen.queryByText(/含みません/)).not.toBeInTheDocument();
+  });
+
+  it("disables the unsubscribe action until something is checked and routes the request", async () => {
+    const user = userEvent.setup();
+    const onRequestUnsubscribe = vi.fn();
+    const { unmount } = renderListPane(buildBulkRows(), {
+      bulkSelection: buildBulkSelection({ onRequestUnsubscribe }),
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("0件を選択中");
+    expect(screen.getByRole("button", { name: "購読解除…" })).toBeDisabled();
+    unmount();
+
+    renderListPane(buildBulkRows(), {
+      bulkSelection: buildBulkSelection({ checkedFeedIds: new Set(["alpha"]), checkedCount: 1, onRequestUnsubscribe }),
+    });
+    await user.click(screen.getByRole("button", { name: "購読解除…" }));
+
+    expect(onRequestUnsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells how many checked feeds are hidden by the current search", () => {
+    renderListPane(buildBulkRows(), {
+      bulkSelection: buildBulkSelection({ checkedCount: 3, hiddenCheckedCount: 2 }),
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("3件を選択中(検索で非表示2件)");
+  });
+});
 
 describe("SubscriptionsListPane", () => {
   it("names the list pane region from its visible heading", () => {

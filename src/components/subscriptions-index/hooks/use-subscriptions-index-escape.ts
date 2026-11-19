@@ -10,7 +10,10 @@ export function useSubscriptionsIndexEscape(
   hasOpenFeedDialog: boolean,
   closeSubscriptionsWorkspace: () => void,
   selectOpen = false,
+  endBulkSelection?: { active: boolean; end: () => void },
 ) {
+  const endActiveBulkSelection = endBulkSelection?.active ? endBulkSelection.end : null;
+
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {
       const target = event.target;
@@ -31,9 +34,13 @@ export function useSubscriptionsIndexEscape(
 
       event.preventDefault();
       event.stopPropagation();
-      closeSubscriptionsWorkspace();
+      if (endActiveBulkSelection) {
+        endActiveBulkSelection();
+      } else {
+        closeSubscriptionsWorkspace();
+      }
     });
 
     return bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
-  }, [closeSubscriptionsWorkspace, hasOpenFeedDialog, selectOpen]);
+  }, [closeSubscriptionsWorkspace, endActiveBulkSelection, hasOpenFeedDialog, selectOpen]);
 }
