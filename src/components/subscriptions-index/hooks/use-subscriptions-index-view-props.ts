@@ -1,5 +1,5 @@
-import type { ComponentProps } from "react";
-import { useEffect, useEffectEvent, useMemo, useRef } from "react";
+import type { ComponentProps, RefObject } from "react";
+import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   ArticleDto,
@@ -43,7 +43,6 @@ import type {
 } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import { useUiStore } from "@/stores/ui-store";
-import type { SubscriptionsIndexNavigationRequest } from "@/stores/ui-store.types";
 import type { SubscriptionsIndexPageView } from "../subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
 import {
@@ -61,20 +60,21 @@ type UseSubscriptionsIndexViewPropsParams = {
   feedArticleSummaries: FeedArticleSummaryDto[];
   reviewClock: Date;
   viewportHeight: number;
+  viewportWidth: number;
+  workspaceScrollRef: RefObject<HTMLDivElement | null>;
   scopedIndexReturnState: SubscriptionsWorkspaceReturnState | null;
-  scopedNavigationRequest: SubscriptionsIndexNavigationRequest | null;
   selectedAccountId: string | null;
   isLocalAccount: boolean;
   feedSyncStatuses: LocalFeedSyncStatusDto[] | undefined;
   feedSyncStatusesPending: boolean;
   feedSyncStatusesError: boolean;
   feedListPending: boolean;
+  rowsPending: boolean;
   feedListError: boolean;
   onRetryFeed: (feedId: string) => void;
   onEditFeed: (feedId: string) => void;
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
-  closeSubscriptionsWorkspace: (returnState: SubscriptionsWorkspaceReturnState) => void;
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
 };
@@ -86,20 +86,21 @@ export function useSubscriptionsIndexViewProps({
   feedArticleSummaries,
   reviewClock,
   viewportHeight,
+  viewportWidth,
+  workspaceScrollRef,
   scopedIndexReturnState,
-  scopedNavigationRequest,
   selectedAccountId,
   isLocalAccount,
   feedSyncStatuses,
   feedSyncStatusesPending,
   feedSyncStatusesError,
   feedListPending,
+  rowsPending,
   feedListError,
   onRetryFeed,
   onEditFeed,
   isRetryingFeed,
   onCopyDiagnosticId,
-  closeSubscriptionsWorkspace,
   setDeleteTargetFeed,
   setEditTargetFeed,
 }: UseSubscriptionsIndexViewPropsParams) {
@@ -135,54 +136,39 @@ export function useSubscriptionsIndexViewProps({
   );
 
   const state = useSubscriptionsIndexState(rows, {
-    initialSummaryFilter: scopedNavigationRequest?.summaryFilter ?? scopedIndexReturnState?.activeSummaryFilter,
-    initialSelectedFeedId: scopedNavigationRequest ? null : scopedIndexReturnState?.selectedFeedId,
+    initialSummaryFilter: scopedIndexReturnState?.activeSummaryFilter,
+    initialSelectedFeedId: scopedIndexReturnState?.selectedFeedId,
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
-    initialSearchQuery: scopedNavigationRequest ? "" : scopedIndexReturnState?.searchQuery,
-    initialListScrollState: scopedNavigationRequest ? undefined : scopedIndexReturnState?.listScrollTop,
+    initialSearchQuery: scopedIndexReturnState?.searchQuery,
+    initialListScrollState: scopedIndexReturnState?.listScrollTop,
     viewportHeight,
+    viewportWidth,
+    selectionReady: !rowsPending,
   });
   const scrollRegionRef = useRef<HTMLDivElement | null>(null);
-  const closeWithCurrentState = () =>
-    closeSubscriptionsWorkspace({
-      accountId: selectedAccountId,
-      activeSummaryFilter: state.activeSummaryFilter,
-      selectedFeedId: state.selectedFeedId,
-      expandedGroups: state.expandedGroups,
-      listScrollTop: {
-        ...state.listScrollState,
-        scrollTop: Math.max(0, scrollRegionRef.current?.scrollTop ?? state.listScrollState.scrollTop),
-      },
-      keptFeedIds: [...state.keptFeedIds],
-      deferredFeedIds: [...state.deferredFeedIds],
-      searchQuery: state.searchQuery,
-    });
-  const consumedNavigationRequest = useRef(scopedNavigationRequest);
-  const consumeNavigationRequest = useEffectEvent(() => {
-    const currentStore = useUiStore.getState();
-    const request =
-      currentStore.subscriptionsWorkspace?.kind === "index"
-        ? currentStore.subscriptionsWorkspace.navigationRequest
-        : undefined;
-    if (
-      !request ||
-      request === consumedNavigationRequest.current ||
-      request.accountId !== selectedAccountId ||
-      currentStore.selectedAccountId !== selectedAccountId
-    ) {
-      return;
-    }
-    consumedNavigationRequest.current = request;
-    state.navigateToSummaryFilter(request.summaryFilter);
+  const preservePendingScroll = rowsPending && scopedIndexReturnState !== null;
+  const captureState = (): SubscriptionsWorkspaceReturnState => ({
+    accountId: selectedAccountId,
+    activeSummaryFilter: state.activeSummaryFilter,
+    selectedFeedId: state.selectedFeedId,
+    expandedGroups: state.expandedGroups,
+    listScrollTop: {
+      ...state.listScrollState,
+      ...(preservePendingScroll ? {} : { viewportWidth }),
+      scrollTop: Math.max(
+        0,
+        preservePendingScroll
+          ? state.listScrollState.scrollTop
+          : ((viewportWidth < 1024 ? workspaceScrollRef.current : scrollRegionRef.current)?.scrollTop ??
+              state.listScrollState.scrollTop),
+      ),
+    },
+    keptFeedIds: [...state.keptFeedIds],
+    deferredFeedIds: [...state.deferredFeedIds],
+    searchQuery: state.searchQuery,
   });
-
-  useEffect(() => {
-    const unsubscribe = useUiStore.subscribe(() => consumeNavigationRequest());
-    consumeNavigationRequest();
-    return unsubscribe;
-  }, []);
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
     selectedRow: state.selectedRow,
     articles: accountArticles,
@@ -305,9 +291,7 @@ export function useSubscriptionsIndexViewProps({
         }
       : null;
 
-  return {
-    title: t("title"),
-    subtitle: t("subtitle"),
+  const viewProps = {
     summaryCards,
     summaryLabels: {
       activeBadge: t("summary_active_badge"),
@@ -376,6 +360,9 @@ export function useSubscriptionsIndexViewProps({
     listScrollResetKey: state.listScrollResetKey,
     listScrollTop: state.listScrollTop,
     scrollRegionRef,
+    workspaceScrollRef,
+    viewportWidth,
+    scrollReady: !rowsPending || (!feedListPending && !feedListError && feeds.length === 0),
     latestArticleLabel: t("latest_article"),
     latestArticleEmptyLabel: t("meta_latest_article_none"),
     updateFrequencyLabel: t("update_frequency"),
@@ -402,13 +389,12 @@ export function useSubscriptionsIndexViewProps({
     displayModeValue: selectedDisplayModeLabel,
     decisionActions,
     managementActions,
-    closeLabel: tc("close"),
     isGroupExpanded: state.isGroupExpanded,
     onSelectSummaryFilter: state.setActiveSummaryFilter,
     onSelectFeed: state.setSelectedFeedId,
     onListScrollTopChange: state.setListScrollTop,
     onSearchQueryChange: state.setSearchQuery,
     onToggleGroup: state.toggleGroup,
-    onClose: closeWithCurrentState,
   } satisfies SubscriptionsIndexPageViewProps;
+  return { viewProps, captureState, navigateToSummaryFilter: state.navigateToSummaryFilter };
 }

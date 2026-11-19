@@ -3222,7 +3222,7 @@ describe("ArticleView", () => {
       selection: { type: "feed", feedId: "feed-1" },
       selectedArticleId: "art-1",
       contentMode: "reader",
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: null },
     });
 
     render(<ArticleView />, { wrapper: createWrapper() });

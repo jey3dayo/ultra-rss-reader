@@ -7,11 +7,13 @@ import type { FeedEditDialogProps } from "./feed-edit-dialog.types";
 import { FeedEditDialogView } from "./feed-edit-dialog-view";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
-export function FeedEditDialog({ feed, open, onOpenChange }: FeedEditDialogProps) {
+export function FeedEditDialog({ feed, open, onOpenChange, accountScope }: FeedEditDialogProps) {
   const folderLabelId = useId();
   const [unsubscribeOpen, setUnsubscribeOpen] = useState(false);
   const deleteFeedMutation = useDeleteFeed();
-  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
+  const selectedAccountId = useUiStore((s) =>
+    accountScope === "subscriptions" ? (s.subscriptionsWorkspace?.accountId ?? null) : s.selectedAccountId,
+  );
   const isStale = feed.account_id !== selectedAccountId;
 
   // Shared claim covering both save (handleSubmit, in the controller) and unsubscribe
@@ -27,7 +29,10 @@ export function FeedEditDialog({ feed, open, onOpenChange }: FeedEditDialogProps
     // Read the store at execution time rather than relying on the `selectedAccountId`
     // captured above: a stale closure (e.g. a handler created before an account switch)
     // must still be stopped from starting a new operation against the old account.
-    if (feed.account_id !== useUiStore.getState().selectedAccountId) {
+    const current = useUiStore.getState();
+    const accountId =
+      accountScope === "subscriptions" ? current.subscriptionsWorkspace?.accountId : current.selectedAccountId;
+    if (feed.account_id !== accountId) {
       return false;
     }
     operationActiveRef.current = true;

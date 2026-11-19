@@ -31,7 +31,13 @@ import type {
 import { useUiStore } from "../../stores/ui-store";
 
 type ExpectedUiStoreReaderActions = UiStoreReaderSelectionActions &
-  Pick<UiStoreState, "openSubscriptionsIndex" | "closeSubscriptionsWorkspace">;
+  Pick<
+    UiStoreState,
+    | "openSubscriptionsIndex"
+    | "closeSubscriptionsWorkspace"
+    | "switchSubscriptionsAccount"
+    | "consumeSubscriptionsNavigationRequest"
+  >;
 
 function getReaderStateSnapshot(state: UiStoreReaderState) {
   return {
@@ -190,7 +196,7 @@ describe("useUiStore", () => {
       settingsAddAccount: false,
       settingsAddAccountInitialKind: "FreshRss",
       settingsLoading: true,
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: null },
       syncProgress: {
         active: true,
         sessionId: 1,
@@ -1268,6 +1274,7 @@ describe("useUiStore", () => {
     useUiStore.getState().openSubscriptionsIndex();
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: null,
     });
     expect(useUiStore.getState().focusedPane).toBe("content");
     expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
@@ -1281,7 +1288,7 @@ describe("useUiStore", () => {
   it("keeps reader article and feed selection unchanged while subscriptions workspace is open", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: null },
       selection: { type: "feed", feedId: "feed-before" },
       selectedArticleId: "article-before",
       contentMode: "reader",
@@ -1296,6 +1303,7 @@ describe("useUiStore", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: null,
     });
     expect(useUiStore.getState().selection).toEqual({
       type: "feed",
@@ -1328,10 +1336,12 @@ describe("useUiStore", () => {
     expect(returnState.success).toBe(true);
     if (!returnState.success) throw new Error("expected legacy subscriptions return state to normalize");
 
+    useUiStore.setState({ selectedAccountId: "acc-1" });
     useUiStore.getState().openSubscriptionsIndex(returnState.output);
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
       returnState: {
         accountId: "acc-1",
         activeSummaryFilter: "all",
@@ -1399,6 +1409,7 @@ describe("useUiStore", () => {
       }).success,
     ).toBe(true);
 
+    useUiStore.getState().closeSubscriptionsWorkspace();
     expect(() =>
       useUiStore.getState().openSubscriptionsIndex({
         accountId: "acc-1",
@@ -1432,9 +1443,11 @@ describe("useUiStore", () => {
     } satisfies Parameters<UiStoreState["openSubscriptionsIndex"]>[0];
 
     expect(safeParse(SubscriptionsWorkspaceReturnStateSchema, returnState).success).toBe(true);
+    useUiStore.setState({ selectedAccountId: "acc-1" });
     expect(() => useUiStore.getState().openSubscriptionsIndex(returnState)).not.toThrow();
     expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
       kind: "index",
+      accountId: "acc-1",
       returnState: { activeSummaryFilter: "frequent" },
     });
   });

@@ -138,31 +138,42 @@ function areReaderSelectionsEqual(
 }
 
 function createFetchErrorsNavigationScreenGuard(): FetchErrorsNavigationScreenGuard {
-  const initialScreen = captureFetchErrorsNavigationScreen(useUiStore.getState());
+  let currentScreen = captureFetchErrorsNavigationScreen(useUiStore.getState());
+  let pendingRequest = currentScreen.subscriptionsWorkspace?.navigationRequest;
   let changed = false;
   let stopped = false;
-  const unsubscribe = useUiStore.subscribe((state) => {
-    if (!areFetchErrorsNavigationScreensEqual(initialScreen, captureFetchErrorsNavigationScreen(state))) {
+  const observe = (state: ReturnType<typeof useUiStore.getState>) => {
+    const nextScreen = captureFetchErrorsNavigationScreen(state);
+    if (areFetchErrorsNavigationScreensEqual(currentScreen, nextScreen)) return;
+    const previousWorkspace = currentScreen.subscriptionsWorkspace;
+    const nextWorkspace = nextScreen.subscriptionsWorkspace;
+    const requestApplied =
+      pendingRequest &&
+      previousWorkspace &&
+      nextWorkspace &&
+      previousWorkspace.navigationRequest === pendingRequest &&
+      ((nextWorkspace.accountId === pendingRequest.accountId &&
+        (nextWorkspace.navigationRequest === pendingRequest || nextWorkspace.navigationRequest === undefined)) ||
+        (nextWorkspace.accountId === previousWorkspace.accountId &&
+          nextWorkspace.returnState === previousWorkspace.returnState &&
+          nextWorkspace.navigationRequest === undefined)) &&
+      areFetchErrorsNavigationScreensEqual(currentScreen, { ...nextScreen, subscriptionsWorkspace: previousWorkspace });
+    if (!requestApplied) {
       changed = true;
-    }
-  });
-  const stop = () => {
-    if (stopped) {
       return;
     }
+    currentScreen = nextScreen;
+    if (!nextWorkspace.navigationRequest) pendingRequest = undefined;
+  };
+  const unsubscribe = useUiStore.subscribe(observe);
+  const stop = () => {
+    if (stopped) return;
     stopped = true;
     unsubscribe();
   };
-
   return {
     isUnchanged: () => {
-      if (
-        !changed &&
-        !stopped &&
-        !areFetchErrorsNavigationScreensEqual(initialScreen, captureFetchErrorsNavigationScreen(useUiStore.getState()))
-      ) {
-        changed = true;
-      }
+      if (!changed && !stopped) observe(useUiStore.getState());
       return !changed;
     },
     stop,
@@ -191,10 +202,6 @@ async function openFetchErrorsWorkspace(
     return;
   }
   const store = useUiStore.getState();
-  const currentReturnState =
-    store.subscriptionsWorkspace?.kind === "index" && store.subscriptionsWorkspace.returnState?.accountId === accountId
-      ? store.subscriptionsWorkspace.returnState
-      : undefined;
   if (store.settingsOpen) {
     const dirtyState = getSettingsDirtyStateSnapshot();
     if (dirtyState.dirty || dirtyState.pending) {
@@ -235,13 +242,9 @@ async function openFetchErrorsWorkspace(
     });
     return;
   }
-  if (stateAfterSettingsClose.selectedAccountId !== accountId) {
-    stateAfterSettingsClose.selectAccount(accountId);
-  }
-  if (generation !== fetchErrorsNavigationGeneration) {
-    return;
-  }
-  useUiStore.getState().openSubscriptionsIndex(currentReturnState, { accountId, summaryFilter: "fetch_errors" });
+  useUiStore
+    .getState()
+    .openSubscriptionsIndex(undefined, { accountId, summaryFilter: "fetch_errors", retryAction: action });
 }
 
 async function reportFetchErrorsNavigationFailure(

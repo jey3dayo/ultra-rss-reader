@@ -39,6 +39,9 @@ type SubscriptionsListPaneProps = {
   isGroupExpanded: (groupKey: string) => boolean;
   initialScrollTop?: number;
   scrollRegionRef?: RefObject<HTMLDivElement | null>;
+  workspaceScrollRef?: RefObject<HTMLDivElement | null>;
+  viewportWidth?: number;
+  scrollReady?: boolean;
   scrollResetKey?: number;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
@@ -113,6 +116,9 @@ export function SubscriptionsListPane({
   isGroupExpanded,
   initialScrollTop = 0,
   scrollRegionRef: providedScrollRegionRef,
+  workspaceScrollRef,
+  viewportWidth = 1024,
+  scrollReady = true,
   scrollResetKey = 0,
   onSelectFeed,
   onListScrollTopChange,
@@ -157,24 +163,34 @@ export function SubscriptionsListPane({
   }, []);
 
   useEffect(() => {
-    const scrollRegion = scrollRegionRef.current;
-    if (!scrollRegion || !hasRows) {
+    const scrollRegion = viewportWidth < 1024 ? workspaceScrollRef?.current : scrollRegionRef.current;
+    if (!scrollRegion || !scrollReady || (!hasRows && viewportWidth >= 1024)) {
       return;
     }
     const restoredScrollState = restoredScrollStateRef.current;
-    if (restoredScrollState?.scrollTop === initialScrollTop && restoredScrollState.resetKey === scrollResetKey) {
+    const targetScrollTop = hasRows ? initialScrollTop : 0;
+    if (restoredScrollState?.scrollTop === targetScrollTop && restoredScrollState.resetKey === scrollResetKey) {
       return;
     }
 
     clearPendingScrollTopCommit();
     pendingScrollTopRef.current = null;
-    scrollRegion.scrollTop = initialScrollTop;
+    scrollRegion.scrollTop = targetScrollTop;
     restoredScrollStateRef.current = {
-      scrollTop: initialScrollTop,
+      scrollTop: targetScrollTop,
       resetKey: scrollResetKey,
     };
-    committedScrollTopRef.current = initialScrollTop;
-  }, [clearPendingScrollTopCommit, hasRows, initialScrollTop, scrollRegionRef, scrollResetKey]);
+    committedScrollTopRef.current = targetScrollTop;
+  }, [
+    clearPendingScrollTopCommit,
+    hasRows,
+    initialScrollTop,
+    scrollRegionRef,
+    scrollResetKey,
+    scrollReady,
+    viewportWidth,
+    workspaceScrollRef,
+  ]);
 
   useEffect(() => {
     return () => {

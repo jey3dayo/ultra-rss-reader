@@ -89,18 +89,21 @@ export function resolveInitialListScrollState(params: {
   listLayoutGeneration: string;
   listLayoutReady: boolean;
   viewportHeight: number;
+  viewportWidth?: number;
 }): SubscriptionsWorkspaceListScrollState {
-  const { initialListScrollState, listLayoutGeneration, listLayoutReady, viewportHeight } = params;
+  const { initialListScrollState, listLayoutGeneration, listLayoutReady, viewportHeight, viewportWidth } = params;
   if (
     !initialListScrollState ||
     (listLayoutReady && initialListScrollState.layoutGeneration !== listLayoutGeneration) ||
     initialListScrollState.viewportHeight !== viewportHeight ||
+    (initialListScrollState.viewportWidth !== undefined && initialListScrollState.viewportWidth !== viewportWidth) ||
     initialListScrollState.scrollTop < 0
   ) {
     return {
       scrollTop: 0,
       layoutGeneration: listLayoutGeneration,
       viewportHeight,
+      ...(viewportWidth === undefined ? {} : { viewportWidth }),
     };
   }
 

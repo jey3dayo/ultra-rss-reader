@@ -47,7 +47,7 @@ describe("SubscriptionsIndexPage", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
-      subscriptionsWorkspace: { kind: "index" },
+      subscriptionsWorkspace: { kind: "index", accountId: "acc-1" },
     });
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     deleteFeedHandler = null;
@@ -553,6 +553,7 @@ describe("SubscriptionsIndexPage", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
     expect(screen.getByRole("heading", { name: "90日以上未更新" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Fresh Feed/ })).not.toBeInTheDocument();
@@ -685,6 +686,7 @@ describe("SubscriptionsIndexPage", () => {
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
         kind: "index",
+        accountId: "acc-1",
         returnState: {
           accountId: "acc-1",
           activeSummaryFilter: "stale",
@@ -733,6 +735,7 @@ describe("SubscriptionsIndexPage", () => {
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
         kind: "index",
+        accountId: "acc-1",
         returnState: {
           accountId: "acc-1",
           activeSummaryFilter: "stale",
@@ -787,6 +790,7 @@ describe("SubscriptionsIndexPage", () => {
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
         kind: "index",
+        accountId: "acc-1",
         returnState: {
           accountId: "acc-1",
           activeSummaryFilter: "stale",
@@ -838,6 +842,7 @@ describe("SubscriptionsIndexPage", () => {
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
         kind: "index",
+        accountId: "acc-1",
         returnState: {
           accountId: "acc-1",
           activeSummaryFilter: "stale",
@@ -870,6 +875,7 @@ describe("SubscriptionsIndexPage", () => {
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
         kind: "index",
+        accountId: "acc-1",
         returnState: {
           accountId: "acc-2",
           activeSummaryFilter: "stale",
@@ -1204,7 +1210,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().focusedPane).toBe("content");
-    expect(useUiStore.getState().subscriptionsIndexReturnState).toMatchObject({
+    expect(useUiStore.getState().subscriptionsIndexReturnStates.get("acc-1")).toMatchObject({
       accountId: "acc-1",
       listScrollTop: { scrollTop: 0 },
     });
@@ -1218,6 +1224,7 @@ describe("SubscriptionsIndexPage", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
   });
 
@@ -1237,6 +1244,7 @@ describe("SubscriptionsIndexPage", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
   });
 
@@ -1260,6 +1268,7 @@ describe("SubscriptionsIndexPage", () => {
     });
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
 
     await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
@@ -1270,6 +1279,7 @@ describe("SubscriptionsIndexPage", () => {
     });
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
   });
 
@@ -1310,7 +1320,7 @@ describe("SubscriptionsIndexPage", () => {
     });
   });
 
-  it("closes stale unsubscribe targets after account scope changes", async () => {
+  it("keeps unsubscribe targets when only the reader account changes", async () => {
     const user = userEvent.setup();
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
@@ -1326,12 +1336,12 @@ describe("SubscriptionsIndexPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
     expect(deleteFeedCalls).toEqual([]);
   });
 
-  it("closes stale unsubscribe targets once a rejected delete settles after account scope changes", async () => {
+  it("keeps the unsubscribe dialog after a failed delete when only the reader account changes", async () => {
     const user = userEvent.setup();
     let rejectDelete: (error: Error) => void = () => {};
     deleteFeedHandler = () =>
@@ -1367,7 +1377,7 @@ describe("SubscriptionsIndexPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
   });
 

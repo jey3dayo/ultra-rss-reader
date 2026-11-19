@@ -355,6 +355,7 @@ describe("useAccountDetailSyncControls", () => {
       selectedArticleId: "reader-article",
       subscriptionsWorkspace: {
         kind: "index",
+        accountId: account.id,
         returnState: {
           accountId: account.id,
           activeSummaryFilter: "all",
@@ -411,7 +412,7 @@ describe("useAccountDetailSyncControls", () => {
     await act(async () => {
       toast?.actions?.[0]?.onClick();
       await vi.waitFor(() =>
-        expect(useUiStore.getState().subscriptionsWorkspace?.navigationRequest).toEqual({
+        expect(useUiStore.getState().subscriptionsWorkspace?.navigationRequest).toMatchObject({
           accountId: account.id,
           summaryFilter: "fetch_errors",
         }),
@@ -422,6 +423,7 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "reader-feed" });
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: account.id,
       returnState: {
         accountId: account.id,
         activeSummaryFilter: "all",
@@ -431,10 +433,10 @@ describe("useAccountDetailSyncControls", () => {
         keptFeedIds: ["kept-feed"],
         deferredFeedIds: ["deferred-feed"],
       },
-      navigationRequest: {
+      navigationRequest: expect.objectContaining({
         accountId: account.id,
         summaryFilter: "fetch_errors",
-      },
+      }),
     });
   });
 
@@ -478,11 +480,56 @@ describe("useAccountDetailSyncControls", () => {
       await finishPendingAccountLookup();
     });
 
-    expect(useUiStore.getState().selectedAccountId).toBe(latestAccount.id);
+    expect(useUiStore.getState().selectedAccountId).toBeNull();
+    expect(useUiStore.getState().subscriptionsWorkspace?.accountId).toBe(latestAccount.id);
     expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
       navigationRequest: { accountId: latestAccount.id, summaryFilter: "fetch_errors" },
     });
   });
+
+  it.each(["applied", "rejected"])(
+    "keeps a newer request when the previous request is %s during its lookup",
+    async (outcome) => {
+      const first = makeLocalAccount("local-first");
+      const latest = makeLocalAccount("local-latest");
+      appQueryClient.setQueryData(queryKeys.accounts.root, [first, latest]);
+      const pendingRequest = { accountId: first.id, summaryFilter: "fetch_errors" } as const;
+      useUiStore.setState({
+        selectedAccountId: "reader",
+        subscriptionsWorkspace: { kind: "index", accountId: "reader", navigationRequest: pendingRequest },
+      });
+      const pendingAccounts = createDeferred<ReturnType<typeof Result.succeed<AccountDto[]>>>();
+      listAccountsMock.mockReturnValue(pendingAccounts.promise);
+      const latestAction = createFetchErrorsToastAction(latest.id, "View latest details");
+      act(() => latestAction?.onClick());
+      await waitForAccountLookup();
+      act(() => {
+        if (outcome === "applied")
+          useUiStore.getState().switchSubscriptionsAccount(
+            first.id,
+            {
+              accountId: "reader",
+              activeSummaryFilter: "all",
+              selectedFeedId: null,
+              expandedGroups: {},
+              listScrollTop: { scrollTop: 0, layoutGeneration: "", viewportHeight: 0 },
+              keptFeedIds: [],
+              deferredFeedIds: [],
+            },
+            true,
+          );
+        useUiStore.getState().consumeSubscriptionsNavigationRequest(pendingRequest);
+      });
+      await act(async () => {
+        pendingAccounts.resolve(Result.succeed([first, latest]));
+        await finishPendingAccountLookup();
+      });
+      expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
+        accountId: outcome === "applied" ? first.id : "reader",
+        navigationRequest: { accountId: latest.id, summaryFilter: "fetch_errors" },
+      });
+    },
+  );
 
   it.each<{
     label: string;
@@ -502,7 +549,7 @@ describe("useAccountDetailSyncControls", () => {
     },
     {
       label: "subscriptions workspace",
-      updateScreen: () => useUiStore.setState({ subscriptionsWorkspace: { kind: "index" } }),
+      updateScreen: () => useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: null } }),
     },
     {
       label: "reader selection that returns to its original value",

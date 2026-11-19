@@ -33,10 +33,12 @@ type ToastAnnouncement = {
 export type SubscriptionsIndexNavigationRequest = Readonly<{
   accountId: string | null;
   summaryFilter: SubscriptionSummaryFilterKey;
+  retryAction?: import("@/lib/ui/toast.types").ToastAction;
 }>;
 
 type SubscriptionsWorkspace = {
   kind: "index";
+  accountId: string | null;
   returnState?: SubscriptionsWorkspaceReturnState;
   navigationRequest?: SubscriptionsIndexNavigationRequest;
 };
@@ -91,7 +93,7 @@ export type UiState = {
   settingsAddAccountInitialKind: AddAccountProviderKind | null;
   settingsLoading: boolean;
   subscriptionsWorkspace: SubscriptionsWorkspace | null;
-  subscriptionsIndexReturnState: SubscriptionsWorkspaceReturnState | null;
+  subscriptionsIndexReturnStates: Map<string | null, SubscriptionsWorkspaceReturnState>;
   syncProgress: SyncProgressUiState;
   accountSetupSession: AccountSetupSession | null;
   commandPaletteOpen: boolean;
@@ -176,6 +178,12 @@ export type UiActions = {
     navigationRequest?: SubscriptionsIndexNavigationRequest,
   ) => void;
   closeSubscriptionsWorkspace: (returnState?: SubscriptionsWorkspaceReturnState) => void;
+  switchSubscriptionsAccount: (
+    accountId: string | null,
+    returnState: SubscriptionsWorkspaceReturnState,
+    preserveRequest?: boolean,
+  ) => void;
+  consumeSubscriptionsNavigationRequest: (request: SubscriptionsIndexNavigationRequest) => void;
   applySyncProgress: (event: SyncProgressEventDto) => void;
   clearSyncProgress: () => void;
   startAccountSetupVerification: () => void;
@@ -323,6 +331,8 @@ export type UiStoreReaderActions = Pick<
   | "setIsTagsSectionOpen"
   | "openSubscriptionsIndex"
   | "closeSubscriptionsWorkspace"
+  | "switchSubscriptionsAccount"
+  | "consumeSubscriptionsNavigationRequest"
   | "addRecentlyRead"
   | "removeRecentlyRead"
   | "clearRecentlyRead"

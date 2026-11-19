@@ -344,6 +344,7 @@ describe("Sidebar", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
   });
 
@@ -2864,6 +2865,7 @@ describe("Sidebar", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
     expect(useUiStore.getState().focusedPane).toBe("content");
   });
@@ -2883,6 +2885,7 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Feeds: Manage subscriptions" }));
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
+      accountId: "acc-1",
     });
   });
 

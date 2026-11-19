@@ -13,13 +13,7 @@ import {
 } from "@/lib/reader/selection-history";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
-import type {
-  SubscriptionsIndexNavigationRequest,
-  UiState,
-  UiStoreReaderActions,
-  UiStoreReaderSelection,
-  UiStoreState,
-} from "@/stores/ui-store.types";
+import type { UiState, UiStoreReaderActions, UiStoreReaderSelection, UiStoreState } from "@/stores/ui-store.types";
 import { getSettingsAccountsViewState } from "@/stores/ui-store-settings-actions";
 import { getIdleSyncProgress } from "@/stores/ui-store-sync-actions";
 
@@ -433,34 +427,60 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
       })),
     openSubscriptionsIndex: (returnState, navigationRequest) =>
       set((state) => {
-        const retainedReturnState =
-          returnState ??
-          (state.subscriptionsIndexReturnState?.accountId === state.selectedAccountId
-            ? state.subscriptionsIndexReturnState
-            : undefined);
+        if (state.subscriptionsWorkspace) {
+          return navigationRequest
+            ? { subscriptionsWorkspace: { ...state.subscriptionsWorkspace, navigationRequest } }
+            : state;
+        }
+        const accountId = navigationRequest?.accountId ?? state.selectedAccountId;
+        const retained =
+          returnState?.accountId === accountId ? returnState : state.subscriptionsIndexReturnStates.get(accountId);
         return {
           accountPaneOpen: false,
           subscriptionsWorkspace: {
             kind: "index",
-            ...(retainedReturnState
-              ? { returnState: runtime.parseSubscriptionsWorkspaceReturnState(retainedReturnState) }
-              : {}),
-            ...(navigationRequest
-              ? { navigationRequest: { ...navigationRequest } satisfies SubscriptionsIndexNavigationRequest }
-              : {}),
+            accountId,
+            ...(retained ? { returnState: runtime.parseSubscriptionsWorkspaceReturnState(retained) } : {}),
+            ...(navigationRequest ? { navigationRequest } : {}),
           },
           focusedPane: "content",
         };
       }),
+    switchSubscriptionsAccount: (accountId, returnState, preserveRequest = false) =>
+      set((state) => {
+        if (!state.subscriptionsWorkspace) return state;
+        const states = new Map(state.subscriptionsIndexReturnStates);
+        states.set(returnState.accountId, runtime.parseSubscriptionsWorkspaceReturnState(returnState));
+        const retained = states.get(accountId);
+        return {
+          subscriptionsIndexReturnStates: states,
+          subscriptionsWorkspace: {
+            kind: "index",
+            accountId,
+            ...(retained ? { returnState: retained } : {}),
+            ...(preserveRequest && state.subscriptionsWorkspace.navigationRequest
+              ? { navigationRequest: state.subscriptionsWorkspace.navigationRequest }
+              : {}),
+          },
+        };
+      }),
+    consumeSubscriptionsNavigationRequest: (request) =>
+      set((state) => {
+        if (!state.subscriptionsWorkspace || state.subscriptionsWorkspace.navigationRequest !== request) return state;
+        const { navigationRequest: _request, ...workspace } = state.subscriptionsWorkspace;
+        return { subscriptionsWorkspace: workspace };
+      }),
     closeSubscriptionsWorkspace: (returnState) =>
-      set((state) => ({
-        accountPaneOpen: false,
-        subscriptionsWorkspace: null,
-        ...(returnState
-          ? { subscriptionsIndexReturnState: runtime.parseSubscriptionsWorkspaceReturnState(returnState) }
-          : {}),
-        focusedPane: state.selectedArticleId ? "content" : "list",
-      })),
+      set((state) => {
+        const states = new Map(state.subscriptionsIndexReturnStates);
+        if (returnState) states.set(returnState.accountId, runtime.parseSubscriptionsWorkspaceReturnState(returnState));
+        return {
+          accountPaneOpen: false,
+          subscriptionsWorkspace: null,
+          subscriptionsIndexReturnStates: states,
+          focusedPane: state.selectedArticleId ? "content" : "list",
+        };
+      }),
     addRecentlyRead: (id) =>
       set((state) => {
         const next = new Set(state.recentlyReadIds);
