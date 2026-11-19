@@ -1595,7 +1595,7 @@ describe("PreferencesDtoSchema", () => {
 });
 
 describe("SettingsProfileSchema", () => {
-  it("accepts v1 settings profiles and import result counts", () => {
+  it("accepts v1 settings profiles including the retired global startup sync key and import result counts", () => {
     expect(
       parse(SettingsProfileSchema, {
         version: 1,
@@ -1604,6 +1604,7 @@ describe("SettingsProfileSchema", () => {
         preferences: {
           theme: "dark",
           selected_account_id: "source-account",
+          sync_on_startup: "false",
         },
         accounts: [
           {
@@ -1623,6 +1624,8 @@ describe("SettingsProfileSchema", () => {
       }),
     ).toMatchObject({
       version: 1,
+      preferences: { sync_on_startup: "false" },
+      accounts: [expect.objectContaining({ sync_on_startup: true })],
       tags: [{ name: "Tech", color: "#00ff00" }],
     });
 
@@ -2698,7 +2701,7 @@ describe("command args schemas", () => {
     });
 
     expect(() => parse(setPreferenceArgs, { key: "theme", value: "sepia" })).toThrow();
-    expect(() => parse(setPreferenceArgs, { key: "sync_on_startup", value: "yes" })).toThrow();
+    expect(() => parse(setPreferenceArgs, { key: "reader_mode_default", value: "yes" })).toThrow();
     expect(() => parse(setPreferenceArgs, { key: "selected_account_id", value: "" })).toThrow();
   });
   it("rejects non-displayable shortcut preference values", () => {

@@ -529,6 +529,9 @@ describe("executeAction node contracts", () => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:sidebar:sync_partial_failure:Local",
           severity: "error",
+          persistent: true,
+          variant: "sync-recovery",
+          actions: [{ label: "translated:sidebar:account_settings", onClick: expect.any(Function) }],
         });
       });
 
@@ -632,6 +635,9 @@ describe("executeAction node contracts", () => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:sidebar:sync_failed_with_message:boom",
           severity: "error",
+          persistent: true,
+          variant: "sync-recovery",
+          actions: [{ label: "translated:sidebar:account_settings", onClick: expect.any(Function) }],
         });
       });
 
@@ -661,9 +667,11 @@ describe("executeAction node contracts", () => {
         );
       });
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: error.message,
+        message: "translated:sidebar:sync_failed_with_message:manual sync rejected",
         severity: "error",
         persistent: true,
+        variant: "sync-recovery",
+        actions: [{ label: "translated:sidebar:account_settings", onClick: expect.any(Function) }],
       });
     });
   });

@@ -14,7 +14,7 @@ import {
 import { getSyncState } from "@/api/tauri-commands";
 import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
-import { createFetchErrorsToastAction } from "@/lib/actions";
+import { buildManualSyncFailureToast, createSyncFeedbackToastActions } from "@/lib/actions";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
 import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
@@ -398,13 +398,11 @@ export function useSidebarSync({
           invalidateAccountSyncStatuses("background-sync-completed");
           const feedback = summarizeSyncWarnings(payload);
           const message = resolveSidebarSyncFeedbackMessage(t, feedback);
-          const action = feedback.localFeedSyncFailureAccountId
-            ? createFetchErrorsToastAction(
-                feedback.localFeedSyncFailureAccountId,
-                t("sync_local_feed_failures_details"),
-              )
-            : null;
-          showToast(buildSyncFeedbackToast(feedback, message, action));
+          const actions = createSyncFeedbackToastActions(feedback, {
+            accountSettings: t("account_settings"),
+            localFeedErrors: t("sync_local_feed_failures_details"),
+          });
+          showToast(buildSyncFeedbackToast(feedback, message, actions));
         }
       }),
     ]);
@@ -427,15 +425,16 @@ export function useSidebarSync({
         }
         const feedback = summarizeSyncResult(syncResult);
         const message = resolveSidebarSyncFeedbackMessage(t, feedback);
-        const action = feedback.localFeedSyncFailureAccountId
-          ? createFetchErrorsToastAction(feedback.localFeedSyncFailureAccountId, t("sync_local_feed_failures_details"))
-          : null;
-        showToast(buildSyncFeedbackToast(feedback, message, action));
+        const actions = createSyncFeedbackToastActions(feedback, {
+          accountSettings: t("account_settings"),
+          localFeedErrors: t("sync_local_feed_failures_details"),
+        });
+        showToast(buildSyncFeedbackToast(feedback, message, actions));
       },
       onError: (error) => {
         invalidateAccountSyncStatuses("manual-sync-completed");
         console.error("Sync failed:", error);
-        showToast({ message: t("sync_failed"), severity: "error" });
+        showToast(buildManualSyncFailureToast(error.message, selectedAccountId));
       },
     });
   }, [invalidateAccountSyncStatuses, selectedAccountId, showToast, t]);

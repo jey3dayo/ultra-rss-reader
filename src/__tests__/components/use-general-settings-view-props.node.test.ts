@@ -30,14 +30,14 @@ function getControlsById(props: ReturnType<typeof buildGeneralSettingsViewProps>
 }
 
 describe("useGeneralSettingsViewProps", () => {
-  it("keeps general settings scoped to app navigation and sync controls", () => {
+  it("keeps general settings scoped to app and navigation controls", () => {
     const props = buildGeneralSettingsViewProps({
       t,
       prefs: {},
       setPref: vi.fn(),
     });
 
-    expect(props.sections.map((section) => section.id)).toEqual(["app", "navigation", "sync"]);
+    expect(props.sections.map((section) => section.id)).toEqual(["app", "navigation"]);
     expect(props.sections.flatMap((section) => section.controls).map((control) => control.id)).toEqual([
       "language",
       "unread-badge",
@@ -46,7 +46,6 @@ describe("useGeneralSettingsViewProps", () => {
       "show-sidebar-recent-articles",
       "show-sidebar-tags",
       "startup-folder-expansion",
-      "sync-on-startup",
     ]);
   });
 
@@ -102,33 +101,6 @@ describe("useGeneralSettingsViewProps", () => {
       expect(safeParse(preferenceSchemas.language, language).success).toBe(true);
     }
     expect(safeParse(preferenceSchemas.language, "fr").success).toBe(false);
-  });
-
-  it("writes app startup sync from the general sync section", () => {
-    const setPref = vi.fn();
-    const props = buildGeneralSettingsViewProps({
-      t,
-      prefs: {
-        sync_on_startup: "true",
-      },
-      setPref,
-    });
-
-    const syncSection = props.sections.find((section) => section.id === "sync");
-    const syncControl = syncSection?.controls.find((control) => control.id === "sync-on-startup");
-
-    expect(syncControl).toEqual(
-      expect.objectContaining({
-        type: "switch",
-        checked: true,
-      }),
-    );
-
-    if (syncControl?.type === "switch") {
-      syncControl.onChange(false);
-    }
-
-    expect(setPref).toHaveBeenCalledWith("sync_on_startup", "false");
   });
 
   it("maps sidebar visibility and startup folder expansion controls to their preference keys", () => {

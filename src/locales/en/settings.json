@@ -41,9 +41,7 @@
     "startup_folder_expansion": "Startup folder expansion",
     "all_collapsed": "All collapsed",
     "unread_folders": "Unread folders",
-    "restore_previous": "Restore previous state",
-    "sync": "Sync",
-    "sync_on_startup": "Sync when the app starts"
+    "restore_previous": "Restore previous state"
   },
   "appearance": {
     "heading": "Appearance",
@@ -466,6 +464,7 @@
     "settings_profile_exporting": "Exporting…",
     "settings_profile_import": "Import",
     "settings_profile_importing": "Importing…",
+    "settings_profile_import_confirm": "Import this settings profile? Accounts: {{accountsCreated}} added, {{accountsUpdated}} updated. Preferences applied: {{preferencesImported}}. Tags: {{tagsCreated}} added, {{tagsUpdated}} updated. Mute keywords added: {{muteKeywordsCreated}}. Existing account details, preferences, and matching tags will be overwritten. Passwords and article data are not included.",
     "settings_profile_file_input": "Choose settings profile JSON",
     "settings_profile_export_canceled": "Settings profile export canceled",
     "settings_profile_export_success": "Settings profile exported",

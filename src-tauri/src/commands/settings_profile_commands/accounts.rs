@@ -18,6 +18,7 @@ pub(super) fn import_profile_accounts(
     conn: &rusqlite::Connection,
     profile_accounts: &[SettingsProfileAccount],
     result: &mut SettingsProfileImportResult,
+    mode: SettingsProfileImportMode,
 ) -> Result<HashMap<String, AccountId>, AppError> {
     let account_repo = SqliteAccountRepository::new(conn);
     let mut existing_accounts = account_repo.find_all()?;
@@ -46,7 +47,7 @@ pub(super) fn import_profile_accounts(
                 connection_verified_at: None,
                 connection_verification_error: None,
             };
-            upsert_imported_account(conn, &account)?;
+            upsert_imported_account(conn, &account, mode)?;
             result.accounts_updated += 1;
             account
         } else {
@@ -65,7 +66,7 @@ pub(super) fn import_profile_accounts(
                 connection_verified_at: None,
                 connection_verification_error: None,
             };
-            upsert_imported_account(conn, &account)?;
+            upsert_imported_account(conn, &account, mode)?;
             result.accounts_created += 1;
             account
         };
@@ -143,9 +144,15 @@ fn validate_profile_account_sync_settings(
     Ok(())
 }
 
-fn upsert_imported_account(conn: &rusqlite::Connection, account: &Account) -> Result<(), AppError> {
-    #[cfg(target_os = "macos")]
-    crate::infra::keyring_store::session_cache::invalidate(account.id.as_ref())?;
+fn upsert_imported_account(
+    conn: &rusqlite::Connection,
+    account: &Account,
+    mode: SettingsProfileImportMode,
+) -> Result<(), AppError> {
+    if mode == SettingsProfileImportMode::Apply {
+        #[cfg(target_os = "macos")]
+        crate::infra::keyring_store::session_cache::invalidate(account.id.as_ref())?;
+    }
     conn.execute(
         "INSERT INTO accounts (
             id,

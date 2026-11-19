@@ -389,6 +389,7 @@ pub fn run() {
             commands::settings_profile_commands::export_settings_profile,
             commands::settings_profile_commands::export_settings_profile_to_file,
             commands::settings_profile_commands::import_settings_profile,
+            commands::settings_profile_commands::preview_settings_profile_import,
             commands::tag_commands::list_tags,
             commands::tag_commands::create_tag,
             commands::tag_commands::rename_tag,

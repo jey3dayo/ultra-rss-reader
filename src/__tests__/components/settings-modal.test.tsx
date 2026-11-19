@@ -1030,7 +1030,7 @@ describe("SettingsModal", () => {
     });
 
     act(() => {
-      useUiStore.getState().openSettings("accounts");
+      useUiStore.getState().openSettings();
     });
 
     expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();

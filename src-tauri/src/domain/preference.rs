@@ -36,7 +36,6 @@ const ALLOWED_KEYS: &[&str] = &[
     "scroll_to_top_on_change",
     "open_first_article_on_feed_selection",
     "sort_subscriptions",
-    "sync_on_startup",
     "developer_mode",
     "action_copy_link",
     "action_open_browser",
@@ -153,6 +152,7 @@ mod tests {
     #[test]
     fn rejects_unknown_preferences_and_shortcuts() {
         assert!(!is_allowed_preference_key("unknown_web_preview_key"));
+        assert!(!is_allowed_preference_key("sync_on_startup"));
         assert!(!is_allowed_preference_key("shortcut_unknown_action"));
         assert!(!is_allowed_preference_key("shortcut_"));
     }

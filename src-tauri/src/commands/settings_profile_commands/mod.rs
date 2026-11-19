@@ -83,6 +83,12 @@ pub struct SettingsProfileImportResult {
     pub mute_keywords_skipped: usize,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SettingsProfileImportMode {
+    Preview,
+    Apply,
+}
+
 #[tauri::command]
 pub fn export_settings_profile(state: State<'_, AppState>) -> Result<String, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
@@ -97,6 +103,16 @@ pub fn export_settings_profile_to_file(
     let path = validate_settings_profile_export_path(path)?;
     let db = crate::commands::lock_db(&state.db)?;
     export_settings_profile_to_file_from_db(&db, path)
+}
+
+#[tauri::command]
+pub fn preview_settings_profile_import(
+    state: State<'_, AppState>,
+    profile_json: String,
+) -> Result<SettingsProfileImportResult, AppError> {
+    let db = crate::commands::lock_db(&state.db)?;
+    process_settings_profile(&db, &profile_json, SettingsProfileImportMode::Preview)
+        .map(|(result, _)| result)
 }
 
 #[tauri::command]
@@ -177,6 +193,14 @@ fn import_settings_profile_into_db(
     db: &crate::infra::db::connection::DbManager,
     profile_json: &str,
 ) -> Result<(SettingsProfileImportResult, ImportedPreferenceSideEffects), AppError> {
+    process_settings_profile(db, profile_json, SettingsProfileImportMode::Apply)
+}
+
+fn process_settings_profile(
+    db: &crate::infra::db::connection::DbManager,
+    profile_json: &str,
+    mode: SettingsProfileImportMode,
+) -> Result<(SettingsProfileImportResult, ImportedPreferenceSideEffects), AppError> {
     if profile_json.len() > SETTINGS_PROFILE_IMPORT_MAX_BYTES {
         return Err(AppError::UserVisible {
             message: format!(
@@ -204,13 +228,18 @@ fn import_settings_profile_into_db(
         .map_err(DomainError::from)?;
     let mut result = SettingsProfileImportResult::default();
 
-    let account_id_map = accounts::import_profile_accounts(&tx, &profile.accounts, &mut result)?;
+    let account_id_map =
+        accounts::import_profile_accounts(&tx, &profile.accounts, &mut result, mode)?;
     let side_effects =
         import_profile_preferences(&tx, &profile.preferences, &account_id_map, &mut result)?;
     import_profile_tags(&tx, &profile.tags, &mut result)?;
     import_profile_mute_keywords(&tx, &profile.mute_keywords, &mut result)?;
 
-    tx.commit().map_err(DomainError::from)?;
+    match mode {
+        SettingsProfileImportMode::Preview => tx.rollback(),
+        SettingsProfileImportMode::Apply => tx.commit(),
+    }
+    .map_err(DomainError::from)?;
 
     Ok((result, side_effects))
 }
@@ -230,6 +259,10 @@ fn import_profile_preferences(
     let repo = SqlitePreferenceRepository::new(conn);
     let mut side_effects = ImportedPreferenceSideEffects::default();
     for (key, value) in preferences {
+        if key == "sync_on_startup" {
+            result.preferences_skipped += 1;
+            continue;
+        }
         let value = if key == SELECTED_ACCOUNT_ID_KEY {
             let Some(mapped_id) = account_id_map.get(value) else {
                 result.preferences_skipped += 1;

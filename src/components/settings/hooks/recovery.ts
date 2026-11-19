@@ -33,7 +33,7 @@ type DatabaseRuntimeRecoveryAction =
   | "check_os_permissions"
   | "free_disk_space";
 
-export type DatabaseRecoveryActionSafety = "read_only" | "requires_dry_run" | "requires_explicit_confirmation";
+type DatabaseRecoveryActionSafety = "read_only" | "requires_dry_run" | "requires_explicit_confirmation";
 
 export type DatabaseRuntimeRecoverySurface = {
   failureKind: DatabaseRuntimeFailureKind;

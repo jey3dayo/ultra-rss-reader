@@ -41,9 +41,7 @@
     "startup_folder_expansion": "起動時にフォルダを開く",
     "all_collapsed": "すべて閉じる",
     "unread_folders": "未読のあるフォルダを開く",
-    "restore_previous": "前回の状態を復元",
-    "sync": "同期",
-    "sync_on_startup": "アプリ起動時に同期"
+    "restore_previous": "前回の状態を復元"
   },
   "appearance": {
     "heading": "外観",
@@ -466,6 +464,7 @@
     "settings_profile_exporting": "書き出し中…",
     "settings_profile_import": "読み込む",
     "settings_profile_importing": "読み込み中…",
+    "settings_profile_import_confirm": "設定プロファイルを読み込みますか？ アカウントは{{accountsCreated}}件追加、{{accountsUpdated}}件更新します。設定は{{preferencesImported}}件適用、タグは{{tagsCreated}}件追加・{{tagsUpdated}}件更新、ミュートキーワードは{{muteKeywordsCreated}}件追加します。既存のアカウント情報・設定・同名タグは上書きされます。パスワードや記事データは含まれません。",
     "settings_profile_file_input": "設定プロファイルのJSONファイルを選択",
     "settings_profile_export_canceled": "書き出しをキャンセルしました",
     "settings_profile_export_success": "設定プロファイルを書き出しました",

@@ -131,7 +131,12 @@ function normalizeSettingsProfileServerUrl(serverUrl: string | null): string | n
   }
 }
 
-function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile) {
+function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile, mode: "preview" | "apply") {
+  const preview = mode === "preview";
+  const accounts = preview ? cloneMockResponse(mockAccounts) : mockAccounts;
+  const preferences = preview ? new Map(mockPreferences) : mockPreferences;
+  const tags = preview ? cloneMockResponse(mockTags) : mockTags;
+  const muteKeywords = preview ? cloneMockResponse(mockMuteKeywords) : mockMuteKeywords;
   const accountIdMap = new Map<string, string>();
   let accountsCreated = 0;
   let accountsUpdated = 0;
@@ -149,7 +154,7 @@ function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile) {
     if (profileAccount.kind === "FreshRss" && (!normalizedServerUrl || !username)) {
       throw new Error("FreshRSS account profile requires a valid server_url and username.");
     }
-    const matchingAccount = mockAccounts.find((account) => {
+    const matchingAccount = accounts.find((account) => {
       if (profileAccount.kind === "Local") {
         return account.kind === "Local" && account.name.toLowerCase() === profileAccount.name.toLowerCase();
       }
@@ -159,7 +164,7 @@ function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile) {
         account.username === username
       );
     });
-    const conflictingAccount = mockAccounts.find(
+    const conflictingAccount = accounts.find(
       (account) =>
         account.name.toLowerCase() === profileAccount.name.toLowerCase() &&
         (!matchingAccount || account.id !== matchingAccount.id),
@@ -182,7 +187,7 @@ function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile) {
       accountsUpdated++;
     } else {
       const account: AccountDto = {
-        id: `acc-profile-${mockAccounts.length + accountsCreated + 1}`,
+        id: `acc-profile-${accounts.length + accountsCreated + 1}`,
         kind: profileAccount.kind,
         name: profileAccount.name,
         server_url: normalizedServerUrl,
@@ -195,38 +200,46 @@ function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile) {
         connection_verified_at: null,
         connection_verification_error: null,
       };
-      mockAccounts.push(account);
+      accounts.push(account);
       accountIdMap.set(profileAccount.source_id, account.id);
       accountsCreated++;
     }
   }
 
   for (const [key, profileValue] of Object.entries(profile.preferences)) {
+    if (key === "sync_on_startup") {
+      preferencesSkipped++;
+      continue;
+    }
     const value = key === "selected_account_id" ? accountIdMap.get(profileValue) : profileValue;
     if (value == null) {
       preferencesSkipped++;
       continue;
     }
-    mockPreferences.set(key, value);
+    preferences.set(key, value);
     preferencesImported++;
   }
 
   for (const profileTag of profile.tags) {
     const tagName = profileTag.name.trim();
-    const existingTag = mockTags.find((tag) => tag.name.toLowerCase() === tagName.toLowerCase());
+    const existingTag = tags.find((tag) => tag.name.toLowerCase() === tagName.toLowerCase());
     if (existingTag) {
       existingTag.name = tagName;
       existingTag.color = profileTag.color;
       tagsUpdated++;
     } else {
-      mockTags.push({ id: `dev-tag-${takeNextDevMockTagId()}`, name: tagName, color: profileTag.color });
+      tags.push({
+        id: `dev-tag-${preview ? tags.length + 1 : takeNextDevMockTagId()}`,
+        name: tagName,
+        color: profileTag.color,
+      });
       tagsCreated++;
     }
   }
 
   const muteKeywordIdentity = (keyword: string, scope: string) => `${keyword.trim().toLowerCase()}\u0000${scope}`;
   const existingMuteKeywordIdentities = new Set(
-    mockMuteKeywords.map((rule) => muteKeywordIdentity(rule.keyword, rule.scope)),
+    muteKeywords.map((rule) => muteKeywordIdentity(rule.keyword, rule.scope)),
   );
   for (const profileRule of profile.mute_keywords) {
     const keyword = profileRule.keyword.trim();
@@ -236,8 +249,8 @@ function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile) {
       continue;
     }
     const timestamp = getCurrentIsoTimestamp();
-    mockMuteKeywords.unshift({
-      id: `dev-mute-${takeNextDevMockMuteKeywordId()}`,
+    muteKeywords.unshift({
+      id: `dev-mute-${preview ? muteKeywords.length + 1 : takeNextDevMockMuteKeywordId()}`,
       keyword,
       scope: profileRule.scope,
       created_at: timestamp,
@@ -994,9 +1007,13 @@ export function setupDevMocks(): RestoreDevMocks {
         parseBrowserMockArgs("export_settings_profile_to_file", rawIpcPayload);
         return null;
 
+      case "preview_settings_profile_import": {
+        const { profileJson } = parseBrowserMockArgs("preview_settings_profile_import", rawIpcPayload);
+        return importSettingsProfileIntoDevMocks(parse(SettingsProfileSchema, JSON.parse(profileJson)), "preview");
+      }
       case "import_settings_profile": {
         const { profileJson } = parseBrowserMockArgs("import_settings_profile", rawIpcPayload);
-        return importSettingsProfileIntoDevMocks(parse(SettingsProfileSchema, JSON.parse(profileJson)));
+        return importSettingsProfileIntoDevMocks(parse(SettingsProfileSchema, JSON.parse(profileJson)), "apply");
       }
 
       case "set_mute_auto_mark_read": {

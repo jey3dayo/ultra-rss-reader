@@ -10,11 +10,13 @@ import {
   getDatabaseInfo,
   importSettingsProfile,
   openLogDir,
+  previewSettingsProfileImport,
   vacuumDatabase,
 } from "@/api/tauri-commands";
 import { showSaveDialog } from "@/lib/platform/save-dialog";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import type { ToastData } from "@/lib/ui/toast.types";
+import { useUiStore } from "@/stores/ui-store";
 import {
   type DataSettingsActionOwnerId,
   getDataSettingsActionLifecycle,
@@ -36,10 +38,8 @@ import {
   initialDataSettingsControllerState,
 } from "./reducer";
 
-export type { DatabaseRecoveryActionSafety, DatabaseSizeStatus } from "./recovery";
-export { classifyDatabaseRuntimeRecoverySurface, formatBytes } from "./recovery";
+export type { DatabaseSizeStatus } from "./recovery";
 export type { DataSettingsActionFailures } from "./reducer";
-export { reconcileDatabaseRestoreFrontendState } from "./restore-reconciliation";
 
 type UseDataSettingsControllerParams = {
   t: TFunction<"settings">;
@@ -104,6 +104,8 @@ export function useDataSettingsController({
   const [controllerId] = useState<DataSettingsActionOwnerId>(() => Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
+  const profileImportInFlightRef = useRef(false);
+  const showConfirm = useUiStore((s) => s.showConfirm);
 
   const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
     return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
@@ -389,53 +391,39 @@ export function useDataSettingsController({
     }
   };
 
-  const handleImportSettingsProfileFile = async (file: File) => {
+  const runSettingsProfileImportAction = async (
+    action: () => Promise<Awaited<ReturnType<typeof importSettingsProfile>> | undefined>,
+    onSuccess: (result: SettingsProfileImportResult) => void,
+  ) => {
     if (
       !mountedRef.current ||
       backingUp ||
       exportingSettingsProfile ||
-      importingSettingsProfile ||
+      profileImportInFlightRef.current ||
       isDataSettingsActionInFlight()
     ) {
       return;
     }
 
     clearActionFailure("importProfile");
+    profileImportInFlightRef.current = true;
     dispatch({ type: "set-importing-settings-profile", value: true });
     setSettingsLoading?.(true);
     try {
-      if (file.size > SETTINGS_PROFILE_IMPORT_MAX_BYTES) {
+      const actionResult = await action();
+      if (!mountedRef.current || actionResult === undefined) {
+        return;
+      }
+      if (Result.isFailure(actionResult)) {
+        const error = Result.unwrapError(actionResult);
+        console.error("Failed to import settings profile:", error);
         reportActionFailure(
           "importProfile",
-          t("data.settings_profile_import_failed", {
-            message: t("data.settings_profile_import_too_large", {
-              max: formatBytes(SETTINGS_PROFILE_IMPORT_MAX_BYTES),
-            }),
-          }),
+          t("data.settings_profile_import_failed", { message: getUserFacingAppErrorMessage(error) }),
         );
         return;
       }
-      const profileJson = await file.text();
-      Result.pipe(
-        await importSettingsProfile(profileJson),
-        Result.inspect((importResult) => {
-          if (!mountedRef.current) {
-            return;
-          }
-          showToast(buildSettingsProfileImportSuccessMessage(t, importResult));
-          void fetchDbInfo();
-        }),
-        Result.inspectError((error) => {
-          if (!mountedRef.current) {
-            return;
-          }
-          console.error("Failed to import settings profile:", error);
-          reportActionFailure(
-            "importProfile",
-            t("data.settings_profile_import_failed", { message: getUserFacingAppErrorMessage(error) }),
-          );
-        }),
-      );
+      onSuccess(Result.unwrap(actionResult));
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to import settings profile:", error);
@@ -447,11 +435,54 @@ export function useDataSettingsController({
         );
       }
     } finally {
+      profileImportInFlightRef.current = false;
       if (mountedRef.current) {
         dispatch({ type: "set-importing-settings-profile", value: false });
       }
       setSettingsLoading?.(false);
     }
+  };
+
+  const handleImportSettingsProfileFile = async (file: File) => {
+    let profileJson = "";
+    await runSettingsProfileImportAction(
+      async () => {
+        if (file.size > SETTINGS_PROFILE_IMPORT_MAX_BYTES) {
+          return Result.fail({
+            type: "UserVisible",
+            message: t("data.settings_profile_import_too_large", {
+              max: formatBytes(SETTINGS_PROFILE_IMPORT_MAX_BYTES),
+            }),
+          } satisfies AppError);
+        }
+        profileJson = await file.text();
+        if (!mountedRef.current) {
+          return;
+        }
+        return previewSettingsProfileImport(profileJson);
+      },
+      (preview) => {
+        showConfirm(
+          t("data.settings_profile_import_confirm", {
+            accountsCreated: preview.accounts_created,
+            accountsUpdated: preview.accounts_updated,
+            preferencesImported: preview.preferences_imported,
+            tagsCreated: preview.tags_created,
+            tagsUpdated: preview.tags_updated,
+            muteKeywordsCreated: preview.mute_keywords_created,
+          }),
+          () =>
+            runSettingsProfileImportAction(
+              () => importSettingsProfile(profileJson),
+              (importResult) => {
+                showToast(buildSettingsProfileImportSuccessMessage(t, importResult));
+                void fetchDbInfo();
+              },
+            ),
+          { actionLabel: t("data.settings_profile_import"), variant: "warning" },
+        );
+      },
+    );
   };
 
   return {

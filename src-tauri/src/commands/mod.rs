@@ -52,6 +52,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "backup_database"
         | "import_opml"
         | "import_settings_profile"
+        | "preview_settings_profile_import"
         | "cleanup_feed_integrity_orphans" => CommandDbLockPolicy::TryLockDb,
         "open_in_browser"
         | "check_browser_embed_support"

@@ -188,10 +188,10 @@ describe("resolveSidebarLastSyncedLabel", () => {
     });
   });
 
-  it("reports a failed manual sync as an error toast", async () => {
+  it("keeps a manual sync failure with a safe cause and an account settings action", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onError({ type: "UserVisible", message: "boom" });
+      params.onError({ type: "UserVisible", message: "Connection refused token=secret-token" });
     });
     const showToast = vi.fn();
 
@@ -203,7 +203,13 @@ describe("resolveSidebarLastSyncedLabel", () => {
       await result.current.handleSync();
     });
 
-    expect(showToast).toHaveBeenCalledWith({ message: expect.any(String), severity: "error" });
+    expect(showToast).toHaveBeenCalledWith({
+      message: i18n.t("sidebar:sync_failed_with_message", { message: "Connection refused token=<redacted>" }),
+      severity: "error",
+      persistent: true,
+      variant: "sync-recovery",
+      actions: [{ label: i18n.t("sidebar:account_settings"), onClick: expect.any(Function) }],
+    });
   });
 
   it.each<[string, SyncResultDto, "error" | "warning"]>([
@@ -256,7 +262,60 @@ describe("resolveSidebarLastSyncedLabel", () => {
       await result.current.handleSync();
     });
 
-    expect(showToast).toHaveBeenCalledWith({ message: expect.any(String), severity });
+    expect(showToast).toHaveBeenCalledWith(
+      syncResult.failed.length > 0
+        ? {
+            message: expect.any(String),
+            severity,
+            persistent: true,
+            variant: "sync-recovery",
+            actions: [{ label: i18n.t("sidebar:account_settings"), onClick: expect.any(Function) }],
+          }
+        : { message: expect.any(String), severity },
+    );
+  });
+
+  it("keeps background credential access warnings actionable even alongside other warnings", () => {
+    useUiStore.setState(useUiStore.getInitialState());
+    renderHook(() => useSidebarSync(createSyncHookParams({ showToast: useUiStore.getState().showToast })), {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    act(() => {
+      getRegisteredListener("sync-warning")({
+        payload: [
+          {
+            account_id: "a",
+            account_name: "FreshRSS",
+            message: "skipped entries",
+            detail: { type: "feed_skipped_entries", feed_title: "News", count: 1 },
+          },
+          {
+            account_id: "b",
+            account_name: "Other account",
+            message: "credential access",
+            detail: { type: "credential_access_required", account_name: "Other account" },
+          },
+        ],
+      });
+    });
+
+    const toast = useUiStore.getState().toastMessage;
+    expect(toast).toMatchObject({
+      persistent: true,
+      variant: "sync-recovery",
+      severity: "warning",
+      actions: [{ label: i18n.t("sidebar:account_settings") }],
+    });
+    expect(toast?.message).toContain(
+      i18n.t("sidebar:sync_warning_detail.credential_access_required", { accountName: "Other account" }),
+    );
+    act(() => toast?.actions?.[0]?.onClick());
+    expect(useUiStore.getState()).toMatchObject({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "b",
+    });
   });
 
   it.each<[string, SyncResultDto]>([

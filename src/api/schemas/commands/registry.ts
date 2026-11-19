@@ -150,6 +150,7 @@ export const commandArgsSchemas = {
   export_opml_to_file: exportOpmlToFileArgs,
   export_settings_profile_to_file: exportSettingsProfileToFileArgs,
   import_settings_profile: importSettingsProfileArgs,
+  preview_settings_profile_import: importSettingsProfileArgs,
   set_credential_storage: setCredentialStorageArgs,
   set_preference: setPreferenceArgs,
   copy_to_clipboard: copyToClipboardArgs,

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SETTINGS_PROFILE_IMPORT_MAX_BYTES } from "@/api/schemas/commands/settings-profile";
+import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { DataSettings } from "@/components/settings/data-settings";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -15,6 +16,7 @@ const commands = vi.hoisted(() => ({
   openLogDir: vi.fn(),
   exportSettingsProfileToFile: vi.fn(),
   importSettingsProfile: vi.fn(),
+  previewSettingsProfileImport: vi.fn(),
   showSaveDialog: vi.fn(),
 }));
 
@@ -27,6 +29,7 @@ vi.mock("@/api/tauri-commands", () => ({
   openLogDir: commands.openLogDir,
   exportSettingsProfileToFile: commands.exportSettingsProfileToFile,
   importSettingsProfile: commands.importSettingsProfile,
+  previewSettingsProfileImport: commands.previewSettingsProfileImport,
 }));
 
 vi.mock("@/lib/platform/save-dialog", () => ({
@@ -38,6 +41,17 @@ const databaseInfo = Result.succeed({
   wal_size_bytes: 0,
   shm_size_bytes: 0,
   total_size_bytes: 2048,
+});
+
+const profileImportResult = Result.succeed({
+  accounts_created: 1,
+  accounts_updated: 2,
+  preferences_imported: 3,
+  preferences_skipped: 0,
+  tags_created: 0,
+  tags_updated: 0,
+  mute_keywords_created: 0,
+  mute_keywords_skipped: 0,
 });
 
 function userVisibleFailure(message: string) {
@@ -55,7 +69,13 @@ function getSection(heading: string): HTMLElement {
 
 async function renderDataSettings() {
   const { wrapper } = createQueryWrapper();
-  render(<DataSettings />, { wrapper });
+  render(
+    <>
+      <DataSettings />
+      <AppConfirmDialog />
+    </>,
+    { wrapper },
+  );
   await waitFor(() => {
     expect(screen.getByRole("button", { name: "Optimize" })).toBeEnabled();
   });
@@ -68,13 +88,15 @@ describe("DataSettings failures", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     useUiStore.setState({ showToast });
+    useUiStore.getState().closeConfirm();
     commands.getDatabaseInfo.mockResolvedValue(databaseInfo);
     commands.getCredentialStorage.mockResolvedValue(Result.succeed({ storage: "local_file", configurable: false }));
     commands.vacuumDatabase.mockResolvedValue(databaseInfo);
     commands.backupDatabase.mockResolvedValue(Result.succeed(null));
     commands.openLogDir.mockResolvedValue(Result.succeed(null));
     commands.exportSettingsProfileToFile.mockResolvedValue(Result.succeed(null));
-    commands.importSettingsProfile.mockResolvedValue(Result.succeed({}));
+    commands.importSettingsProfile.mockResolvedValue(profileImportResult);
+    commands.previewSettingsProfileImport.mockResolvedValue(profileImportResult);
     commands.showSaveDialog.mockResolvedValue("/tmp/profile.json");
   });
 
@@ -218,7 +240,7 @@ describe("DataSettings failures", () => {
 
   it("keeps a settings profile import failure in the settings profile section, not only in the toast", async () => {
     const user = userEvent.setup();
-    commands.importSettingsProfile.mockResolvedValueOnce(userVisibleFailure("unsupported profile version"));
+    commands.previewSettingsProfileImport.mockResolvedValueOnce(userVisibleFailure("unsupported profile version"));
     await renderDataSettings();
 
     await user.upload(
@@ -237,9 +259,9 @@ describe("DataSettings failures", () => {
     );
   });
 
-  it("clears the import failure when the user imports again", async () => {
+  it("clears the import failure on retry and waits for confirmation before applying", async () => {
     const user = userEvent.setup();
-    commands.importSettingsProfile.mockResolvedValueOnce(userVisibleFailure("unsupported profile version"));
+    commands.previewSettingsProfileImport.mockResolvedValueOnce(userVisibleFailure("unsupported profile version"));
     await renderDataSettings();
     const profile = new File(['{"version":99}'], "profile.json", { type: "application/json" });
     await user.upload(screen.getByLabelText("Choose settings profile JSON"), profile);
@@ -247,9 +269,21 @@ describe("DataSettings failures", () => {
 
     await user.upload(screen.getByLabelText("Choose settings profile JSON"), profile);
 
+    const dialog = await screen.findByRole("dialog", { name: "Import" });
+    expect(dialog).toHaveTextContent("Accounts: 1 added, 2 updated. Preferences applied: 3.");
+    expect(commands.importSettingsProfile).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(commands.importSettingsProfile).not.toHaveBeenCalled();
+
+    await user.upload(screen.getByLabelText("Choose settings profile JSON"), profile);
+    await user.click(
+      within(await screen.findByRole("dialog", { name: "Import" })).getByRole("button", { name: "Import" }),
+    );
+
     await waitFor(() => {
       expect(within(getSection("Settings profile")).queryByRole("alert")).not.toBeInTheDocument();
     });
+    expect(commands.importSettingsProfile).toHaveBeenCalledWith('{"version":99}');
   });
 
   it("tells the user in plain words that an oversized settings file is too large to import", async () => {

@@ -136,7 +136,6 @@ function Toast() {
   const toastMessage = useUiStore((state) => state.toastMessage);
   const clearToast = useUiStore((state) => state.clearToast);
   const browserUrl = useUiStore((state) => state.browserUrl);
-  const syncActive = useUiStore((state) => state.syncProgress.active);
   const [renderedToast, setRenderedToast] = useState(toastMessage);
   const [isExiting, setIsExiting] = useState(false);
 
@@ -175,7 +174,6 @@ function Toast() {
             ? APP_TOAST_PLACEMENTS.browserRail
             : APP_TOAST_PLACEMENTS.bottomRight
         }
-        syncActionState={syncActive}
         ending={isExiting}
       />
     </div>
