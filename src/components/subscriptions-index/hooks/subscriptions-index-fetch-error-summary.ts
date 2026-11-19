@@ -99,8 +99,12 @@ export function buildLocalFetchErrorSummary(params: {
 export function resolveSubscriptionsEmptyLabel(
   activeSummaryFilter: SubscriptionSummaryFilterKey,
   failedFeedCount: number | null,
-  labels: { default: string; fetchErrorsUnknown: string; fetchErrorsEmpty: string },
+  summariesUnavailable: boolean,
+  labels: { default: string; fetchErrorsUnknown: string; fetchErrorsEmpty: string; summariesUnavailable: string },
 ): string {
+  if (summariesUnavailable && (activeSummaryFilter === "stale" || activeSummaryFilter === "frequent")) {
+    return labels.summariesUnavailable;
+  }
   if (activeSummaryFilter !== "fetch_errors") return labels.default;
   if (failedFeedCount === null) return labels.fetchErrorsUnknown;
   if (failedFeedCount === 0) return labels.fetchErrorsEmpty;

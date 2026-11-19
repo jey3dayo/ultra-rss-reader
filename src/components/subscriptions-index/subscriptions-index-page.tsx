@@ -14,6 +14,7 @@ import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscript
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import { useUiStore } from "@/stores/ui-store";
 import { BulkUnsubscribeDialog } from "./bulk-unsubscribe-dialog";
+import type { QueryLoadState } from "./hooks/subscriptions-index-load-state";
 import { useSubscriptionsFeedDialogs } from "./hooks/use-subscriptions-feed-dialogs";
 import { useSubscriptionsIndexEscape } from "./hooks/use-subscriptions-index-escape";
 import { useSubscriptionsIndexViewProps } from "./hooks/use-subscriptions-index-view-props";
@@ -33,6 +34,24 @@ function subscribeToViewport(onStoreChange: () => void): () => void {
 
 function getViewportWidth(): number {
   return typeof window === "undefined" ? 0 : window.innerWidth;
+}
+
+function toQueryLoadState(query: {
+  isPending: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  data: unknown;
+  refetch: () => Promise<unknown>;
+}): QueryLoadState {
+  return {
+    pending: query.isPending,
+    error: query.isError,
+    hasData: query.data !== undefined,
+    fetching: query.isFetching,
+    retry: () => {
+      void query.refetch();
+    },
+  };
 }
 
 type IndexHandle = {
@@ -222,14 +241,15 @@ function SubscriptionsIndexPageForAccount({
     feedSyncStatuses: localFeedSync.statusQuery.data,
     feedSyncStatusesPending: localFeedSync.statusQuery.isPending,
     feedSyncStatusesError: localFeedSync.statusQuery.isError,
-    feedListPending: feedQuery.isPending,
+    feedLoad: toQueryLoadState(feedQuery),
+    summaryLoad: toQueryLoadState(summaryQuery),
     rowsPending:
       feedQuery.isPending ||
       summaryQuery.isPending ||
       localFeedSync.accountsPending ||
       (localFeedSync.isLocalAccount && localFeedSync.statusQuery.isPending),
-    feedListError: feedQuery.isError,
     onRetryFeed: localFeedSync.retryFeed,
+    retryOutcomeFor: localFeedSync.retryOutcomeFor,
     onEditFeed: (feedId) => {
       const feed = feeds.find((item) => item.id === feedId);
       if (feed) setEditTargetFeed(feed);
@@ -238,7 +258,8 @@ function SubscriptionsIndexPageForAccount({
     onCopyDiagnosticId: (diagnosticId) => {
       void copyValueToClipboard(diagnosticId, {
         onSuccess: () => showToast(t("detail_fetch_error_diagnostic_copied")),
-        onError: () => showToast({ message: t("detail_fetch_error_diagnostic_copy_failed"), severity: "error" }),
+        onError: () =>
+          showToast({ message: t("detail_fetch_error_diagnostic_copy_failed"), severity: "error", persistent: true }),
       });
     },
     setDeleteTargetFeed,

@@ -11,6 +11,8 @@ type DeleteFeedArgs = {
   feedId: string;
   accountId: string | null;
   title: string;
+  /** Set when the caller has no in-place surface for the failure, so a 4s toast would be missed. */
+  persistentFailureToast?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
 };
@@ -59,6 +61,7 @@ export function useDeleteFeed() {
       showToast({
         message: t("failed_to_unsubscribe", { message: localizeUserVisibleAppErrorMessage(error.message) }),
         severity: "error",
+        ...(variables.persistentFailureToast ? { persistent: true } : {}),
       });
       const callbackErrorMessage = callOptionalCallback(variables.onError, "Delete feed error callback failed");
       if (callbackErrorMessage !== null) {

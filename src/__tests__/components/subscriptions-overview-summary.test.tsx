@@ -332,4 +332,24 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(within(card).getByTestId("custom-summary-value")).toHaveTextContent("2 feeds");
     expect(within(card).getByText("絞り込む")).toHaveClass("sr-only");
   });
+
+  it("offers a single retry in a failure alert outside the card buttons", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[{ filterKey: "stale", label: "Stale feeds", value: "未取得", isActionable: false }]}
+        loadFailure={{ message: "集計を読み込めませんでした。", retryLabel: "再試行", retrying: false, onRetry }}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("集計を読み込めませんでした。");
+    expect(alert.closest("button")).toBeNull();
+
+    await user.click(within(alert).getByRole("button", { name: "再試行" }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });

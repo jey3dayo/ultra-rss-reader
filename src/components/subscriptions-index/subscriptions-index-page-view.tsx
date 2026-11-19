@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { WORKSPACE_CANVAS_CLASS, WORKSPACE_CHROME_SPACING_CLASS, workspaceSplitShellClassName } from "@/design-system";
+import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
@@ -14,6 +15,7 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane, type SubscriptionManagementActions } from "./subscription-detail-pane";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
+import type { SubscriptionsListLoadState, SubscriptionsLoadFailure } from "./subscriptions-load-status";
 import {
   SubscriptionsOverviewSummary,
   type SubscriptionsOverviewSummaryLabels,
@@ -38,12 +40,16 @@ type SubscriptionsIndexPageViewProps = {
     retrying: string;
     editFeedUrl: string;
     reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => string;
+    retryOutcome: (kind: FeedRetryOutcomeKind) => string;
   };
+  selectedRetryOutcome: FeedRetryOutcomeKind | null;
   onRetryFeed: (feedId: string) => void;
   onEditFeed: () => void;
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
   emptyLabel: string;
+  listLoadState: SubscriptionsListLoadState;
+  summaryLoadFailure: SubscriptionsLoadFailure | null;
   searchQuery: string;
   searchLabel: string;
   searchPlaceholder: string;
@@ -99,11 +105,14 @@ export function SubscriptionsIndexPageView({
   selectedDetailCandidate,
   selectedFetchError,
   fetchErrorLabels,
+  selectedRetryOutcome,
   onRetryFeed,
   onEditFeed,
   isRetryingFeed,
   onCopyDiagnosticId,
   emptyLabel,
+  listLoadState,
+  summaryLoadFailure,
   searchQuery,
   searchLabel,
   searchPlaceholder,
@@ -159,6 +168,7 @@ export function SubscriptionsIndexPageView({
           <SubscriptionsOverviewSummary
             cards={summaryCards}
             labels={summaryLabels}
+            loadFailure={summaryLoadFailure}
             onSelectFilter={onSelectSummaryFilter}
           />
           <div
@@ -174,6 +184,7 @@ export function SubscriptionsIndexPageView({
               groups={groups}
               selectedFeedId={selectedFeedId}
               emptyLabel={emptyLabel}
+              loadState={listLoadState}
               searchQuery={searchQuery}
               searchLabel={searchLabel}
               searchPlaceholder={searchPlaceholder}
@@ -203,6 +214,7 @@ export function SubscriptionsIndexPageView({
               detailCandidate={selectedDetailCandidate}
               fetchError={selectedFetchError}
               fetchErrorLabels={fetchErrorLabels}
+              retryOutcome={selectedRetryOutcome}
               onRetryFeed={onRetryFeed}
               onEditFeed={onEditFeed}
               isRetryingFeed={isRetryingFeed}
