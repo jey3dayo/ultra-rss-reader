@@ -32,7 +32,7 @@
     "unread_count_badge": "未読バッジ",
     "dont_display": "表示しない",
     "all_unread": "すべての未読",
-    "only_inbox": "受信トレイのみ",
+    "only_inbox": "未読のみ",
     "navigation": "サイドバー",
     "show_unread": "未読を表示",
     "show_starred": "スターを表示",
@@ -371,6 +371,7 @@
       "auth": "認証エラー: {{message}}",
       "validation": "同期の入力内容が無効です: {{message}}",
       "keychain": "認証情報ストレージエラー: {{message}}",
+      "keychain_needs_auth": "認証情報へのアクセス確認が必要です。アカウント設定で「保存して接続テスト」を実行すると、このセッションの間（最大8時間）アクセスが許可されます。自動同期ではキーチェーンのダイアログは開きません。",
       "migration": "データベースの移行エラー: {{message}}"
     },
     "sync_failed": "同期に失敗しました: {{message}}",

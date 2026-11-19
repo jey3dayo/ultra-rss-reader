@@ -17,12 +17,16 @@ export function createFetchErrorsToastAction(accountId: string, label: string): 
   if (!isLocalFetchErrorsAccount(account)) {
     return null;
   }
-  return {
+  const action: ToastAction = {
     label,
     onClick: () => {
+      const store = useUiStore.getState();
+      if (store.toastMessage?.actions?.includes(action)) {
+        store.clearToast();
+      }
       const generation = ++fetchErrorsNavigationGeneration;
       const screen = createFetchErrorsNavigationScreenGuard();
-      void openFetchErrorsWorkspace(accountId, generation, screen)
+      void openFetchErrorsWorkspace(accountId, action, generation, screen)
         .catch((error: unknown) => reportFetchErrorsNavigationFailure(error, generation, screen))
         .catch((error: unknown) => {
           logRuntimeDiagnostic(
@@ -34,6 +38,7 @@ export function createFetchErrorsToastAction(accountId: string, label: string): 
         .finally(screen.stop);
     },
   };
+  return action;
 }
 
 function getFetchErrorsAccount(accountId: string): AccountDto | undefined {
@@ -170,6 +175,7 @@ function isFetchErrorsNavigationCurrent(generation: number, screen: FetchErrorsN
 
 async function openFetchErrorsWorkspace(
   accountId: string,
+  action: ToastAction,
   generation: number,
   screen: FetchErrorsNavigationScreenGuard,
 ): Promise<void> {
@@ -192,6 +198,16 @@ async function openFetchErrorsWorkspace(
   if (store.settingsOpen) {
     const dirtyState = getSettingsDirtyStateSnapshot();
     if (dirtyState.dirty || dirtyState.pending) {
+      store.showToast({
+        message: i18n.t(
+          dirtyState.pending
+            ? "sidebar:sync_fetch_error_navigation_blocked_pending"
+            : "sidebar:sync_fetch_error_navigation_blocked_dirty",
+        ),
+        severity: "warning",
+        persistent: true,
+        actions: [action],
+      });
       return;
     }
   }
@@ -207,7 +223,16 @@ async function openFetchErrorsWorkspace(
     store.closeSettings();
   }
   const stateAfterSettingsClose = useUiStore.getState();
-  if (generation !== fetchErrorsNavigationGeneration || stateAfterSettingsClose.settingsOpen) {
+  if (generation !== fetchErrorsNavigationGeneration) {
+    return;
+  }
+  if (stateAfterSettingsClose.settingsOpen) {
+    stateAfterSettingsClose.showToast({
+      message: i18n.t("sidebar:sync_fetch_error_navigation_blocked_setup"),
+      severity: "warning",
+      persistent: true,
+      actions: [action],
+    });
     return;
   }
   if (stateAfterSettingsClose.selectedAccountId !== accountId) {

@@ -43,7 +43,6 @@ describe("useArticleListViewState", () => {
         createParams({
           showSearch: true,
           trimmedDebouncedQuery: "rss",
-          searchResults: undefined,
           isSearching: true,
           filteredArticleCount: 0,
           accountCount: 0,
@@ -55,7 +54,6 @@ describe("useArticleListViewState", () => {
         createParams({
           showSearch: true,
           trimmedDebouncedQuery: "rss",
-          searchResults: [],
           isSearching: false,
           filteredArticleCount: 0,
           accountCount: 0,
@@ -77,7 +75,6 @@ describe("useArticleListViewState", () => {
         createParams({
           showSearch: true,
           trimmedDebouncedQuery: "query b",
-          searchResults: [{ id: "query-a-result" }],
           isSearching: true,
           filteredArticleCount: 1,
         }),
@@ -98,8 +95,11 @@ function createParams(overrides: Partial<UseArticleListViewStateParams> = {}): U
     feedCount: 1,
     showSearch: false,
     trimmedDebouncedQuery: "",
-    searchResults: undefined,
     isSearching: false,
+    isArticlesError: false,
+    articlesError: null,
+    isSearchError: false,
+    searchError: null,
     filteredArticleCount: 1,
     ...overrides,
   };

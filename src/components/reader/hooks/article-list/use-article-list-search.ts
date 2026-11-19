@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { parseAppErrorOrNull } from "@/api/schemas/error";
 import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
 import { resolveArticleSearchQueryOwner, useSearchArticles } from "@/hooks/use-articles";
 import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
@@ -128,6 +129,8 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
     data: ownedSearchResults,
     isFetching: isSearchQueryFetching,
     isPlaceholderData: isPlaceholderSearchData,
+    isError,
+    error,
     searchOwner,
   } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
   const isCurrentSearchOwner =
@@ -138,6 +141,7 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   // `isFetching: true` while `searchResults` is still populated; treating that as
   // "searching" would blank the article list on every read-state mutation.
   const isSearching = isCurrentSearchOwner && isSearchQueryFetching && searchResults === undefined;
+  const isSearchError = isCurrentSearchOwner && !isPlaceholderSearchData && isError === true;
 
   const focusSearchInput = useCallback(() => {
     cancelSearchFocusRetry();
@@ -188,6 +192,8 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
     trimmedDebouncedQuery,
     searchResults,
     isSearching,
+    isSearchError,
+    searchError: isSearchError ? parseAppErrorOrNull(error) : null,
     openSearch,
     handleToggleSearch,
     handleCloseSearch,

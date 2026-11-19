@@ -13,7 +13,6 @@ import {
   buildSubscriptionSummaryCards,
   buildSubscriptionsIndexSummary,
   buildVisibleSubscriptionRows,
-  countStarredArticles,
   formatSubscriptionDate,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
@@ -189,7 +188,7 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
 const feedArticleSummaryMap = buildFeedArticleSummaryMap(feedArticleSummaries);
 
 describe("subscriptions index helpers", () => {
-  it("builds summary counts from all feeds and review candidates", () => {
+  it("builds summary counts from the subscription inventory", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
@@ -206,7 +205,6 @@ describe("subscriptions index helpers", () => {
       }),
     ).toEqual({
       totalCount: 4,
-      reviewCount: 2,
       staleCount: 2,
       frequentCount: 0,
     });
@@ -281,7 +279,6 @@ describe("subscriptions index helpers", () => {
       }),
     ).toEqual({
       totalCount: 1,
-      reviewCount: 2,
       staleCount: 2,
       frequentCount: 0,
     });
@@ -375,7 +372,6 @@ describe("subscriptions index helpers", () => {
       recentArticleCount: 0,
       previewArticles: [articles[0], articles[1]],
     });
-    expect(countStarredArticles(articles)).toBe(2);
   });
 
   it("orders detail preview articles by valid dates before invalid dates with title and id tie-breakers", () => {
@@ -509,13 +505,11 @@ describe("subscriptions index helpers", () => {
 
   it("builds summary cards and derives the filtered inventory heading", () => {
     const summaryCards = buildSubscriptionSummaryCards({
-      summary: { totalCount: 4, reviewCount: 2, staleCount: 2, frequentCount: 1 },
-      activeSummaryFilter: "review",
+      summary: { totalCount: 4, staleCount: 2, frequentCount: 1 },
+      activeSummaryFilter: "stale",
       labels: {
         total: "All",
         totalCaption: (count) => `${count} feeds`,
-        review: "Review",
-        reviewCaption: (count) => `${count} candidates`,
         stale: "Stale",
         staleCaption: (count) => `${count} stale`,
         frequent: "Frequent",
@@ -525,29 +519,26 @@ describe("subscriptions index helpers", () => {
 
     expect(summaryCards).toMatchObject([
       { filterKey: "all", value: "4", isActive: false },
-      { filterKey: "review", value: "2", isActive: true },
-      { filterKey: "stale", value: "2", isActive: false },
+      { filterKey: "stale", value: "2", isActive: true },
       { filterKey: "frequent", value: "1", isActive: false },
     ]);
     expect(
       resolveSubscriptionsInventoryHeading({
-        activeSummaryFilter: "review",
+        activeSummaryFilter: "stale",
         summaryCards,
         defaultHeading: "Inventory",
       }),
-    ).toBe("Review");
+    ).toBe("Stale");
   });
 
   it("falls back invalid summary card counts to zero before formatting labels", () => {
     const totalCaption = vi.fn((count: number) => `${count} feeds`);
-    const reviewCaption = vi.fn((count: number) => `${count} candidates`);
     const staleCaption = vi.fn((count: number) => `${count} stale`);
     const frequentCaption = vi.fn((count: number) => `${count} frequent`);
 
     const summaryCards = buildSubscriptionSummaryCards({
       summary: {
         totalCount: -1,
-        reviewCount: Number.NaN,
         staleCount: Number.POSITIVE_INFINITY,
         frequentCount: Number.NEGATIVE_INFINITY,
       },
@@ -555,8 +546,6 @@ describe("subscriptions index helpers", () => {
       labels: {
         total: "All",
         totalCaption,
-        review: "Review",
-        reviewCaption,
         stale: "Stale",
         staleCaption,
         frequent: "Frequent",
@@ -564,9 +553,8 @@ describe("subscriptions index helpers", () => {
       },
     });
 
-    expect(summaryCards.map((card) => card.value)).toEqual(["0", "0", "0", "0"]);
+    expect(summaryCards.map((card) => card.value)).toEqual(["0", "0", "0"]);
     expect(totalCaption).toHaveBeenCalledWith(0);
-    expect(reviewCaption).toHaveBeenCalledWith(0);
     expect(staleCaption).toHaveBeenCalledWith(0);
     expect(frequentCaption).toHaveBeenCalledWith(0);
   });
@@ -821,7 +809,7 @@ describe("subscriptions index helpers", () => {
     expect(onDefer).toHaveBeenCalledWith(rows[0]);
   });
 
-  it("filters visible rows by review status, local decisions, search query, and sort key", () => {
+  it("hides a deferred stale feed from the stale filter", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
@@ -838,7 +826,7 @@ describe("subscriptions index helpers", () => {
 
     const visibleRows = buildVisibleSubscriptionRows({
       rows,
-      activeSummaryFilter: "review",
+      activeSummaryFilter: "stale",
       keptFeedIds: new Set(),
       deferredFeedIds: new Set(),
       searchQuery: "",
@@ -850,13 +838,13 @@ describe("subscriptions index helpers", () => {
     expect(
       buildVisibleSubscriptionRows({
         rows,
-        activeSummaryFilter: "review",
+        activeSummaryFilter: "stale",
         keptFeedIds: new Set(),
-        deferredFeedIds: new Set(["feed-mid"]),
+        deferredFeedIds: new Set(["feed-stale"]),
         searchQuery: "",
         sortKey: "updated_at",
       }).map((row) => row.feed.id),
-    ).toEqual(["feed-stale"]);
+    ).toEqual(["feed-mid"]);
   });
 
   it("keeps a failed stale feed in activity filters and visible after a review decision", () => {
@@ -889,7 +877,7 @@ describe("subscriptions index helpers", () => {
         : row,
     );
 
-    const visibleIdsFor = (activeSummaryFilter: "stale" | "review" | "fetch_errors") =>
+    const visibleIdsFor = (activeSummaryFilter: "stale" | "fetch_errors") =>
       buildVisibleSubscriptionRows({
         rows,
         activeSummaryFilter,
@@ -901,7 +889,6 @@ describe("subscriptions index helpers", () => {
 
     expect(rows.find((row) => row.feed.id === "feed-stale")?.status.labelKey).toBe("stale_90d");
     expect(visibleIdsFor("stale")).toContain("feed-stale");
-    expect(visibleIdsFor("review")).toContain("feed-stale");
     expect(visibleIdsFor("fetch_errors")).toEqual(["feed-stale"]);
   });
 
@@ -985,17 +972,6 @@ describe("subscriptions index helpers", () => {
         sortKey: "title",
       }).map((row) => row.feed.id),
     ).toEqual(["feed-active", "feed-dormant", "feed-stale", "feed-mid"]);
-
-    expect(
-      buildVisibleSubscriptionRows({
-        rows,
-        activeSummaryFilter: "review",
-        keptFeedIds,
-        deferredFeedIds,
-        searchQuery: "",
-        sortKey: "title",
-      }).map((row) => row.feed.id),
-    ).toEqual([]);
 
     expect(
       buildVisibleSubscriptionRows({

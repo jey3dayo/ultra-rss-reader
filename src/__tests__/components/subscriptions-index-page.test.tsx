@@ -214,14 +214,12 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "戻る" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "戻る" })).toBeNull();
     expect(screen.getByRole("button", { name: "閉じる" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "全購読" })).toBeInTheDocument();
     expect(screen.getByText("総購読数")).toBeInTheDocument();
-    expect(screen.getByText("見直し候補")).toBeInTheDocument();
-    expect(screen.queryByText("条件")).toBeNull();
-    expect(screen.queryByText("見直し候補: 更新が止まっている、または更新がないまま未読も残っていない購読")).toBeNull();
     expect(screen.getByText("90日以上未更新")).toBeInTheDocument();
+    expect(screen.getByText("更新過多")).toBeInTheDocument();
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
     expect(document.querySelectorAll('img[src*="google.com/s2/favicons?domain=example.com"]').length).toBeGreaterThan(
       0,
@@ -264,7 +262,7 @@ describe("SubscriptionsIndexPage", () => {
 
     const fetchErrors = await screen.findByRole("button", { name: /^取得エラー / });
     const summaryActions = screen.getAllByRole("button", {
-      name: /^(取得エラー|総購読数|見直し候補|90日以上未更新|更新過多) /,
+      name: /^(取得エラー|総購読数|90日以上未更新|更新過多) /,
     });
     expect(summaryActions[0]).toBe(fetchErrors);
     expect(fetchErrors).toHaveClass("border-state-danger-border/72");
@@ -399,14 +397,7 @@ describe("SubscriptionsIndexPage", () => {
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
       "lg:gap-3",
     );
-    expect(await screen.findByRole("button", { name: /見直し候補/ })).toHaveClass(
-      "rounded-md",
-      "border-state-warning-border/78",
-      "bg-state-warning-surface/86",
-    );
-    expect(await screen.findByRole("button", { name: /見直し候補/ })).toHaveClass(
-      "shadow-[var(--subscriptions-summary-card-shadow)]",
-    );
+    expect(screen.queryByRole("button", { name: /見直し候補/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /90日以上未更新/ })).toHaveClass(
       "rounded-md",
       "border-state-danger-border/72",
@@ -558,12 +549,12 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.queryByRole("button", { name: "まとめて処理" })).toBeNull();
     expect(screen.queryByRole("button", { name: /参照エラー/ })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: /見直し候補/ }));
+    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
     });
-    expect(screen.getByRole("heading", { name: "見直し候補" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "90日以上未更新" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Fresh Feed/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Loose Feed/ })).not.toBeInTheDocument();
@@ -631,14 +622,14 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ })).toBeInTheDocument();
   });
 
-  it("removes deferred feeds from the active review filter and clears the detail pane", async () => {
+  it("removes deferred feeds from the active stale filter and clears the detail pane", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /見直し候補/ }));
+    await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
@@ -649,26 +640,6 @@ describe("SubscriptionsIndexPage", () => {
     });
     expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
     expect(within(detailPane).getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
-  });
-
-  it("keeps review and stale filters inside the subscriptions index", async () => {
-    const user = userEvent.setup();
-
-    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("button", { name: /見直し候補/ }));
-
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-      kind: "index",
-    });
-    expect(screen.queryByRole("button", { name: "まとめて処理" })).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
-
-    expect(await screen.findByRole("heading", { name: "90日以上未更新" })).toBeInTheDocument();
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-      kind: "index",
-    });
   });
 
   it("shows scoped no-error copy after retry clears the last failure while its filter stays active", async () => {
@@ -699,7 +670,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "再取得" }));
 
-    expect(await screen.findByText("取得エラーのあるフィードはありません")).toBeInTheDocument();
+    expect(await screen.findByText("取得エラーのある購読はありません")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^総購読数 / })).toBeInTheDocument();
   });
@@ -707,6 +678,9 @@ describe("SubscriptionsIndexPage", () => {
   it("restores a returned stale filter, collapsed group state, and list scroll position", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const availableFeeds = feedRows;
+    feedRows = [];
+    const { queryClient, wrapper } = createQueryWrapper();
     useUiStore.setState({
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
@@ -731,7 +705,11 @@ describe("SubscriptionsIndexPage", () => {
       },
     });
 
-    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+    render(<SubscriptionsIndexPage />, { wrapper });
+
+    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    feedRows = availableFeeds;
+    await queryClient.invalidateQueries({ queryKey: queryKeys.feeds.byAccount("acc-1") });
 
     const firstGroupButton = await screen.findByTestId("subscriptions-folder-row-folder-1");
     const firstGroupPanel = document.getElementById("subscriptions-group-panel-subscription-list:1-folder:folder-1");
@@ -855,14 +833,14 @@ describe("SubscriptionsIndexPage", () => {
     }
   });
 
-  it("hides feeds already marked to keep when restoring the review filter", async () => {
+  it("hides feeds already marked to keep when restoring the stale filter", async () => {
     useUiStore.setState({
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
         kind: "index",
         returnState: {
           accountId: "acc-1",
-          activeSummaryFilter: "review",
+          activeSummaryFilter: "stale",
           selectedFeedId: "feed-1",
           expandedGroups: {
             "group:subscription-list:1-folder:folder-1": true,
@@ -894,7 +872,7 @@ describe("SubscriptionsIndexPage", () => {
         kind: "index",
         returnState: {
           accountId: "acc-2",
-          activeSummaryFilter: "review",
+          activeSummaryFilter: "stale",
           selectedFeedId: "feed-1",
           expandedGroups: {},
           listScrollTop: {
@@ -1174,27 +1152,40 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.queryByText("参照エラーは一覧対象外です。まとめて処理から確認できます。")).toBeNull();
   });
 
-  it("closes the subscriptions workspace from the header action", async () => {
-    const user = userEvent.setup();
+  it("restores the subscriptions workspace after closing and reopening from the header", async () => {
+    const { unmount } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+    await screen.findByRole("button", { name: /Example Feed/ });
+    const scrollRegion = screen.getByTestId("subscriptions-list-scroll-region");
+    scrollRegion.scrollTop = 73;
 
-    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("button", { name: "閉じる" }));
-
-    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
-  });
-
-  it("returns from the subscriptions workspace from the header action", async () => {
-    const user = userEvent.setup();
-
-    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("button", { name: "戻る" }));
+    fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+    unmount();
+    act(() => useUiStore.getState().openSubscriptionsIndex());
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+    const reopenedScrollRegion = await screen.findByTestId("subscriptions-list-scroll-region");
+    await waitFor(() => expect(reopenedScrollRegion.scrollTop).toBe(73));
   });
 
-  it("closes the subscriptions workspace with Escape and returns focus to the reader pane", async () => {
+  it("opens a fresh subscriptions list for a different account", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.type(await screen.findByRole("searchbox"), "Example");
+    await user.click(screen.getByRole("button", { name: "閉じる" }));
+    unmount();
+
+    act(() => {
+      useUiStore.getState().selectAccount("acc-2");
+      useUiStore.getState().openSubscriptionsIndex();
+    });
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("searchbox")).toHaveValue("");
+  });
+
+  it("closes with Escape during overscroll and returns focus to the reader pane", async () => {
     const user = userEvent.setup();
 
     useUiStore.setState({
@@ -1205,12 +1196,18 @@ describe("SubscriptionsIndexPage", () => {
     });
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+    await screen.findByRole("button", { name: /Example Feed/ });
+    screen.getByTestId("subscriptions-list-scroll-region").scrollTop = -12;
 
     await user.keyboard("{Escape}");
 
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().focusedPane).toBe("content");
+    expect(useUiStore.getState().subscriptionsIndexReturnState).toMatchObject({
+      accountId: "acc-1",
+      listScrollTop: { scrollTop: 0 },
+    });
   });
 
   it("does not close the subscriptions workspace for an IME commit keydown", async () => {

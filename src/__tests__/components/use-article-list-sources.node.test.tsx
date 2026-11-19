@@ -321,7 +321,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "feed", feedId: "feed-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "unread",
         }),
@@ -337,7 +336,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "feed", feedId: "feed-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "starred",
         }),
@@ -353,7 +351,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "smart", kind: "unread" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "unread",
         }),
@@ -371,7 +368,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "smart", kind: "recent" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "all",
         }),
@@ -390,7 +386,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "smart", kind: "recent" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "starred",
         }),
@@ -414,7 +409,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "folder", folderId: "folder-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "all",
         }),
@@ -435,7 +429,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "feed", feedId: "feed-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "unread",
         }),
@@ -457,7 +450,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "smart", kind: "recent" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "all",
         }),
@@ -473,7 +465,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "tag", tagId: "tag-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "starred",
         }),
@@ -526,7 +517,6 @@ describe("useArticleListSources", () => {
           useArticleListSources({
             selection,
             selectedAccountId: "acc-1",
-            selectedArticleId: null,
             retainedArticleIds: new Set(),
             viewMode: "unread",
           }),
@@ -550,7 +540,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "tag", tagId: "tag-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "all",
         }),
@@ -568,7 +557,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "all" },
           selectedAccountId: null,
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "all",
         }),
@@ -701,7 +689,6 @@ describe("useArticleListSources", () => {
           useArticleListSources({
             selection: testCase.selection,
             selectedAccountId: "acc-1",
-            selectedArticleId: null,
             retainedArticleIds: new Set(),
             viewMode: testCase.viewMode,
           }),
@@ -731,7 +718,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "feed", feedId: "feed-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "all",
         }),
@@ -758,7 +744,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "all" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "all",
         }),
@@ -779,7 +764,6 @@ describe("useArticleListSources", () => {
     const props: Parameters<typeof useArticleListSources>[0] = {
       selection: { type: "feed", feedId: "feed-1" },
       selectedAccountId: "acc-1",
-      selectedArticleId: "art-1",
       retainedArticleIds: new Set(["art-1"]),
       viewMode: "unread",
     };
@@ -806,7 +790,6 @@ describe("useArticleListSources", () => {
     const props: Parameters<typeof useArticleListSources>[0] = {
       selection: { type: "feed", feedId: "feed-1" },
       selectedAccountId: "acc-1",
-      selectedArticleId: "art-1",
       retainedArticleIds: new Set(["art-1"]),
       viewMode: "unread",
     };
@@ -831,7 +814,6 @@ describe("useArticleListSources", () => {
         useArticleListSources({
           selection: { type: "feed", feedId: "feed-1" },
           selectedAccountId: "acc-1",
-          selectedArticleId: null,
           retainedArticleIds: new Set(),
           viewMode: "unread",
         }),
@@ -847,15 +829,18 @@ describe("useArticleListSources", () => {
   it("keeps the previous feed source while a refetch reports an empty loading result", () => {
     let currentArticles = [sampleArticles[0], sampleArticles[1]];
     let isLoading = false;
+    let isError = false;
+    const error = { type: "Retryable", message: "Network offline" };
     useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({
       data: options?.mode === "unread" ? currentArticles : [sampleArticles[0], sampleArticles[1]],
       isLoading,
+      isError,
+      error: isError ? error : null,
     }));
 
     const props: Parameters<typeof useArticleListSources>[0] = {
       selection: { type: "feed", feedId: "feed-1" },
       selectedAccountId: "acc-1",
-      selectedArticleId: "art-2",
       retainedArticleIds: new Set(),
       viewMode: "unread",
     };
@@ -874,6 +859,14 @@ describe("useArticleListSources", () => {
     expect(result.current.isLoadingArticles).toBe(false);
 
     isLoading = false;
+    isError = true;
+    rerender();
+
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1", "art-2"]);
+    expect(result.current.isArticlesError).toBe(true);
+    expect(result.current.articlesError).toEqual(error);
+
+    isError = false;
     rerender();
 
     expect(result.current.articles).toEqual([]);
@@ -900,7 +893,6 @@ describe("useArticleListSources", () => {
     const props: Parameters<typeof useArticleListSources>[0] = {
       selection: { type: "feed", feedId: "feed-1" },
       selectedAccountId: "acc-1",
-      selectedArticleId: "art-3",
       retainedArticleIds: new Set(["art-1", "art-3"]),
       viewMode: "unread",
     };
@@ -934,7 +926,6 @@ describe("useArticleListSources", () => {
     const props: Parameters<typeof useArticleListSources>[0] = {
       selection: { type: "folder", folderId: "folder-1" },
       selectedAccountId: "acc-1",
-      selectedArticleId: "matrix-4",
       retainedArticleIds: new Set(["matrix-4"]),
       viewMode: "unread",
     };
@@ -971,7 +962,6 @@ describe("useArticleListSources", () => {
     const props: Parameters<typeof useArticleListSources>[0] = {
       selection: { type: "smart", kind: "starred" },
       selectedAccountId: "acc-1",
-      selectedArticleId: "art-2",
       retainedArticleIds: new Set(["art-2"]),
       viewMode: "all",
     };

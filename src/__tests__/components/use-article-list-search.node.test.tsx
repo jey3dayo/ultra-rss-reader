@@ -365,10 +365,13 @@ describe("useArticleListSearch", () => {
   });
 
   it("does not expose stale owner results as current search results after the query changes", () => {
+    const error = { type: "Retryable", message: "Network offline" };
     useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
       data: [{ id: "query-a-result" }],
       isFetching: query === "query b",
       isPlaceholderData: false,
+      isError: true,
+      error,
       searchOwner:
         _accountId && query
           ? {
@@ -389,6 +392,8 @@ describe("useArticleListSearch", () => {
     });
 
     expect(result.current.searchResults).toEqual([{ id: "query-a-result" }]);
+    expect(result.current.isSearchError).toBe(true);
+    expect(result.current.searchError).toEqual(error);
 
     act(() => {
       result.current.setSearchQuery("query b");
@@ -400,6 +405,8 @@ describe("useArticleListSearch", () => {
     expect(result.current.trimmedDebouncedQuery).toBe("query b");
     expect(result.current.searchResults).toBeUndefined();
     expect(result.current.isSearching).toBe(false);
+    expect(result.current.isSearchError).toBe(false);
+    expect(result.current.searchError).toBeNull();
   });
 
   it("does not report searching while the same query background-refetches with results still displayable", () => {

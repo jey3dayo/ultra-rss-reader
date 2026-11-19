@@ -268,32 +268,6 @@ describe("ArticleListScreenView", () => {
     );
   });
 
-  it("renders no middle-pane message when onboarding is handled elsewhere", () => {
-    render(
-      <ArticleListScreenView
-        listAriaLabel="Article list"
-        listRef={{ current: null }}
-        isActivePane
-        isLoading={false}
-        emptyStateVariant="hidden"
-        emptyMessage="Unused"
-        emptyDescription="Unused"
-        loadingMessage="Loading articles"
-        groups={[]}
-        dimArchived="true"
-        textPreview="true"
-        imagePreviews="off"
-        selectionStyle="modern"
-        onSelectArticle={vi.fn()}
-        renderRow={({ content }) => content}
-      />,
-    );
-
-    expect(screen.queryByText("Unused")).not.toBeInTheDocument();
-    expect(screen.queryByText("Queue")).not.toBeInTheDocument();
-    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
-  });
-
   it("keeps article rows inside a dedicated scroll content lane so the scrollbar does not overlap selections", () => {
     render(
       <ArticleListScreenView

@@ -4,11 +4,11 @@ import * as s from "@/schemas/validation";
 
 export type SubscriptionsWorkspaceExpandedGroupKey = `group:${string}`;
 
-// Every SubscriptionSummaryFilterKey (source of truth) must be persistable here,
-// otherwise restoring a returnState whose activeSummaryFilter uses the missing
-// key throws at parse time. The type guard below fails to compile if a new
-// filter key is added to the union but not to this enum.
-const subscriptionSummaryFilterStateSchema = v.picklist(["all", "review", "stale", "frequent", "fetch_errors"]);
+const subscriptionSummaryFilterStateSchema = v.pipe(
+  v.unknown(),
+  v.transform((filter) => (filter === "review" ? "all" : filter)),
+  v.picklist(["all", "stale", "frequent", "fetch_errors"]),
+);
 type PersistedSummaryFilterDriftGuard = Exclude<
   SubscriptionSummaryFilterKey,
   v.InferOutput<typeof subscriptionSummaryFilterStateSchema>
@@ -46,6 +46,7 @@ export const SubscriptionsWorkspaceReturnStateSchema = s.strictObject({
   listScrollTop: SubscriptionsWorkspaceListScrollStateSchema,
   keptFeedIds: v.array(subscriptionsWorkspaceIdentitySchema),
   deferredFeedIds: v.array(subscriptionsWorkspaceIdentitySchema),
+  searchQuery: v.optional(v.string()),
 });
 
 export type SubscriptionsWorkspaceReturnState = v.InferOutput<typeof SubscriptionsWorkspaceReturnStateSchema>;

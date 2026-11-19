@@ -1,7 +1,10 @@
 import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
+import { useUiStore } from "@/stores/ui-store";
 import type { ArticleListBodyProps } from "../../article-list-body";
 
-type ArticleListFailureState = "permission" | "auth" | "network" | "schema";
+type ArticleListFailureState = "permission" | "auth" | "network" | "schema" | "unknown";
 export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds" | ArticleListFailureState;
 
 type ArticleListBodyEmptyStateProps = Pick<
@@ -36,19 +39,17 @@ type UseArticleListBodyPropsParams = {
 
 type BuildArticleListBodyEmptyStateParams = Pick<
   UseArticleListBodyPropsParams,
-  "t" | "isSearchEmptyState" | "setupEmptyState" | "trimmedDebouncedQuery" | "handleCloseSearch"
+  | "t"
+  | "isSearchEmptyState"
+  | "setupEmptyState"
+  | "trimmedDebouncedQuery"
+  | "handleCloseSearch"
+  | "onManageSelectedFeed"
 > & {
-  onManageSelectedFeed?: (() => void) | null;
+  onAddFeed?: () => void;
+  onAddAccount?: () => void;
+  addAccountLabel?: string;
 };
-
-type ArticleListBodyEmptyStateKind = "search" | ArticleListSetupState;
-
-function resolveArticleListBodyEmptyStateKind(
-  isSearchEmptyState: boolean,
-  setupEmptyState: ArticleListSetupState,
-): ArticleListBodyEmptyStateKind {
-  return isSearchEmptyState ? "search" : setupEmptyState;
-}
 
 export function buildArticleListBodyEmptyState({
   t,
@@ -57,8 +58,11 @@ export function buildArticleListBodyEmptyState({
   trimmedDebouncedQuery,
   handleCloseSearch,
   onManageSelectedFeed = null,
+  onAddFeed,
+  onAddAccount,
+  addAccountLabel,
 }: BuildArticleListBodyEmptyStateParams): ArticleListBodyEmptyStateProps {
-  const kind = resolveArticleListBodyEmptyStateKind(isSearchEmptyState, setupEmptyState);
+  const kind = isSearchEmptyState ? "search" : setupEmptyState;
 
   switch (kind) {
     case "search":
@@ -71,32 +75,33 @@ export function buildArticleListBodyEmptyState({
       };
     case "no-accounts":
       return {
-        emptyStateVariant: "hidden",
+        emptyStateVariant: "setup",
         emptyMessage: t("article_list_setup_no_accounts_title"),
         emptyDescription: t("article_list_setup_no_accounts_description"),
-        emptyActionLabel: undefined,
-        onEmptyAction: undefined,
+        emptyActionLabel: addAccountLabel,
+        onEmptyAction: onAddAccount,
       };
     case "no-feeds":
       return {
         emptyStateVariant: "setup",
         emptyMessage: t("article_list_setup_no_feeds_title"),
         emptyDescription: t("article_list_setup_no_feeds_description"),
-        emptyActionLabel: undefined,
-        onEmptyAction: undefined,
+        emptyActionLabel: t("add_feed"),
+        onEmptyAction: onAddFeed,
       };
     case "none":
       return {
         emptyStateVariant: "default",
         emptyMessage: t("no_articles"),
         emptyDescription: t("no_articles_description"),
-        emptyActionLabel: onManageSelectedFeed ? t("manage_subscription") : undefined,
+        emptyActionLabel: onManageSelectedFeed ? t("edit_feed_ellipsis") : undefined,
         onEmptyAction: onManageSelectedFeed ?? undefined,
       };
     case "permission":
     case "auth":
     case "network":
     case "schema":
+    case "unknown":
       return {
         emptyStateVariant: "setup",
         emptyMessage: t(`article_list_setup_${kind}_title`),
@@ -131,6 +136,10 @@ export function useArticleListBodyProps({
   handleCloseSearch,
   handleMarkAllRead,
 }: UseArticleListBodyPropsParams): ArticleListBodyProps {
+  const { t: settingsT } = useTranslation("settings");
+  const settingsNamespaceReady = useI18nResourceNamespace(setupEmptyState === "no-accounts" ? "settings" : null);
+  const openSettingsAddAccount = useUiStore((state) => state.openSettingsAddAccount);
+  const openAddFeedDialog = useUiStore((state) => state.openAddFeedDialog);
   const emptyStateProps = buildArticleListBodyEmptyState({
     t,
     isSearchEmptyState,
@@ -138,6 +147,9 @@ export function useArticleListBodyProps({
     trimmedDebouncedQuery,
     handleCloseSearch,
     onManageSelectedFeed,
+    onAddFeed: openAddFeedDialog,
+    onAddAccount: () => openSettingsAddAccount(),
+    addAccountLabel: settingsNamespaceReady ? settingsT("add_account_ellipsis") : undefined,
   });
 
   return {

@@ -74,7 +74,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   onEditFeed: (feedId: string) => void;
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
-  closeSubscriptionsWorkspace: () => void;
+  closeSubscriptionsWorkspace: (returnState: SubscriptionsWorkspaceReturnState) => void;
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
 };
@@ -135,15 +135,30 @@ export function useSubscriptionsIndexViewProps({
   );
 
   const state = useSubscriptionsIndexState(rows, {
-    accountId: selectedAccountId,
     initialSummaryFilter: scopedNavigationRequest?.summaryFilter ?? scopedIndexReturnState?.activeSummaryFilter,
     initialSelectedFeedId: scopedNavigationRequest ? null : scopedIndexReturnState?.selectedFeedId,
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
+    initialSearchQuery: scopedNavigationRequest ? "" : scopedIndexReturnState?.searchQuery,
     initialListScrollState: scopedNavigationRequest ? undefined : scopedIndexReturnState?.listScrollTop,
     viewportHeight,
   });
+  const scrollRegionRef = useRef<HTMLDivElement | null>(null);
+  const closeWithCurrentState = () =>
+    closeSubscriptionsWorkspace({
+      accountId: selectedAccountId,
+      activeSummaryFilter: state.activeSummaryFilter,
+      selectedFeedId: state.selectedFeedId,
+      expandedGroups: state.expandedGroups,
+      listScrollTop: {
+        ...state.listScrollState,
+        scrollTop: Math.max(0, scrollRegionRef.current?.scrollTop ?? state.listScrollState.scrollTop),
+      },
+      keptFeedIds: [...state.keptFeedIds],
+      deferredFeedIds: [...state.deferredFeedIds],
+      searchQuery: state.searchQuery,
+    });
   const consumedNavigationRequest = useRef(scopedNavigationRequest);
   const consumeNavigationRequest = useEffectEvent(() => {
     const currentStore = useUiStore.getState();
@@ -211,8 +226,6 @@ export function useSubscriptionsIndexViewProps({
     labels: {
       total: t("summary_total"),
       totalCaption: (count) => t("summary_total_caption", { count }),
-      review: t("summary_review"),
-      reviewCaption: (count) => t("summary_review_caption", { count }),
       stale: t("summary_stale"),
       staleCaption: (count) => t("summary_stale_caption", { count }),
       frequent: t("summary_frequent"),
@@ -302,9 +315,7 @@ export function useSubscriptionsIndexViewProps({
       showFilterAriaLabel: (label) => t("summary_action_show_filter_aria", { label }),
       filterAll: t("summary_action_filter_all"),
       filter: t("summary_action_filter"),
-      criteria: t("summary_criteria_chip"),
     },
-    reviewCriteriaLabel: t("summary_review_criteria"),
     inventoryHeading,
     detailHeading: t("detail_heading"),
     groups: groupedRows,
@@ -364,6 +375,7 @@ export function useSubscriptionsIndexViewProps({
     folderLabel: t("folder"),
     listScrollResetKey: state.listScrollResetKey,
     listScrollTop: state.listScrollTop,
+    scrollRegionRef,
     latestArticleLabel: t("latest_article"),
     latestArticleEmptyLabel: t("meta_latest_article_none"),
     updateFrequencyLabel: t("update_frequency"),
@@ -390,7 +402,6 @@ export function useSubscriptionsIndexViewProps({
     displayModeValue: selectedDisplayModeLabel,
     decisionActions,
     managementActions,
-    backLabel: tc("back"),
     closeLabel: tc("close"),
     isGroupExpanded: state.isGroupExpanded,
     onSelectSummaryFilter: state.setActiveSummaryFilter,
@@ -398,7 +409,6 @@ export function useSubscriptionsIndexViewProps({
     onListScrollTopChange: state.setListScrollTop,
     onSearchQueryChange: state.setSearchQuery,
     onToggleGroup: state.toggleGroup,
-    onBack: () => closeSubscriptionsWorkspace(),
-    onClose: () => closeSubscriptionsWorkspace(),
+    onClose: closeWithCurrentState,
   } satisfies SubscriptionsIndexPageViewProps;
 }

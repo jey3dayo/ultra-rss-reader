@@ -6,6 +6,7 @@ type UseAddFeedDialogViewPropsParams = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   folderLabelId: string;
+  accountName: string | undefined;
   controller: AddFeedDialogController;
 };
 
@@ -13,6 +14,7 @@ export function useAddFeedDialogViewProps({
   open,
   onOpenChange,
   folderLabelId,
+  accountName,
   controller,
 }: UseAddFeedDialogViewPropsParams): AddFeedDialogViewProps {
   const { t } = useTranslation("reader");
@@ -56,6 +58,7 @@ export function useAddFeedDialogViewProps({
     labels: {
       title: t("add_feed"),
       description: t("add_feed_description"),
+      account: accountName === undefined ? null : t("add_feed_account", { accountName }),
       urlLabel: t("feed_or_site_url"),
       urlPlaceholder: t("feed_url_placeholder"),
       discover: t("discover"),

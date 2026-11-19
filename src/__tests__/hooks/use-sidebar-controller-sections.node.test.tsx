@@ -76,6 +76,7 @@ function createSectionsParams(
     isTagsSectionOpen: true,
     toggleTagsSection: vi.fn(),
     handleOpenAccountSettings: vi.fn(),
+    handleAddAccount: vi.fn(),
     tags: [],
     tagArticleCounts: {},
     moveFeedToFolder: vi.fn(async () => undefined),

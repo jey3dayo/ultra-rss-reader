@@ -8,7 +8,7 @@ import {
 const labels = {
   failed: "Web Preview couldn't load.",
   failedHint: "Try again, or open this page in your external browser.",
-  blocked: "This page can't be shown in the in-app browser.",
+  blocked: "This page can't be shown in Web Preview.",
   blockedHint: "Open it in your external browser instead.",
   browserMode: "Embedded preview isn't available in browser mode.",
   browserModeHint: "Use the desktop app for the native preview, or open this page in your external browser.",

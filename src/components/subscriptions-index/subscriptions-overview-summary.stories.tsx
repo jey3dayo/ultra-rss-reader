@@ -7,22 +7,15 @@ const summaryCards = [
     filterKey: "fetch_errors",
     label: "取得エラー",
     value: "0",
-    caption: "取得エラーのあるフィードはありません",
+    caption: "取得エラーのある購読はありません",
     isActionable: false,
   },
   {
     filterKey: "all",
     label: "Total subscriptions",
     value: "42",
-    caption: "All feeds in the workspace",
+    caption: "All subscriptions in this account",
     isActive: true,
-  },
-  {
-    filterKey: "review",
-    label: "Needs review",
-    value: "3",
-    caption: "Low activity or duplicate candidates",
-    tone: "review",
   },
   {
     filterKey: "stale",
@@ -64,11 +57,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const ReviewActive: Story = {
+export const StaleActive: Story = {
   args: {
     cards: summaryCards.map((card) => ({
       ...card,
-      isActive: card.filterKey === "review" && card.isActionable !== false,
+      isActive: card.filterKey === "stale" && card.isActionable !== false,
     })),
   },
 };
@@ -80,7 +73,7 @@ export const FetchErrors: Story = {
         filterKey: "fetch_errors",
         label: "取得エラー",
         value: "2",
-        caption: "2 件のフィードで取得エラーがあります",
+        caption: "2 件の購読で取得エラーがあります",
         tone: "danger",
       },
       ...summaryCards.slice(1),

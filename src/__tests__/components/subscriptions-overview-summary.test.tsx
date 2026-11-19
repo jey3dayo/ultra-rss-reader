@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
@@ -17,7 +17,6 @@ describe("SubscriptionsOverviewSummary", () => {
     showFilterAriaLabel: (label: string) => `Show ${label}`,
     filterAll: "Show all",
     filter: "Filter",
-    criteria: "Criteria",
   };
 
   it("uses semantic soft foreground text and neutral action chips", () => {
@@ -25,11 +24,11 @@ describe("SubscriptionsOverviewSummary", () => {
       <SubscriptionsOverviewSummary
         cards={[
           {
-            filterKey: "review",
-            label: "Needs review",
+            filterKey: "stale",
+            label: "Stale feeds",
             value: "2",
             caption: "Check these feeds",
-            tone: "review",
+            tone: "stale",
           },
           {
             filterKey: "all",
@@ -38,12 +37,11 @@ describe("SubscriptionsOverviewSummary", () => {
             caption: "All good",
           },
         ]}
-        reviewCriteriaLabel="Needs review: quiet feeds or weak usage signals."
         onSelectFilter={vi.fn()}
       />,
     );
 
-    const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
+    const summarySection = screen.getByRole("button", { name: /Stale feeds/ }).closest("section");
     expect(summarySection).not.toBeNull();
     expect(summarySection).toHaveClass("p-0", "shadow-none");
     expect(summarySection).not.toHaveClass("rounded-md", "border");
@@ -52,18 +50,14 @@ describe("SubscriptionsOverviewSummary", () => {
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
       "gap-3",
     );
-    expect(screen.queryByText("Needs review: quiet feeds or weak usage signals.")).toBeNull();
-
-    const actionableCard = screen.getByRole("button", { name: /Needs review/ });
+    const actionableCard = screen.getByRole("button", { name: /Stale feeds/ });
     expect(actionableCard).toHaveClass("w-full", "min-w-0");
     expect(actionableCard).toHaveClass("rounded-md", "focus-visible:ring-2");
-    expect(actionableCard).toHaveClass("sm:col-span-2", "lg:col-span-1");
     expect(actionableCard).toHaveAttribute("aria-pressed", "false");
     expect(actionableCard).toBeVisible();
-    expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
+    expect(within(actionableCard).getByText("Stale feeds")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("絞り込む")).toHaveClass("sr-only");
-    expect(within(actionableCard).queryByText("条件")).toBeNull();
     expect(actionableCard.querySelector("svg[aria-hidden='true']")).toBeNull();
 
     const neutralCard = screen.getByRole("button", { name: /Healthy/ });
@@ -73,39 +67,12 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(within(neutralCard).getByText("All good")).toHaveClass("text-foreground-soft");
   });
 
-  it("shows review criteria from the review summary card tooltip", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <SubscriptionsOverviewSummary
-        cards={[
-          {
-            filterKey: "review",
-            label: "Needs review",
-            value: "2",
-            caption: "Check these feeds",
-            tone: "review",
-          },
-        ]}
-        reviewCriteriaLabel="Needs review: quiet feeds or weak usage signals."
-        onSelectFilter={vi.fn()}
-      />,
-    );
-
-    await user.hover(screen.getByRole("button", { name: /^Needs review / }));
-
-    expect(await screen.findByText("Needs review: quiet feeds or weak usage signals.")).toHaveClass(
-      "motion-popup-surface",
-    );
-  });
-
-  it("keeps the fifth fetch-error card in the responsive summary grid", async () => {
+  it("keeps the fourth fetch-error card in the responsive summary grid", async () => {
     const user = userEvent.setup();
     const onSelectFilter = vi.fn();
     const cards = [
       { filterKey: "all", label: "Total", value: "42" },
-      { filterKey: "fetch_errors", label: "Fetch errors", value: "2", tone: "review" },
-      { filterKey: "review", label: "Review", value: "3", tone: "review" },
+      { filterKey: "fetch_errors", label: "Fetch errors", value: "2", tone: "danger" },
       { filterKey: "stale", label: "Stale", value: "8", tone: "stale" },
       { filterKey: "frequent", label: "Frequent", value: "6" },
     ] satisfies React.ComponentProps<typeof SubscriptionsOverviewSummary>["cards"];
@@ -114,8 +81,7 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const grid = screen.getByRole("button", { name: /^Fetch errors / }).closest(".grid");
     expect(grid).toHaveClass("sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]");
-    expect(screen.getAllByTestId("subscriptions-summary-card-badge-slot")).toHaveLength(5);
-    expect(screen.getByRole("button", { name: /^Fetch errors / })).not.toHaveClass("sm:col-span-2");
+    expect(screen.getAllByTestId("subscriptions-summary-card-badge-slot")).toHaveLength(4);
     await user.click(screen.getByRole("button", { name: /^Fetch errors / }));
     expect(onSelectFilter).toHaveBeenCalledWith("fetch_errors");
   });
@@ -125,11 +91,11 @@ describe("SubscriptionsOverviewSummary", () => {
       <SubscriptionsOverviewSummary
         cards={[
           {
-            filterKey: "review",
-            label: "Needs review",
+            filterKey: "stale",
+            label: "Stale feeds",
             value: "2",
             caption: "Check these feeds",
-            tone: "review",
+            tone: "stale",
           },
         ]}
         labels={englishLabels}
@@ -137,8 +103,8 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Needs review 2 Check these feeds Filter" })).toHaveAccessibleDescription(
-      "Show Needs review",
+    expect(screen.getByRole("button", { name: "Stale feeds 2 Check these feeds Filter" })).toHaveAccessibleDescription(
+      "Show Stale feeds",
     );
   });
 
@@ -147,11 +113,11 @@ describe("SubscriptionsOverviewSummary", () => {
       <SubscriptionsOverviewSummary
         cards={[
           {
-            filterKey: "review",
-            label: "Needs review",
+            filterKey: "stale",
+            label: "Stale feeds",
             value: "2",
             caption: "Check these feeds",
-            tone: "review",
+            tone: "stale",
             isActive: true,
           },
           {
@@ -179,11 +145,11 @@ describe("SubscriptionsOverviewSummary", () => {
       <SubscriptionsOverviewSummary
         cards={[
           {
-            filterKey: "review",
-            label: "Needs review",
+            filterKey: "stale",
+            label: "Stale feeds",
             value: "2",
             caption: "Check these feeds",
-            tone: "review",
+            tone: "stale",
             isActive: true,
           },
         ]}
@@ -191,50 +157,22 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const activeCard = screen.getByRole("button", { name: /Needs review/ });
+    const activeCard = screen.getByRole("button", { name: /Stale feeds/ });
     expect(within(activeCard).getByText("表示中")).toHaveClass(
-      "border-state-warning-border/75",
-      "bg-state-warning-surface/92",
-      "text-state-warning-foreground",
+      "border-state-danger-border/75",
+      "bg-state-danger-surface/92",
+      "text-state-danger-foreground",
       "shadow-[var(--subscriptions-summary-badge-shadow)]",
     );
     expect(within(activeCard).queryByText("フィルタ中")).toBeNull();
     expect(within(activeCard).queryByText("表示中", { selector: "[data-label-chip] *" })).toBeNull();
-    expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
+    expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-stale)]");
     expect(activeCard).not.toHaveClass("ring-1");
     const metric = within(activeCard).getByText("2");
     expect(metric).toHaveClass("tabular-nums");
     expect(metric.closest(".t-digit-group")).toBeNull();
-    expect(metric.parentElement).toHaveClass("text-state-warning-foreground");
+    expect(metric.parentElement).toHaveClass("text-state-danger-foreground");
     expect(activeCard).toHaveAttribute("aria-pressed", "true");
-  });
-
-  it("sends the selected filter key from actionable card buttons", () => {
-    const handleSelectFilter = vi.fn();
-
-    render(
-      <SubscriptionsOverviewSummary
-        cards={[
-          {
-            filterKey: "review",
-            label: "Needs review",
-            value: "2",
-            caption: "Check these feeds",
-            tone: "review",
-            isActive: false,
-          },
-        ]}
-        onSelectFilter={handleSelectFilter}
-      />,
-    );
-
-    const card = screen.getByRole("button", { name: /^Needs review / });
-    expect(card).toHaveAttribute("aria-pressed", "false");
-
-    fireEvent.click(card);
-
-    expect(handleSelectFilter).toHaveBeenCalledTimes(1);
-    expect(handleSelectFilter).toHaveBeenCalledWith("review");
   });
 
   it("uses all-items copy when the total card is active", () => {
@@ -314,18 +252,10 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(within(card).queryByText("フィルタ中")).toBeNull();
   });
 
-  it("softens zero-count review and stale cards without splitting numeric text", () => {
+  it("softens the zero-count stale card without splitting numeric text", () => {
     render(
       <SubscriptionsOverviewSummary
         cards={[
-          {
-            filterKey: "review",
-            label: "Needs review",
-            value: "0",
-            caption: "0 feeds need a decision",
-            tone: "review",
-            isActive: false,
-          },
           {
             filterKey: "stale",
             label: "90-day stale",
@@ -339,23 +269,13 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const reviewCard = screen.getByRole("button", { name: /^Needs review / });
     const staleCard = screen.getByRole("button", { name: /^90-day stale / });
 
-    expect(reviewCard).toHaveClass(
-      "border-[color:color-mix(in_srgb,var(--ring)_22%,var(--border))]",
-      "bg-[color:color-mix(in_srgb,var(--ring)_6%,var(--surface-1))]",
-    );
-    expect(reviewCard).not.toHaveClass("sm:col-span-2", "bg-state-warning-surface/86");
     expect(staleCard).toHaveClass(
       "border-[color:color-mix(in_srgb,var(--ring)_22%,var(--border))]",
       "bg-[color:color-mix(in_srgb,var(--ring)_6%,var(--surface-1))]",
     );
     expect(staleCard).not.toHaveClass("bg-state-danger-surface/82");
-    expect(within(reviewCard).queryByText("該当なし")).toBeNull();
-    expect(within(staleCard).queryByText("該当なし")).toBeNull();
-    expect(within(reviewCard).getByText("0")).toHaveClass("tabular-nums");
-    expect(within(reviewCard).getByText("0").closest(".t-digit-group")).toBeNull();
     expect(within(staleCard).getByText("0").closest(".t-digit-group")).toBeNull();
   });
 
@@ -384,7 +304,6 @@ describe("SubscriptionsOverviewSummary", () => {
     );
     expect(staticCard).not.toBeNull();
     expect(staticCard).toHaveClass("rounded-md", "shadow-none");
-    expect(staticCard).not.toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-neutral)]");
     expect(within(staticCard).getByText("参照")).toBeInTheDocument();
     expect(within(staticCard).getByText("Ready")).toHaveClass("text-foreground-soft");
   });
@@ -394,11 +313,11 @@ describe("SubscriptionsOverviewSummary", () => {
       <SubscriptionsOverviewSummary
         cards={[
           {
-            filterKey: "review",
-            label: "Needs review",
+            filterKey: "stale",
+            label: "Stale feeds",
             value: "2",
             caption: "Check these feeds",
-            tone: "review",
+            tone: "stale",
           },
         ]}
         onSelectFilter={vi.fn()}
@@ -406,7 +325,7 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const card = screen.getByRole("button", { name: /^Needs review / });
+    const card = screen.getByRole("button", { name: /^Stale feeds / });
 
     expect(card).toHaveClass("rounded-md", "w-full");
     expect(within(card).getByTestId("subscriptions-summary-card-badge-slot")).toBeInTheDocument();

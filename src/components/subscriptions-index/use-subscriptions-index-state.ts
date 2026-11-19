@@ -9,7 +9,7 @@ import {
   sanitizeExpandedGroups,
   toggleExpandedGroup,
 } from "@/components/subscriptions-index/lib/subscriptions-index-state-model";
-import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions/subscriptions-index";
+import { buildVisibleSubscriptionRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type {
   SubscriptionsWorkspaceExpandedGroupKey,
@@ -31,26 +31,24 @@ function updateSelectedFeedDecision(params: {
 }
 
 type SubscriptionsIndexStateOptions = {
-  accountId?: string | null;
   initialSummaryFilter?: SubscriptionSummaryFilterKey;
   initialSelectedFeedId?: string | null;
   initialExpandedGroups?: Record<string, boolean>;
   initialKeptFeedIds?: string[];
   initialDeferredFeedIds?: string[];
+  initialSearchQuery?: string;
   initialListScrollState?: SubscriptionsWorkspaceListScrollState;
   viewportHeight?: number;
 };
 
 export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?: SubscriptionsIndexStateOptions) {
   const viewportHeight = options?.viewportHeight ?? 0;
-  const [activeAccountId, setActiveAccountId] = useState(options?.accountId ?? null);
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
   const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));
   const [deferredFeedIds, setDeferredFeedIds] = useState<Set<string>>(
     () => new Set(options?.initialDeferredFeedIds ?? []),
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortKey, setSortKey] = useState<SubscriptionSortKey>("title");
+  const [searchQuery, setSearchQuery] = useState(options?.initialSearchQuery ?? "");
   const [expandedGroups, setExpandedGroups] = useState<Record<SubscriptionsWorkspaceExpandedGroupKey, boolean>>(() =>
     sanitizeExpandedGroups(options?.initialExpandedGroups),
   );
@@ -64,9 +62,9 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       keptFeedIds,
       deferredFeedIds,
       searchQuery,
-      sortKey,
+      sortKey: "title",
     });
-  }, [activeSummaryFilter, deferredFeedIds, keptFeedIds, rows, searchQuery, sortKey]);
+  }, [activeSummaryFilter, deferredFeedIds, keptFeedIds, rows, searchQuery]);
   const listLayoutGeneration = useMemo(() => buildListLayoutGeneration(visibleRows), [visibleRows]);
   const listLayoutReady = rows.length > 0;
   const [listScrollState, setListScrollState] = useState<SubscriptionsWorkspaceListScrollState>(() =>
@@ -87,32 +85,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     });
     setListScrollResetKey((current) => current + 1);
   }, [listLayoutGeneration, viewportHeight]);
-
-  // react-doctor-disable-next-line react-doctor/no-derived-state-effect -- accepted risk (previous-prop tracker), docs/react-doctor-warning-classification-300.md:352
-  useEffect(() => {
-    const nextAccountId = options?.accountId ?? null;
-    if (activeAccountId === nextAccountId) {
-      return;
-    }
-
-    // react-doctor-disable-next-line react-doctor/no-derived-state -- accepted risk (previous-prop tracker), docs/react-doctor-warning-classification-300.md:352
-    setActiveAccountId(nextAccountId);
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:246（use-subscriptions-index-state.ts:98-104 は accepted-risk）
-    setSelectedFeedId(null);
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:246（use-subscriptions-index-state.ts:98-104 は accepted-risk）
-    setKeptFeedIds(new Set());
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:246（use-subscriptions-index-state.ts:98-104 は accepted-risk）
-    setDeferredFeedIds(new Set());
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:246（use-subscriptions-index-state.ts:98-104 は accepted-risk）
-    setSearchQuery("");
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:246（use-subscriptions-index-state.ts:98-104 は accepted-risk）
-    setSortKey("title");
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:246（use-subscriptions-index-state.ts:98-104 は accepted-risk）
-    setExpandedGroups({});
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:246（use-subscriptions-index-state.ts:98-104 は accepted-risk）
-    setActiveSummaryFilter("all");
-    resetListScrollState();
-  }, [activeAccountId, options?.accountId, resetListScrollState]);
 
   const selectSummaryFilter = useCallback(
     (filterKey: SubscriptionSummaryFilterKey) => {
@@ -135,14 +107,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   const updateSearchQuery = useCallback(
     (query: string) => {
       setSearchQuery(query);
-      resetListScrollState();
-    },
-    [resetListScrollState],
-  );
-
-  const updateSortKey = useCallback(
-    (nextSortKey: SubscriptionSortKey) => {
-      setSortKey(nextSortKey);
       resetListScrollState();
     },
     [resetListScrollState],
@@ -200,7 +164,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     searchQuery,
     selectedFeedId,
     selectedRow,
-    sortKey,
     visibleRows,
     isGroupExpanded: (groupKey: string) => resolveGroupExpansion(expandedGroups, groupKey),
     setActiveSummaryFilter: selectSummaryFilter,
@@ -212,7 +175,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       }),
     setSearchQuery: updateSearchQuery,
     setSelectedFeedId,
-    setSortKey: updateSortKey,
     markSelectedFeedDeferred: () => {
       updateSelectedFeedDecision({
         selectedFeedId,
