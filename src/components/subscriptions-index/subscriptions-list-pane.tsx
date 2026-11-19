@@ -138,6 +138,82 @@ function SubscriptionGroupDisclosureButton({
   );
 }
 
+type SubscriptionGroupSectionProps = Pick<
+  SubscriptionsListPaneProps,
+  | "selectedFeedId"
+  | "bulkSelection"
+  | "statusLabels"
+  | "reasonTooltipLabels"
+  | "fetchErrorLabel"
+  | "formatUnreadCountLabel"
+  | "formatLatestArticleLabel"
+  | "onSelectFeed"
+  | "onToggleGroup"
+> & {
+  group: SubscriptionsListPaneProps["groups"][number];
+  expanded: boolean;
+  selecting: boolean;
+};
+
+function SubscriptionGroupSection({
+  group,
+  expanded,
+  selecting,
+  selectedFeedId,
+  bulkSelection,
+  statusLabels,
+  reasonTooltipLabels,
+  fetchErrorLabel,
+  formatUnreadCountLabel,
+  formatLatestArticleLabel,
+  onSelectFeed,
+  onToggleGroup,
+}: SubscriptionGroupSectionProps) {
+  const groupBodyId = `subscriptions-group-panel-${group.key}`;
+
+  return (
+    <div className="relative space-y-1">
+      <SubscriptionGroupDisclosureButton
+        group={group}
+        expanded={expanded}
+        controlsId={groupBodyId}
+        onToggleGroup={onToggleGroup}
+      />
+      <div
+        id={groupBodyId}
+        {...{
+          [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED,
+        }}
+        aria-hidden={expanded ? "false" : "true"}
+        inert={expanded ? undefined : true}
+        className="motion-disclosure-panel"
+      >
+        <div className="motion-disclosure-body">
+          <div
+            data-testid={`subscriptions-folder-rows-${group.folderId ?? "ungrouped"}`}
+            className={subscriptionRowsVariants({ selecting })}
+          >
+            {group.rows.map((row) => (
+              <SubscriptionsListRow
+                key={row.feed.id}
+                row={row}
+                selected={selectedFeedId === row.feed.id}
+                bulkSelection={bulkSelection}
+                statusLabels={statusLabels}
+                reasonTooltipLabels={reasonTooltipLabels}
+                fetchErrorLabel={fetchErrorLabel}
+                formatUnreadCountLabel={formatUnreadCountLabel}
+                formatLatestArticleLabel={formatLatestArticleLabel}
+                onSelectFeed={onSelectFeed}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SubscriptionsListPane({
   heading,
   groups,
@@ -327,52 +403,23 @@ export function SubscriptionsListPane({
           />
         ) : null}
         {showRows
-          ? groups.map((group) => {
-              const expanded = isGroupExpanded(group.key);
-              const groupBodyId = `subscriptions-group-panel-${group.key}`;
-
-              return (
-                <div key={group.key} className="relative space-y-1">
-                  <SubscriptionGroupDisclosureButton
-                    group={group}
-                    expanded={expanded}
-                    controlsId={groupBodyId}
-                    onToggleGroup={onToggleGroup}
-                  />
-                  <div
-                    id={groupBodyId}
-                    {...{
-                      [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED,
-                    }}
-                    aria-hidden={expanded ? "false" : "true"}
-                    inert={expanded ? undefined : true}
-                    className="motion-disclosure-panel"
-                  >
-                    <div className="motion-disclosure-body">
-                      <div
-                        data-testid={`subscriptions-folder-rows-${group.folderId ?? "ungrouped"}`}
-                        className={subscriptionRowsVariants({ selecting })}
-                      >
-                        {group.rows.map((row) => (
-                          <SubscriptionsListRow
-                            key={row.feed.id}
-                            row={row}
-                            selected={selectedFeedId === row.feed.id}
-                            bulkSelection={bulkSelection}
-                            statusLabels={statusLabels}
-                            reasonTooltipLabels={reasonTooltipLabels}
-                            fetchErrorLabel={fetchErrorLabel}
-                            formatUnreadCountLabel={formatUnreadCountLabel}
-                            formatLatestArticleLabel={formatLatestArticleLabel}
-                            onSelectFeed={onSelectFeed}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+          ? groups.map((group) => (
+              <SubscriptionGroupSection
+                key={group.key}
+                group={group}
+                expanded={isGroupExpanded(group.key)}
+                selecting={selecting}
+                selectedFeedId={selectedFeedId}
+                bulkSelection={bulkSelection}
+                statusLabels={statusLabels}
+                reasonTooltipLabels={reasonTooltipLabels}
+                fetchErrorLabel={fetchErrorLabel}
+                formatUnreadCountLabel={formatUnreadCountLabel}
+                formatLatestArticleLabel={formatLatestArticleLabel}
+                onSelectFeed={onSelectFeed}
+                onToggleGroup={onToggleGroup}
+              />
+            ))
           : null}
       </div>
       {bulkSelection && selecting ? <SubscriptionsBulkActionBar bulkSelection={bulkSelection} /> : null}
