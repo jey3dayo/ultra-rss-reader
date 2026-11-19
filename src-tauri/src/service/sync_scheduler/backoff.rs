@@ -234,10 +234,7 @@ pub(super) fn is_in_backoff(db: &Mutex<DbManager>, account_id: &AccountId) -> bo
 /// Clears a persisted next_retry_at that cannot be parsed, so a corrupt value
 /// does not pin the account out of scheduled sync. Kept separate from
 /// is_in_backoff, which stays a pure read.
-pub(super) fn clear_invalid_scheduler_next_retry_at(
-    db: &Mutex<DbManager>,
-    account_id: &AccountId,
-) {
+pub(super) fn clear_invalid_scheduler_next_retry_at(db: &Mutex<DbManager>, account_id: &AccountId) {
     let Some(db_guard) = db.lock().ok() else {
         return;
     };
