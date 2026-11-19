@@ -332,4 +332,223 @@ describe("useSubscriptionsIndexState", () => {
     expect(result.current.keptFeedIds.has("feed-review")).toBe(true);
     expect(result.current.deferredFeedIds.has("feed-review")).toBe(false);
   });
+
+  describe("bulk selection", () => {
+    const alpha = makeRow("alpha");
+    const beta = makeRow("beta");
+    const gamma = makeRow("gamma");
+    const rows = [alpha, beta, gamma];
+
+    it("clears checked feeds on both filter-change paths and stays in selection mode", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+      });
+      expect(result.current.checkedCount).toBe(1);
+
+      act(() => {
+        result.current.setActiveSummaryFilter("stale");
+      });
+      expect(result.current.checkedCount).toBe(0);
+      expect(result.current.bulkSelectionMode).toBe(true);
+
+      act(() => {
+        result.current.toggleFeedChecked("alpha");
+      });
+      expect(result.current.checkedCount).toBe(1);
+
+      act(() => {
+        result.current.navigateToSummaryFilter("all");
+      });
+      expect(result.current.checkedCount).toBe(0);
+      expect(result.current.bulkSelectionMode).toBe(true);
+    });
+
+    it("keeps kept rows out of select-all and reports them as skipped", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialKeptFeedIds: ["beta"] }));
+
+      act(() => {
+        result.current.toggleAllVisibleChecked();
+      });
+
+      expect([...result.current.checkedFeedIds].sort()).toEqual(["alpha", "gamma"]);
+      expect(result.current.skippedKeptCount).toBe(1);
+      expect(result.current.allVisibleCheckState).toBe("all");
+    });
+
+    it("keeps a kept fetch-error row out of select-all even though the stale filter still shows it", () => {
+      const failingRow: SubscriptionListRow = {
+        ...makeRow("failing", { tone: "high", labelKey: "stale_90d" }),
+        reasonTooltipKey: "fetch_error",
+        fetchError: {
+          feed_id: "failing",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 2,
+          diagnostic_id: null,
+        },
+      };
+      const staleRow = makeRow("stale", { tone: "high", labelKey: "stale_90d" });
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState([failingRow, staleRow], {
+          initialSummaryFilter: "stale",
+          initialKeptFeedIds: ["failing"],
+        }),
+      );
+
+      expect(result.current.visibleRows.map((row) => row.feed.id)).toEqual(["failing", "stale"]);
+
+      act(() => {
+        result.current.toggleAllVisibleChecked();
+      });
+
+      expect([...result.current.checkedFeedIds]).toEqual(["stale"]);
+      expect(result.current.skippedKeptCount).toBe(1);
+    });
+
+    it("keeps selections hidden by search and leaves them alone when toggling the visible ones", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.toggleFeedChecked("beta");
+        result.current.setSearchQuery("alpha");
+      });
+
+      expect(result.current.visibleRows.map((row) => row.feed.id)).toEqual(["alpha"]);
+      expect(result.current.checkedCount).toBe(1);
+      expect(result.current.hiddenCheckedCount).toBe(1);
+      expect(result.current.allVisibleCheckState).toBe("none");
+
+      act(() => {
+        result.current.toggleAllVisibleChecked();
+      });
+
+      expect([...result.current.checkedFeedIds].sort()).toEqual(["alpha", "beta"]);
+      expect(result.current.hiddenCheckedCount).toBe(1);
+      expect(result.current.allVisibleCheckState).toBe("all");
+
+      act(() => {
+        result.current.toggleAllVisibleChecked();
+      });
+
+      expect([...result.current.checkedFeedIds]).toEqual(["beta"]);
+    });
+
+    it("reports a partial selection of the visible rows as some", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.toggleFeedChecked("alpha");
+      });
+
+      expect(result.current.allVisibleCheckState).toBe("some");
+    });
+
+    it("unchecks the focused feed when it is marked kept or deferred and stays in selection mode", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialSelectedFeedId: "alpha" }));
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+        result.current.toggleFeedChecked("beta");
+        result.current.toggleFeedChecked("gamma");
+      });
+      act(() => {
+        result.current.markSelectedFeedKept();
+      });
+
+      expect(result.current.keptFeedIds.has("alpha")).toBe(true);
+      expect([...result.current.checkedFeedIds].sort()).toEqual(["beta", "gamma"]);
+      expect(result.current.bulkSelectionMode).toBe(true);
+
+      act(() => {
+        result.current.setSelectedFeedId("beta");
+      });
+      act(() => {
+        result.current.markSelectedFeedDeferred();
+      });
+
+      expect(result.current.deferredFeedIds.has("beta")).toBe(true);
+      expect([...result.current.checkedFeedIds]).toEqual(["gamma"]);
+    });
+
+    it("drops only succeeded feeds from checked, kept and deferred, and keeps failed and hidden selections", () => {
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState([alpha, beta, gamma], {
+          initialKeptFeedIds: ["alpha", "beta"],
+          initialDeferredFeedIds: ["gamma"],
+        }),
+      );
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+        result.current.toggleFeedChecked("beta");
+        result.current.toggleFeedChecked("gamma");
+        result.current.setSearchQuery("alpha");
+      });
+      act(() => {
+        result.current.applyBulkUnsubscribeResult(["alpha", "gamma"]);
+      });
+
+      expect([...result.current.checkedFeedIds]).toEqual(["beta"]);
+      expect(result.current.hiddenCheckedCount).toBe(1);
+      expect([...result.current.keptFeedIds]).toEqual(["beta"]);
+      expect([...result.current.deferredFeedIds]).toEqual([]);
+      expect(result.current.bulkSelectionMode).toBe(true);
+    });
+
+    it("leaves selection mode once every selected feed was unsubscribed", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+        result.current.toggleFeedChecked("beta");
+      });
+      act(() => {
+        result.current.applyBulkUnsubscribeResult(["alpha", "beta"]);
+      });
+
+      expect(result.current.checkedCount).toBe(0);
+      expect(result.current.bulkSelectionMode).toBe(false);
+    });
+
+    it("drops feeds that disappeared from rows out of the checked count", () => {
+      const { result, rerender } = renderHook(
+        ({ currentRows }: { currentRows: SubscriptionListRow[] }) => useSubscriptionsIndexState(currentRows),
+        { initialProps: { currentRows: rows } },
+      );
+
+      act(() => {
+        result.current.toggleFeedChecked("alpha");
+        result.current.toggleFeedChecked("beta");
+      });
+      expect(result.current.checkedCount).toBe(2);
+
+      rerender({ currentRows: [alpha, gamma] });
+
+      expect(result.current.checkedCount).toBe(1);
+      expect([...result.current.checkedFeedIds]).toEqual(["alpha"]);
+      expect(result.current.bulkTargets.map(({ row }) => row.feed.id)).toEqual(["alpha"]);
+    });
+
+    it("clears checked feeds and leaves selection mode when ending selection", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+      });
+      act(() => {
+        result.current.endBulkSelection();
+      });
+
+      expect(result.current.checkedCount).toBe(0);
+      expect(result.current.bulkSelectionMode).toBe(false);
+    });
+  });
 });
