@@ -19,7 +19,11 @@ import {
   type SubscriptionsBulkSelection,
 } from "./subscriptions-bulk-selection";
 import { SubscriptionsListRow } from "./subscriptions-list-row";
-import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
+import {
+  resolveListPaneDisplay,
+  type SubscriptionsListLoadState,
+  SubscriptionsListLoadStatus,
+} from "./subscriptions-load-status";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
 const READY_LOAD_STATE: SubscriptionsListLoadState = { status: "ready" };
@@ -176,11 +180,7 @@ export function SubscriptionsListPane({
   const totalRowCount = countSubscriptionGroupRows(groups);
   const hasRows = totalRowCount > 0;
   const selecting = bulkSelection?.mode === true;
-  const loading = loadState.status === "loading";
-  const showRows = hasRows && !loading;
-  const listUnavailable = loadState.status === "error" && !loadState.hasData;
-  const showEmptyState =
-    !hasRows && (loadState.status === "ready" || (loadState.status === "error" && loadState.hasData));
+  const { loading, listUnavailable, showRows, showEmptyState } = resolveListPaneDisplay(loadState, hasRows);
 
   useLayoutEffect(() => {
     onListScrollTopChangeRef.current = onListScrollTopChange;
