@@ -75,7 +75,6 @@ type SubscriptionDetailPaneProps = {
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
-  reasonHint: string;
   recentArticlesHeading: string;
   feedUrlLabel: string;
   contentUrlLabel: string;
@@ -221,18 +220,6 @@ function resolveBadgeTone(hasFetchError: boolean, detailCandidate: SubscriptionD
   return hasFetchError ? "high" : (detailCandidate?.tone ?? "neutral");
 }
 
-function resolveSummaryText(
-  showReviewContext: boolean,
-  detailCandidate: SubscriptionDetailCandidate | null,
-  reasonHint: string,
-): string | undefined {
-  if (!showReviewContext) {
-    return undefined;
-  }
-
-  return detailCandidate?.reasonBoxBody ? undefined : (detailCandidate?.summary ?? reasonHint);
-}
-
 function resolveReasonBox(
   showReviewContext: boolean,
   detailCandidate: SubscriptionDetailCandidate | null,
@@ -247,10 +234,6 @@ function resolveReasonBox(
     body: detailCandidate.reasonBoxBody,
     tone: detailCandidate.tone,
   };
-}
-
-function resolveReasonChips(showReviewContext: boolean, detailCandidate: SubscriptionDetailCandidate | null): string[] {
-  return showReviewContext ? (detailCandidate?.reasonLabels ?? []) : [];
 }
 
 function SubscriptionEmptyState({ emptyLabel }: { emptyLabel: string }) {
@@ -428,7 +411,6 @@ export function SubscriptionDetailPane({
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
-  reasonHint,
   recentArticlesHeading,
   feedUrlLabel,
   contentUrlLabel,
@@ -511,9 +493,7 @@ export function SubscriptionDetailPane({
                 }
                 badgeLabel={resolveBadgeLabel(hasFetchError, fetchErrorLabels.heading, detailCandidate)}
                 badgeTone={resolveBadgeTone(hasFetchError, detailCandidate)}
-                summaryText={resolveSummaryText(showReviewContext, detailCandidate, reasonHint)}
                 reasonBox={resolveReasonBox(showReviewContext, detailCandidate, reasonHeading)}
-                reasonChips={resolveReasonChips(showReviewContext, detailCandidate)}
                 metrics={buildDetailMetrics({
                   row,
                   metrics,

@@ -6,6 +6,7 @@ import {
   findSelectedSubscriptionRow,
   resolveGroupExpansion,
   resolveInitialListScrollState,
+  resolveSelectionAfterRowsChange,
   sanitizeExpandedGroups,
   toggleExpandedGroup,
 } from "@/components/subscriptions-index/lib/subscriptions-index-state-model";
@@ -117,6 +118,59 @@ describe("subscriptions index state model", () => {
       scrollTop: 0,
       layoutGeneration: "feed-first",
       viewportHeight: 640,
+    });
+  });
+
+  describe("resolveSelectionAfterRowsChange", () => {
+    const previous = { feedIds: ["a", "b", "c"], viewKey: "all\n" };
+
+    it("hands the selection to the next surviving row, else the previous one", () => {
+      expect(
+        resolveSelectionAfterRowsChange({
+          previous,
+          visibleFeedIds: ["a", "c"],
+          viewKey: "all\n",
+          selectedFeedId: "b",
+        }),
+      ).toBe("c");
+      expect(
+        resolveSelectionAfterRowsChange({
+          previous,
+          visibleFeedIds: ["a", "b"],
+          viewKey: "all\n",
+          selectedFeedId: "c",
+        }),
+      ).toBe("b");
+      expect(
+        resolveSelectionAfterRowsChange({ previous, visibleFeedIds: ["c"], viewKey: "all\n", selectedFeedId: "a" }),
+      ).toBe("c");
+    });
+
+    it("restarts from the first visible row when the view changed or there is no previous order", () => {
+      expect(
+        resolveSelectionAfterRowsChange({
+          previous,
+          visibleFeedIds: ["a", "c"],
+          viewKey: "stale\n",
+          selectedFeedId: "b",
+        }),
+      ).toBe("a");
+      expect(
+        resolveSelectionAfterRowsChange({
+          previous: null,
+          visibleFeedIds: ["a", "c"],
+          viewKey: "all\n",
+          selectedFeedId: "b",
+        }),
+      ).toBe("a");
+      expect(
+        resolveSelectionAfterRowsChange({
+          previous,
+          visibleFeedIds: ["a", "c"],
+          viewKey: "all\n",
+          selectedFeedId: null,
+        }),
+      ).toBe("a");
     });
   });
 });

@@ -1560,7 +1560,6 @@ describe("subscriptions index helpers", () => {
       selectedCandidate,
       labels: {
         statusLabel: (labelKey) => labelKey,
-        normalReason: "Normal",
         summaryText: (summaryKey) => summaryKey,
         reasonFact: (fact) => `${fact.key}:${fact.value}`,
         reasonLabel: (reasonKey, staleDays) => `${reasonKey}:${staleDays}`,
@@ -1571,9 +1570,30 @@ describe("subscriptions index helpers", () => {
       candidate: selectedCandidate,
       tone: "high",
       statusLabel: "stale_90d",
-      summary: "stale_and_inactive",
       reasonBoxBody: "stale_90d:155 / unread_count:0",
-      reasonLabels: ["stale_90d:155", "quiet_no_unread:155"],
     });
+  });
+
+  it("builds no reason box body when the selected feed is not a review candidate", () => {
+    const detail = buildSubscriptionDetailCandidate({
+      selectedRow: {
+        feed: feeds[0],
+        folderId: "folder-work",
+        folderName: "Work",
+        latestArticleAt: null,
+        recentArticleCount: 0,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: "normal",
+      },
+      selectedCandidate: null,
+      labels: {
+        statusLabel: (labelKey) => labelKey,
+        summaryText: (summaryKey) => summaryKey,
+        reasonFact: (fact) => `${fact.key}:${fact.value}`,
+        reasonLabel: (reasonKey, staleDays) => `${reasonKey}:${staleDays}`,
+      },
+    });
+
+    expect(detail).toEqual({ candidate: null, tone: "neutral", statusLabel: "normal", reasonBoxBody: null });
   });
 });

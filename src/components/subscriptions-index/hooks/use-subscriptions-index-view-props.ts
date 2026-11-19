@@ -121,6 +121,7 @@ export function useSubscriptionsIndexViewProps({
   const { t: tr } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const showToast = useUiStore((state) => state.showToast);
+  const clearToast = useUiStore((state) => state.clearToast);
 
   const candidates = useMemo(
     () =>
@@ -154,6 +155,7 @@ export function useSubscriptionsIndexViewProps({
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialSearchQuery: scopedIndexReturnState?.searchQuery,
+    noFolderLabel: t("meta_folder_none"),
     initialListScrollState: scopedIndexReturnState?.listScrollTop,
     viewportHeight,
     viewportWidth,
@@ -193,7 +195,6 @@ export function useSubscriptionsIndexViewProps({
         selectedCandidate,
         labels: {
           statusLabel: (labelKey) => t(`status_${labelKey}`),
-          normalReason: t("detail_reason_normal"),
           summaryText: (summaryKey) => t(resolveSubscriptionReviewSummaryTranslationKey(summaryKey)),
           reasonFact: (fact) => t(resolveSubscriptionReviewReasonFactTranslationKey(fact.key), { count: fact.value }),
           reasonLabel: (reasonKey, staleDays) => t(`reason_${reasonKey}`, { count: staleDays ?? 0 }),
@@ -273,11 +274,23 @@ export function useSubscriptionsIndexViewProps({
     isFlagged: state.selectedRow ? isSubscriptionRowFlagged(state.selectedRow.status) : false,
     labels: {
       keep: t("decision_keep"),
-      delete: tc("delete"),
+      delete: t("unsubscribe_action"),
     },
     onKeep: (selectedRow) => {
+      const keptFeedId = selectedRow.feed.id;
       state.markSelectedFeedKept();
-      showToast(t("decision_kept", { title: selectedRow.feed.title }));
+      showToast({
+        message: t("decision_kept", { title: selectedRow.feed.title }),
+        actions: [
+          {
+            label: t("decision_undo_keep"),
+            onClick: () => {
+              state.unkeepFeed(keptFeedId);
+              clearToast();
+            },
+          },
+        ],
+      });
     },
     onDelete: () => {
       if (state.selectedRow) {
@@ -290,7 +303,7 @@ export function useSubscriptionsIndexViewProps({
     state.selectedRow && !decisionActions
       ? {
           editLabel: tc("edit"),
-          deleteLabel: tc("delete"),
+          deleteLabel: t("unsubscribe_action"),
           onEdit: () => {
             if (state.selectedRow) {
               setEditTargetFeed(state.selectedRow.feed);
@@ -456,7 +469,6 @@ export function useSubscriptionsIndexViewProps({
     unreadCountLabel: t("unread_count"),
     starredCountLabel: t("starred_count"),
     reasonHeading: t("detail_reason_heading"),
-    reasonHint: t("detail_reason_hint"),
     recentArticlesHeading: t("detail_recent_articles"),
     feedUrlLabel: t("detail_feed_url"),
     contentUrlLabel: t("detail_content_url"),
@@ -482,5 +494,11 @@ export function useSubscriptionsIndexViewProps({
     applyResult: state.applyBulkUnsubscribeResult,
     endSelection: state.endBulkSelection,
   };
-  return { viewProps, captureState, navigateToSummaryFilter: state.navigateToSummaryFilter, bulk };
+  return {
+    viewProps,
+    captureState,
+    navigateToSummaryFilter: state.navigateToSummaryFilter,
+    purgeUnsubscribedFeed: state.purgeUnsubscribedFeed,
+    bulk,
+  };
 }

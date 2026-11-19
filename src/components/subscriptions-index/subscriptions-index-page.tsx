@@ -215,6 +215,7 @@ function SubscriptionsIndexPageForAccount({
     isDeleteTargetKnown,
     confirmDelete,
     unsubscribeDialogPending,
+    unsubscribeFailureMessage,
   } = useSubscriptionsFeedDialogs({ selectedAccountId, feeds });
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
   const scopedIndexReturnState =
@@ -325,13 +326,14 @@ function SubscriptionsIndexPageForAccount({
           pending={unsubscribeDialogPending}
           confirmDisabled={!isDeleteTargetKnown}
           confirmDisabledReason={t("delete_target_unavailable")}
+          errorMessage={unsubscribeFailureMessage}
           onOpenChange={(open) => {
             if (!open) {
               setDeleteTargetFeed(null);
             }
           }}
           onConfirm={() => {
-            void confirmDelete();
+            void confirmDelete(viewProps.purgeUnsubscribedFeed);
           }}
         />
       ) : null}

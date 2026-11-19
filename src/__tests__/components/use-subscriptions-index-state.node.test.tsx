@@ -304,6 +304,152 @@ describe("useSubscriptionsIndexState", () => {
     expect(result.current.listScrollTop).toBe(0);
   });
 
+  describe("selection after a row leaves the list", () => {
+    const alpha = makeRow("alpha");
+    const beta = makeRow("beta");
+    const gamma = makeRow("gamma");
+
+    it("hands the selection to the next row when the selected row is removed", async () => {
+      const { result, rerender } = renderHook(
+        ({ rows }: { rows: SubscriptionListRow[] }) =>
+          useSubscriptionsIndexState(rows, { initialSelectedFeedId: "beta" }),
+        { initialProps: { rows: [alpha, beta, gamma] } },
+      );
+
+      rerender({ rows: [alpha, gamma] });
+      await waitFor(() => expect(result.current.selectedFeedId).toBe("gamma"));
+    });
+
+    it("selects the previous row when the removed selection was last", async () => {
+      const { result, rerender } = renderHook(
+        ({ rows }: { rows: SubscriptionListRow[] }) =>
+          useSubscriptionsIndexState(rows, { initialSelectedFeedId: "gamma" }),
+        { initialProps: { rows: [alpha, beta, gamma] } },
+      );
+
+      rerender({ rows: [alpha, beta] });
+
+      await waitFor(() => expect(result.current.selectedFeedId).toBe("beta"));
+    });
+
+    describe("across folders, following the order the list is drawn in", () => {
+      const inFolder = (feedId: string, folderName: string) => ({
+        ...makeRow(feedId),
+        folderId: `folder-${folderName}`,
+        folderName,
+      });
+      // Title order is alpha, beta, delta, gamma; the list draws folder "Alpha" (beta, delta) before "Zeta" (alpha, gamma).
+      const alpha = inFolder("alpha", "Zeta");
+      const beta = inFolder("beta", "Alpha");
+      const delta = inFolder("delta", "Alpha");
+      const gamma = inFolder("gamma", "Zeta");
+
+      it("selects the row drawn after the removed one even when title order says otherwise", async () => {
+        const { result, rerender } = renderHook(
+          ({ rows }: { rows: SubscriptionListRow[] }) =>
+            useSubscriptionsIndexState(rows, { initialSelectedFeedId: "delta", noFolderLabel: "None" }),
+          { initialProps: { rows: [alpha, beta, delta, gamma] } },
+        );
+
+        rerender({ rows: [alpha, beta, gamma] });
+
+        await waitFor(() => expect(result.current.selectedFeedId).toBe("alpha"));
+      });
+
+      it("selects the row drawn before the removed last one even when title order says otherwise", async () => {
+        const { result, rerender } = renderHook(
+          ({ rows }: { rows: SubscriptionListRow[] }) =>
+            useSubscriptionsIndexState(rows, { initialSelectedFeedId: "gamma", noFolderLabel: "None" }),
+          { initialProps: { rows: [alpha, beta, delta, gamma] } },
+        );
+
+        rerender({ rows: [alpha, beta, delta] });
+
+        await waitFor(() => expect(result.current.selectedFeedId).toBe("alpha"));
+      });
+    });
+
+    it("moves on to the next stale row, then the previous one, as rows are marked kept", async () => {
+      const stale = { tone: "high", labelKey: "stale_90d" } as const;
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState([makeRow("alpha", stale), makeRow("beta", stale), makeRow("gamma", stale)], {
+          initialSummaryFilter: "stale",
+          initialSelectedFeedId: "beta",
+        }),
+      );
+
+      act(() => {
+        result.current.markSelectedFeedKept();
+      });
+      await waitFor(() => expect(result.current.selectedFeedId).toBe("gamma"));
+
+      act(() => {
+        result.current.markSelectedFeedKept();
+      });
+      await waitFor(() => expect(result.current.selectedFeedId).toBe("alpha"));
+    });
+
+    it("starts from the first row when a filter change hides the selection", async () => {
+      const stale = { tone: "high", labelKey: "stale_90d" } as const;
+      const rows = [makeRow("alpha"), makeRow("beta", stale), makeRow("delta"), makeRow("gamma", stale)];
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialSelectedFeedId: "delta" }));
+
+      act(() => {
+        result.current.setActiveSummaryFilter("stale");
+      });
+
+      await waitFor(() => expect(result.current.selectedFeedId).toBe("beta"));
+    });
+  });
+
+  describe("single feed bookkeeping", () => {
+    const alpha = makeRow("alpha");
+    const beta = makeRow("beta");
+    const gamma = makeRow("gamma");
+
+    it("restores a kept feed without touching other kept or checked feeds", () => {
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState([alpha, beta, gamma], { initialKeptFeedIds: ["alpha", "beta"] }),
+      );
+
+      act(() => {
+        result.current.toggleFeedChecked("gamma");
+      });
+      act(() => {
+        result.current.unkeepFeed("alpha");
+      });
+
+      expect([...result.current.keptFeedIds]).toEqual(["beta"]);
+      expect([...result.current.checkedFeedIds]).toEqual(["gamma"]);
+    });
+
+    it("purges an unsubscribed feed from kept and checked while staying in bulk mode", () => {
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState([alpha, beta, gamma], { initialKeptFeedIds: ["alpha", "beta"] }),
+      );
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+        result.current.toggleFeedChecked("gamma");
+      });
+      act(() => {
+        result.current.purgeUnsubscribedFeed("alpha");
+      });
+
+      expect([...result.current.keptFeedIds]).toEqual(["beta"]);
+      expect([...result.current.checkedFeedIds]).toEqual(["gamma"]);
+      expect(result.current.bulkSelectionMode).toBe(true);
+
+      act(() => {
+        result.current.purgeUnsubscribedFeed("gamma");
+      });
+
+      expect(result.current.checkedCount).toBe(0);
+      expect(result.current.bulkSelectionMode).toBe(true);
+    });
+  });
+
   describe("bulk selection", () => {
     const alpha = makeRow("alpha");
     const beta = makeRow("beta");

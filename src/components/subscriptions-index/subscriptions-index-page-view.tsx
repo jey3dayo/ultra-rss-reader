@@ -77,7 +77,6 @@ type SubscriptionsIndexPageViewProps = {
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
-  reasonHint: string;
   recentArticlesHeading: string;
   feedUrlLabel: string;
   contentUrlLabel: string;
@@ -140,7 +139,6 @@ export function SubscriptionsIndexPageView({
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
-  reasonHint,
   recentArticlesHeading,
   feedUrlLabel,
   contentUrlLabel,
@@ -229,7 +227,6 @@ export function SubscriptionsIndexPageView({
               unreadCountLabel={unreadCountLabel}
               starredCountLabel={starredCountLabel}
               reasonHeading={reasonHeading}
-              reasonHint={reasonHint}
               recentArticlesHeading={recentArticlesHeading}
               feedUrlLabel={feedUrlLabel}
               contentUrlLabel={contentUrlLabel}

@@ -231,6 +231,45 @@ describe("useDeleteFeed", () => {
     expect(showToastMock).not.toHaveBeenCalledWith(expect.objectContaining({ persistent: true }));
   });
 
+  it("leaves the failure to the caller when the failure toast is suppressed, still reporting callback failures", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
+    const onError = vi.fn(() => {
+      throw new Error("callback boom");
+    });
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({
+        feedId: "feed-1",
+        accountId: "acc-1",
+        title: "Tech Blog",
+        suppressFailureToast: true,
+        onError,
+      }),
+    ).rejects.toMatchObject({ message: "boom" });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(showToastMock).toHaveBeenCalledTimes(1);
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Unsubscribe failed, and UI cleanup failed: callback boom" }),
+    );
+  });
+
+  it("still shows the success toast when the failure toast is suppressed", async () => {
+    vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.succeed(null));
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await result.current.mutateAsync({
+      feedId: "feed-1",
+      accountId: "acc-1",
+      title: "Tech Blog",
+      suppressFailureToast: true,
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
+  });
+
   it("localizes a backend database-maintenance-busy failure in the unsubscribe toast", async () => {
     vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(
       Result.fail({
