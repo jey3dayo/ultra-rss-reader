@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import type { SubscriptionsBulkSelection } from "@/components/subscriptions-index/subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
+import type { SubscriptionsListLoadState } from "@/components/subscriptions-index/subscriptions-load-status";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto>): FeedDto {
@@ -51,6 +52,7 @@ function renderListPane(
     onListScrollTopChange?: (scrollTop: number) => void;
     reasonTooltipLabels?: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
     bulkSelection?: SubscriptionsBulkSelection;
+    loadState?: SubscriptionsListLoadState;
   },
 ) {
   const groups: SubscriptionListGroup[] = options?.groups ?? [
@@ -75,6 +77,7 @@ function renderListPane(
       initialScrollTop={options?.initialScrollTop}
       scrollResetKey={options?.scrollResetKey}
       bulkSelection={options?.bulkSelection}
+      loadState={options?.loadState}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
       onListScrollTopChange={options?.onListScrollTopChange}
       onSearchQueryChange={vi.fn()}
@@ -794,5 +797,50 @@ describe("SubscriptionsListPane", () => {
     expect(document.getElementById("subscriptions-group-panel-folder-b")).toBeInTheDocument();
     expect(screen.getByTestId("subscriptions-folder-rows-folder-a")).toBeInTheDocument();
     expect(screen.getByTestId("subscriptions-folder-rows-folder-b")).toBeInTheDocument();
+  });
+});
+
+describe("SubscriptionsListPane load state", () => {
+  const loadFailure = {
+    message: "購読の一覧を読み込めませんでした。",
+    retryLabel: "再試行",
+    retrying: false,
+    onRetry: vi.fn(),
+  };
+
+  it("shows one labelled loading region instead of the empty state or rows while loading", () => {
+    renderListPane(buildBulkRows(), {
+      loadState: { status: "loading", label: "購読を読み込み中" },
+      bulkSelection: buildBulkSelection({ mode: false }),
+    });
+
+    expect(screen.getByTestId("subscriptions-list-skeleton")).toHaveTextContent("購読を読み込み中");
+    expect(screen.queryByText("一致する購読はありません。")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /alpha feed/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "まとめて選択" })).toBeDisabled();
+  });
+
+  it("replaces the empty state with a retryable alert when loading failed", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    renderListPane([], { loadState: { status: "error", failure: { ...loadFailure, onRetry } } });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("購読の一覧を読み込めませんでした。");
+    expect(screen.queryByText("一致する購読はありません。")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "再試行" }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the rows beside the alert when a refresh fails and disables retry while it runs", () => {
+    renderListPane(buildBulkRows(), {
+      loadState: { status: "error", failure: { ...loadFailure, retrying: true } },
+    });
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /alpha feed/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "再試行" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "再試行" })).toHaveAttribute("aria-busy", "true");
   });
 });

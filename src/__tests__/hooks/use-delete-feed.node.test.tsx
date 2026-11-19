@@ -206,6 +206,24 @@ describe("useDeleteFeed", () => {
     expect(onError).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the failure toast on screen only when the caller has no in-place surface for it", async () => {
+    vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({
+        feedId: "feed-1",
+        accountId: "acc-1",
+        title: "Tech Blog",
+        persistentFailureToast: true,
+      }),
+    ).rejects.toBeDefined();
+
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith(expect.objectContaining({ severity: "error", persistent: true }));
+    });
+  });
+
   it("localizes a backend database-maintenance-busy failure in the unsubscribe toast", async () => {
     vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(
       Result.fail({

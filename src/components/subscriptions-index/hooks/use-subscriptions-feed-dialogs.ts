@@ -50,6 +50,7 @@ export function useSubscriptionsFeedDialogs({
         feedId: deleteTargetFeed.id,
         accountId: deleteTargetFeed.account_id,
         title: deleteTargetFeed.title,
+        persistentFailureToast: true,
         onSuccess: () => {
           setDeleteTargetFeed(null);
         },

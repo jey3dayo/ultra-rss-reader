@@ -106,6 +106,7 @@ describe("SubscriptionDetailPane", () => {
           retrying: "Retrying",
           editFeedUrl: "Review feed destination",
           reason: () => "Access to a local address was blocked.",
+          retryOutcome: (kind) => `outcome:${kind}`,
         }}
         onRetryFeed={onRetryFeed}
         onCopyDiagnosticId={onCopyDiagnosticId}
@@ -146,6 +147,7 @@ describe("SubscriptionDetailPane", () => {
           retrying: "Retrying",
           editFeedUrl: "Review feed destination",
           reason: () => "Communication failed.",
+          retryOutcome: (kind) => `outcome:${kind}`,
         }}
       />,
     );
@@ -182,6 +184,7 @@ describe("SubscriptionDetailPane", () => {
           retrying: "再取得中",
           editFeedUrl: "取得先を確認",
           reason: () => "通信に失敗しました。",
+          retryOutcome: (kind) => `outcome:${kind}`,
         }}
       />,
     );
@@ -221,6 +224,7 @@ describe("SubscriptionDetailPane", () => {
           retrying: "再取得中",
           editFeedUrl: "取得先を確認",
           reason: () => "通信に失敗しました。",
+          retryOutcome: (kind) => `outcome:${kind}`,
         }}
       />,
     );
@@ -259,6 +263,7 @@ describe("SubscriptionDetailPane", () => {
           retrying: "再取得中",
           editFeedUrl: "取得先を確認",
           reason: () => "通信に失敗しました。",
+          retryOutcome: (kind) => `outcome:${kind}`,
         }}
       />,
     );
@@ -288,6 +293,7 @@ describe("SubscriptionDetailPane", () => {
           retrying: "Retrying",
           editFeedUrl: "Edit feed URL",
           reason: () => "The request failed.",
+          retryOutcome: (kind) => `outcome:${kind}`,
         }}
         isRetryingFeed={() => true}
       />,
@@ -295,6 +301,39 @@ describe("SubscriptionDetailPane", () => {
 
     expect(screen.getByRole("button", { name: "Retrying" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Retrying" })).toHaveAttribute("aria-busy", "true");
+  });
+
+  it.each([
+    ["succeeded", "status"],
+    ["failed", "alert"],
+  ] as const)("keeps the %s retry result inside the fetch error card as a %s", (kind, role) => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "Fetch error",
+          lastAttempt: "Last failed",
+          copyDiagnosticId: "Copy diagnostic number",
+          retry: "Retry",
+          retrying: "Retrying",
+          editFeedUrl: "Edit feed URL",
+          reason: () => "The request failed.",
+          retryOutcome: (outcome) => `outcome:${outcome}`,
+        }}
+        retryOutcome={kind}
+      />,
+    );
+
+    const outcome = within(screen.getByTestId("subscriptions-fetch-error-detail")).getByRole(role);
+    expect(outcome).toHaveTextContent(`outcome:${kind}`);
   });
 
   it("places the RSS and content links between the metrics and recent articles", () => {

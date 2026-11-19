@@ -2,12 +2,13 @@ import { Result } from "@praha/byethrow";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncResultDto } from "@/api/schemas";
 import type { AccountDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
-  __resetPendingFeedRetryKeysForTests,
+  __resetFeedRetryStateForTests,
   localFeedSyncStatusesQueryKey,
   useLocalFeedSyncStatuses,
 } from "@/hooks/use-local-feed-sync-statuses";
@@ -101,7 +102,7 @@ describe("useLocalFeedSyncStatuses", () => {
 
   beforeEach(() => {
     ({ queryClient, wrapper } = createQueryWrapper());
-    __resetPendingFeedRetryKeysForTests();
+    __resetFeedRetryStateForTests();
     useUiStore.setState({ selectedAccountId: "acc-1", subscriptionsWorkspace: { kind: "index", accountId: "acc-1" } });
     vi.spyOn(tauriCommands, "listAccounts").mockResolvedValue(Result.succeed(accounts));
   });
@@ -151,35 +152,122 @@ describe("useLocalFeedSyncStatuses", () => {
   });
 
   it.each([
-    [alreadySyncing, "A sync is already in progress. Retry after it finishes."],
-    [failedSync, { message: "Retry did not complete. Check the result.", severity: "warning" }],
-    [successfulSync, "Feed fetched again"],
-  ] as const)("gives distinct retry feedback for the sync result", async (syncResult, expectedToast) => {
-    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));
+    [alreadySyncing, "busy"],
+    [failedSync, "incomplete"],
+  ] as const)("keeps a distinct retry outcome for the sync result", async (syncResult, expectedOutcome) => {
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([failedStatus]));
     vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.succeed(syncResult));
     const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
     const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
 
     await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
     act(() => result.current.retryFeed("feed-1"));
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expectedToast));
+
+    await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBe(expectedOutcome));
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+    expect(result.current.retryOutcomeFor("feed-1")).toBe(expectedOutcome);
+    expect(result.current.retryOutcomeFor("feed-2")).toBeNull();
+    expect(toastSpy).not.toHaveBeenCalled();
   });
 
-  it("reports a failed retry request as an error toast while the account is still selected", async () => {
-    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));
+  it("shows a successful retry until the refreshed statuses arrive, then clears it", async () => {
+    let statusReads = 0;
+    const refreshedStatuses = createDeferred<ReturnType<typeof Result.succeed<LocalFeedSyncStatusDto[]>>>();
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockImplementation(() => {
+      statusReads += 1;
+      return statusReads === 1 ? Promise.resolve(Result.succeed([failedStatus])) : refreshedStatuses.promise;
+    });
+    vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.succeed(successfulSync));
+    const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-1"));
+    await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBe("succeeded"));
+
+    await act(async () => {
+      refreshedStatuses.resolve(Result.succeed([]));
+    });
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+    expect(result.current.retryOutcomeFor("feed-1")).toBeNull();
+  });
+
+  it("keeps a failed retry request as the outcome", async () => {
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([failedStatus]));
     vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "sync failed" }));
-    const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
     const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
 
     await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
     act(() => result.current.retryFeed("feed-1"));
 
-    await waitFor(() =>
-      expect(toastSpy).toHaveBeenCalledWith({ message: "Could not retry this feed", severity: "error" }),
-    );
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+    expect(result.current.retryOutcomeFor("feed-1")).toBe("failed");
   });
 
-  it("retries against the original account and suppresses stale failure feedback after switching", async () => {
+  it("reports an unrefreshed status after a retry that did run as a refresh failure", async () => {
+    let statusReads = 0;
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockImplementation(async () => {
+      statusReads += 1;
+      return statusReads === 1
+        ? Result.succeed([failedStatus])
+        : Result.fail({ type: "UserVisible", message: "status refresh failed" });
+    });
+    vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.succeed(successfulSync));
+    const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-1"));
+
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+    expect(result.current.retryOutcomeFor("feed-1")).toBe("refresh-failed");
+  });
+
+  it("clears the previous outcome when a new retry starts", async () => {
+    const secondSync = createDeferred<Awaited<ReturnType<typeof tauriCommands.syncFeed>>>();
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([failedStatus]));
+    const syncFeedSpy = vi
+      .spyOn(tauriCommands, "syncFeed")
+      .mockResolvedValueOnce(Result.succeed(failedSync))
+      .mockReturnValueOnce(secondSync.promise);
+    const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-1"));
+    await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBe("incomplete"));
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+
+    act(() => result.current.retryFeed("feed-1"));
+    await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledTimes(2));
+    expect(result.current.retryOutcomeFor("feed-1")).toBeNull();
+
+    await act(async () => {
+      secondSync.resolve(Result.succeed(alreadySyncing));
+    });
+    await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBe("busy"));
+  });
+
+  it("drops a retry outcome once a newer fetch attempt supersedes the status it explained", async () => {
+    let statusReads = 0;
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockImplementation(async () => {
+      statusReads += 1;
+      return Result.succeed([
+        { ...failedStatus, last_attempt_at: statusReads <= 2 ? "2026-04-04T12:00:00Z" : "2026-04-05T12:00:00Z" },
+      ]);
+    });
+    vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.succeed(failedSync));
+    const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-1"));
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+    expect(result.current.retryOutcomeFor("feed-1")).toBe("incomplete");
+
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: localFeedSyncStatusesQueryKey("acc-1") });
+    });
+    await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBeNull());
+  });
+
+  it("keeps a retry outcome with its own account and survives a remount while the account is not shown", async () => {
     let resolveSync: ((result: Awaited<ReturnType<typeof tauriCommands.syncFeed>>) => void) | undefined;
     const syncFeedSpy = vi.spyOn(tauriCommands, "syncFeed").mockImplementation(
       () =>
@@ -187,7 +275,7 @@ describe("useLocalFeedSyncStatuses", () => {
           resolveSync = resolve;
         }),
     );
-    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([failedStatus]));
     const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
     const { result, rerender } = renderHook(({ accountId }) => useLocalFeedSyncStatuses(accountId), {
       initialProps: { accountId: "acc-1" },
@@ -209,7 +297,12 @@ describe("useLocalFeedSyncStatuses", () => {
     );
 
     expect(queryClient.getQueryState(localFeedSyncStatusesQueryKey("acc-2"))?.isInvalidated).toBe(false);
+    expect(result.current.retryOutcomeFor("feed-1")).toBeNull();
     expect(toastSpy).not.toHaveBeenCalled();
+
+    useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: "acc-1" } });
+    rerender({ accountId: "acc-1" });
+    await waitFor(() => expect(result.current.retryOutcomeFor("feed-1")).toBe("incomplete"));
   });
 
   it("prevents duplicate requests for one pending account/feed pair", async () => {

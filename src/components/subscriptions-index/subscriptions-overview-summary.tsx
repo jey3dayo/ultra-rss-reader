@@ -3,6 +3,7 @@ import { cn } from "cn";
 import type { ReactNode } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
+import { type SubscriptionsLoadFailure, SubscriptionsLoadFailureBanner } from "./subscriptions-load-status";
 
 type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
 
@@ -258,6 +259,7 @@ function SummaryFilterCardButton({ labels, onSelect, renderValue, summaryCard }:
 type SubscriptionsOverviewSummaryProps = {
   cards: SubscriptionSummaryCard[];
   labels?: SubscriptionsOverviewSummaryLabels;
+  loadFailure?: SubscriptionsLoadFailure | null;
   onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
 };
@@ -265,6 +267,7 @@ type SubscriptionsOverviewSummaryProps = {
 export function SubscriptionsOverviewSummary({
   cards,
   labels = DEFAULT_SUMMARY_LABELS,
+  loadFailure = null,
   onSelectFilter,
   renderValue,
 }: SubscriptionsOverviewSummaryProps) {
@@ -314,6 +317,11 @@ export function SubscriptionsOverviewSummary({
           );
         })}
       </div>
+      {loadFailure ? (
+        <div className="mt-3">
+          <SubscriptionsLoadFailureBanner failure={loadFailure} testId="subscriptions-summary-load-error" />
+        </div>
+      ) : null}
     </section>
   );
 }

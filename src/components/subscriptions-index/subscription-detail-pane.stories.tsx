@@ -188,6 +188,14 @@ export const FetchError: Story = {
           persistence: "データの保存に失敗しました。",
           other: "フィードを取得できませんでした。",
         })[kind],
+      retryOutcome: (kind) =>
+        ({
+          succeeded: "再取得しました",
+          busy: "同期処理中です。完了後に再取得してください。",
+          incomplete: "再取得が完了しませんでした。結果を確認してください。",
+          failed: "フィードを再取得できませんでした",
+          "refresh-failed": "再取得は行いましたが、最新の取得状態を読み込めませんでした。",
+        })[kind],
     },
     onRetryFeed: fn(),
     isRetryingFeed: () => false,
@@ -199,6 +207,13 @@ export const FetchErrorRetrying: Story = {
   args: {
     ...FetchError.args,
     isRetryingFeed: (feedId) => feedId === "feed-1",
+  },
+};
+
+export const FetchErrorRetryFailed: Story = {
+  args: {
+    ...FetchError.args,
+    retryOutcome: "failed",
   },
 };
 

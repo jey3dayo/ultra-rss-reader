@@ -1,12 +1,14 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
 import type { SubscriptionsIndexPageView } from "@/components/subscriptions-index/subscriptions-index-page-view";
+import { __resetFeedRetryStateForTests } from "@/hooks/use-local-feed-sync-statuses";
 import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
@@ -52,6 +54,7 @@ describe("SubscriptionsIndexPage", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     deleteFeedHandler = null;
     deleteFeedCalls = [];
+    __resetFeedRetryStateForTests();
     setDocumentVisibilityState("visible");
     feedRows = [
       {
@@ -150,7 +153,7 @@ describe("SubscriptionsIndexPage", () => {
               summary: null,
               url: "https://example.com/loose/1",
               author: null,
-              published_at: "2026-03-15T10:00:00Z",
+              published_at: "2099-03-15T10:00:00Z",
               thumbnail: null,
               is_read: false,
               is_starred: false,
@@ -174,7 +177,7 @@ describe("SubscriptionsIndexPage", () => {
             },
             {
               feed_id: "feed-3",
-              latest_article_at: "2026-03-15T10:00:00Z",
+              latest_article_at: "2099-03-15T10:00:00Z",
               last_seen_article_at: null,
               starred_count: 0,
               recent_article_count: 0,
@@ -324,6 +327,199 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(unavailableCard).getByText("取得状態を確認できません")).toBeInTheDocument();
     expect(within(unavailableCard).queryByText("0")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
+  });
+
+  it("replaces the empty state with a retryable load error when the feed list fails", async () => {
+    const user = userEvent.setup();
+    let feedReads = 0;
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") {
+        feedReads += 1;
+        if (feedReads === 1) throw new Error("feed list unavailable");
+        return feedRows;
+      }
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const banner = await screen.findByTestId("subscriptions-list-load-error");
+    expect(banner).toHaveAttribute("role", "alert");
+    expect(screen.queryByText("一致する購読はありません。")).not.toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+
+    await user.click(within(banner).getByRole("button", { name: "再試行" }));
+
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    expect(screen.queryByTestId("subscriptions-list-load-error")).not.toBeInTheDocument();
+    expect(feedReads).toBe(2);
+  });
+
+  it("shows a loading region instead of the empty state or zero counts while the lists load", async () => {
+    const feeds = createDeferred<FeedDto[]>();
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feeds.promise;
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByTestId("subscriptions-list-skeleton")).toHaveTextContent("購読を読み込み中");
+    expect(screen.queryByText("一致する購読はありません。")).not.toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "まとめて選択" })).toBeDisabled();
+
+    await act(async () => {
+      feeds.resolve(feedRows);
+    });
+
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    expect(screen.queryByTestId("subscriptions-list-skeleton")).not.toBeInTheDocument();
+  });
+
+  it("marks summary-derived cards unavailable with one retry when the summaries fail", async () => {
+    const user = userEvent.setup();
+    let summaryReads = 0;
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "list_feed_article_summaries") {
+        summaryReads += 1;
+        if (summaryReads === 1) throw new Error("summaries unavailable");
+        return [];
+      }
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const banner = await screen.findByTestId("subscriptions-summary-load-error");
+    expect(banner).toHaveAttribute("role", "alert");
+    expect(await screen.findByRole("button", { name: /^総購読数/ })).toBeInTheDocument();
+    for (const label of ["90日以上未更新", "更新過多"]) {
+      const card = getRequiredHTMLElement(
+        screen.getByText(label).closest("[data-subscriptions-summary-static-card]"),
+        `${label} card`,
+      );
+      expect(within(card).getByText("未取得")).toBeInTheDocument();
+      expect(within(card).queryByText("0")).not.toBeInTheDocument();
+    }
+
+    await user.click(within(banner).getByRole("button", { name: "再試行" }));
+
+    await waitFor(() => expect(screen.queryByTestId("subscriptions-summary-load-error")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /^90日以上未更新 / })).toBeInTheDocument();
+  });
+
+  it("keeps an incomplete retry result in the fetch error card instead of a toast", async () => {
+    const user = userEvent.setup();
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "get_local_feed_sync_statuses") {
+        return [
+          {
+            feed_id: "feed-1",
+            last_attempt_at: "2026-04-04T12:00:00Z",
+            last_success_at: null,
+            error_kind: "network",
+            error_count: 1,
+            diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+          },
+        ];
+      }
+      if (cmd === "trigger_sync_feed") {
+        return {
+          synced: true,
+          total: 1,
+          succeeded: 0,
+          failed: [{ account_id: "acc-1", account_name: "Local", message: "Fetch failed" }],
+          warnings: [],
+        };
+      }
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "再取得" }));
+
+    const outcome = await screen.findByTestId("subscriptions-fetch-error-retry-outcome");
+    expect(outcome).toHaveTextContent("再取得が完了しませんでした。結果を確認してください。");
+    expect(outcome).toHaveAttribute("role", "alert");
+    expect(screen.getByTestId("subscriptions-fetch-error-detail")).toContainElement(outcome);
+    expect(screen.queryByTestId("test-toast-host")).not.toBeInTheDocument();
+  });
+
+  it("announces a successful retry in the fetch error card until the statuses refresh", async () => {
+    const user = userEvent.setup();
+    const refreshedStatuses = createDeferred<LocalFeedSyncStatusDto[]>();
+    let statusReads = 0;
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "get_local_feed_sync_statuses") {
+        statusReads += 1;
+        if (statusReads > 1) return refreshedStatuses.promise;
+        return [
+          {
+            feed_id: "feed-1",
+            last_attempt_at: "2026-04-04T12:00:00Z",
+            last_success_at: null,
+            error_kind: "network",
+            error_count: 1,
+            diagnostic_id: null,
+          },
+        ];
+      }
+      if (cmd === "trigger_sync_feed") return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "再取得" }));
+
+    const outcome = await screen.findByTestId("subscriptions-fetch-error-retry-outcome");
+    expect(outcome).toHaveTextContent("再取得しました");
+    expect(outcome).toHaveAttribute("role", "status");
+    expect(screen.queryByTestId("test-toast-host")).not.toBeInTheDocument();
+
+    await act(async () => {
+      refreshedStatuses.resolve([]);
+    });
+    await waitFor(() => expect(screen.queryByTestId("subscriptions-fetch-error-detail")).not.toBeInTheDocument());
+    expect(screen.queryByTestId("subscriptions-fetch-error-retry-outcome")).not.toBeInTheDocument();
+  });
+
+  it("keeps the diagnostic copy failure on screen until it is dismissed", async () => {
+    const user = userEvent.setup();
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "copy_to_clipboard") throw new Error("clipboard denied");
+      if (cmd === "get_local_feed_sync_statuses") {
+        return [
+          {
+            feed_id: "feed-1",
+            last_attempt_at: "2026-04-04T12:00:00Z",
+            last_success_at: null,
+            error_kind: "network",
+            error_count: 1,
+            diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+          },
+        ];
+      }
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "診断番号をコピー" }));
+
+    await waitFor(() =>
+      expect(useUiStore.getState().toastMessage).toMatchObject({
+        message: "診断番号をコピーできませんでした",
+        severity: "error",
+        persistent: true,
+      }),
+    );
   });
 
   it("keeps the page view props aligned with the shared subscriptions index models", () => {
@@ -1132,7 +1328,7 @@ describe("SubscriptionsIndexPage", () => {
       throw new Error("subscriptions list pane not found");
     }
 
-    expect(within(listPane).getByText("一致する購読はありません。")).toHaveClass("text-foreground-soft");
+    expect(await within(listPane).findByText("一致する購読はありません。")).toHaveClass("text-foreground-soft");
   });
 
   it("does not render the removed integrity-error entry", async () => {

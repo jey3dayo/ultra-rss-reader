@@ -88,3 +88,21 @@ export const FetchStatusLoading: Story = {
 export const FetchStatusUnavailable: Story = {
   args: { cards: unavailableFetchStatusCards },
 };
+
+const unavailableSummaryCards = summaryCards.map((card) =>
+  card.filterKey === "all" || card.filterKey === "fetch_errors"
+    ? card
+    : { ...card, value: "未取得", caption: "", tone: "neutral", isActionable: false },
+) satisfies React.ComponentProps<typeof SubscriptionsOverviewSummary>["cards"];
+
+export const SummaryUnavailable: Story = {
+  args: {
+    cards: unavailableSummaryCards,
+    loadFailure: {
+      message: "購読の集計を読み込めませんでした。",
+      retryLabel: "再試行",
+      retrying: false,
+      onRetry: fn(),
+    },
+  },
+};

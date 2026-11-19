@@ -8,6 +8,7 @@ import type {
   FolderDto,
   LocalFeedSyncStatusDto,
 } from "@/api/tauri-commands";
+import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
@@ -50,6 +51,12 @@ import {
   buildLocalFetchErrorSummary,
   resolveSubscriptionsEmptyLabel,
 } from "./subscriptions-index-fetch-error-summary";
+import {
+  applySummaryCardDataState,
+  isQueryUnavailable,
+  type QueryLoadState,
+  resolveListLoadState,
+} from "./subscriptions-index-load-state";
 
 type SubscriptionsIndexPageViewProps = ComponentProps<typeof SubscriptionsIndexPageView>;
 
@@ -68,10 +75,11 @@ type UseSubscriptionsIndexViewPropsParams = {
   feedSyncStatuses: LocalFeedSyncStatusDto[] | undefined;
   feedSyncStatusesPending: boolean;
   feedSyncStatusesError: boolean;
-  feedListPending: boolean;
+  feedLoad: QueryLoadState;
+  summaryLoad: QueryLoadState;
   rowsPending: boolean;
-  feedListError: boolean;
   onRetryFeed: (feedId: string) => void;
+  retryOutcomeFor: (feedId: string) => FeedRetryOutcomeKind | null;
   onEditFeed: (feedId: string) => void;
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
@@ -96,10 +104,11 @@ export function useSubscriptionsIndexViewProps({
   feedSyncStatuses,
   feedSyncStatusesPending,
   feedSyncStatusesError,
-  feedListPending,
+  feedLoad,
+  summaryLoad,
   rowsPending,
-  feedListError,
   onRetryFeed,
+  retryOutcomeFor,
   onEditFeed,
   isRetryingFeed,
   onCopyDiagnosticId,
@@ -208,7 +217,7 @@ export function useSubscriptionsIndexViewProps({
   );
 
   const summary = buildSubscriptionsIndexSummary({ feeds, candidates, feedArticleSummaryMap });
-  const summaryCards = buildSubscriptionSummaryCards({
+  const builtSummaryCards = buildSubscriptionSummaryCards({
     summary,
     activeSummaryFilter: state.activeSummaryFilter,
     labels: {
@@ -225,6 +234,13 @@ export function useSubscriptionsIndexViewProps({
           unread: SUBSCRIPTION_OVERLOADED_UNREAD_THRESHOLD,
         }),
     },
+  });
+  const summaryCards = applySummaryCardDataState({
+    cards: builtSummaryCards,
+    accountSelected: selectedAccountId !== null,
+    feeds: feedLoad,
+    summaries: summaryLoad,
+    labels: { loading: t("summary_status_loading"), unavailable: t("summary_status_unavailable") },
   }) satisfies SubscriptionSummaryCard[];
   const fetchErrorSummary = buildLocalFetchErrorSummary({
     isLocalAccount,
@@ -232,8 +248,8 @@ export function useSubscriptionsIndexViewProps({
     statuses: feedSyncStatuses,
     statusesPending: feedSyncStatusesPending,
     statusesError: feedSyncStatusesError,
-    feedListPending,
-    feedListError,
+    feedListPending: feedLoad.pending,
+    feedListError: feedLoad.error,
     activeSummaryFilter: state.activeSummaryFilter,
     labels: {
       label: t("summary_fetch_errors"),
@@ -311,20 +327,55 @@ export function useSubscriptionsIndexViewProps({
       copyDiagnosticId: t("detail_fetch_error_copy_diagnostic_id"),
       retry: t("detail_fetch_error_retry"),
       retrying: t("detail_fetch_error_retrying"),
+      retryOutcome: (kind: FeedRetryOutcomeKind) => {
+        switch (kind) {
+          case "succeeded":
+            return t("fetch_error_retry_succeeded");
+          case "busy":
+            return t("fetch_error_retry_busy");
+          case "incomplete":
+            return t("fetch_error_retry_incomplete");
+          case "failed":
+            return t("detail_fetch_error_retry_failed");
+          case "refresh-failed":
+            return t("fetch_error_refresh_failed");
+        }
+      },
       editFeedUrl: t("detail_fetch_error_edit_feed_url"),
       reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => t(`fetch_error_reason_${kind}`),
     },
+    selectedRetryOutcome: state.selectedRow ? retryOutcomeFor(state.selectedRow.feed.id) : null,
     onRetryFeed,
     onEditFeed: () => {
       if (state.selectedRow) onEditFeed(state.selectedRow.feed.id);
     },
     isRetryingFeed,
     onCopyDiagnosticId,
-    emptyLabel: resolveSubscriptionsEmptyLabel(state.activeSummaryFilter, fetchErrorSummary.failedFeedCount, {
-      default: t("empty"),
-      fetchErrorsUnknown: t("summary_fetch_errors_unknown"),
-      fetchErrorsEmpty: t("summary_fetch_errors_empty"),
+    listLoadState: resolveListLoadState({
+      accountSelected: selectedAccountId !== null,
+      rowsPending,
+      feeds: feedLoad,
+      labels: { loading: t("list_loading"), failure: t("list_load_failed"), retry: t("load_retry") },
     }),
+    summaryLoadFailure: summaryLoad.error
+      ? {
+          message: t("summary_load_failed"),
+          retryLabel: t("load_retry"),
+          retrying: summaryLoad.fetching,
+          onRetry: summaryLoad.retry,
+        }
+      : null,
+    emptyLabel: resolveSubscriptionsEmptyLabel(
+      state.activeSummaryFilter,
+      fetchErrorSummary.failedFeedCount,
+      isQueryUnavailable(summaryLoad),
+      {
+        default: t("empty"),
+        fetchErrorsUnknown: t("summary_fetch_errors_unknown"),
+        fetchErrorsEmpty: t("summary_fetch_errors_empty"),
+        summariesUnavailable: t("empty_summary_unavailable"),
+      },
+    ),
     searchQuery: state.searchQuery,
     searchLabel: t("search_label"),
     searchPlaceholder: t("search_placeholder"),
@@ -359,7 +410,7 @@ export function useSubscriptionsIndexViewProps({
     scrollRegionRef,
     workspaceScrollRef,
     viewportWidth,
-    scrollReady: !rowsPending || (!feedListPending && !feedListError && feeds.length === 0),
+    scrollReady: !rowsPending || (!feedLoad.pending && !feedLoad.error && feeds.length === 0),
     bulkSelection: {
       mode: state.bulkSelectionMode,
       checkedFeedIds: state.checkedFeedIds,

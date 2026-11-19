@@ -221,6 +221,30 @@ export const Empty: Story = {
   },
 };
 
+export const Loading: Story = {
+  args: {
+    groups: [],
+    selectedFeedId: null,
+    loadState: { status: "loading", label: "Loading subscriptions" },
+  },
+};
+
+export const LoadFailed: Story = {
+  args: {
+    groups: [],
+    selectedFeedId: null,
+    loadState: {
+      status: "error",
+      failure: {
+        message: "Could not load the subscription list. Your subscriptions are unchanged.",
+        retryLabel: "Retry",
+        retrying: false,
+        onRetry: fn(),
+      },
+    },
+  },
+};
+
 export const Collapsed: Story = {
   args: {
     isGroupExpanded: isOnlyDesignGroupCollapsed,

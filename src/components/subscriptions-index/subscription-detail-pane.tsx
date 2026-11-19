@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority";
 import { Check, Copy, Globe, Pencil, RefreshCw, Rss, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
@@ -11,6 +12,7 @@ import {
   SurfaceCard,
   WorkspaceManagementActionButton,
 } from "@/design-system";
+import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
 import { formatShortDateTime } from "@/lib/datetime";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
 import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
@@ -37,7 +39,26 @@ type FetchErrorLabels = {
   retrying: string;
   editFeedUrl: string;
   reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => string;
+  retryOutcome: (kind: FeedRetryOutcomeKind) => string;
 };
+
+const retryOutcomeVariants = cva("text-sm leading-relaxed", {
+  variants: {
+    tone: {
+      neutral: "text-foreground-soft",
+      warning: "text-state-warning-foreground",
+      danger: "text-state-danger-foreground",
+    },
+  },
+});
+
+const RETRY_OUTCOME_PRESENTATION = {
+  succeeded: { tone: "neutral", role: "status" },
+  busy: { tone: "neutral", role: "status" },
+  incomplete: { tone: "warning", role: "alert" },
+  failed: { tone: "danger", role: "alert" },
+  "refresh-failed": { tone: "danger", role: "alert" },
+} as const satisfies Record<FeedRetryOutcomeKind, { tone: "neutral" | "warning" | "danger"; role: "status" | "alert" }>;
 
 type SubscriptionDetailPaneProps = {
   heading: string;
@@ -65,6 +86,7 @@ type SubscriptionDetailPaneProps = {
   managementActions: SubscriptionManagementActions | null;
   fetchError?: LocalFeedSyncStatusDto | null;
   fetchErrorLabels?: FetchErrorLabels;
+  retryOutcome?: FeedRetryOutcomeKind | null;
   onRetryFeed?: (feedId: string) => void;
   onEditFeed?: () => void;
   isRetryingFeed?: (feedId: string) => boolean;
@@ -247,6 +269,7 @@ function SubscriptionEmptyState({ emptyLabel }: { emptyLabel: string }) {
 type FetchErrorDetailCardProps = {
   errorKind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>;
   labels: FetchErrorLabels;
+  retryOutcome: FeedRetryOutcomeKind | null;
   formattedLastAttempt: string | null;
   diagnosticId: string | null | undefined;
   feedId: string;
@@ -259,6 +282,7 @@ type FetchErrorDetailCardProps = {
 function FetchErrorDetailCard({
   errorKind,
   labels,
+  retryOutcome,
   formattedLastAttempt,
   diagnosticId,
   feedId,
@@ -283,6 +307,15 @@ function FetchErrorDetailCard({
         {formattedLastAttempt ? (
           <p className="mt-1 text-xs text-foreground-soft">
             {labels.lastAttempt}: {formattedLastAttempt}
+          </p>
+        ) : null}
+        {retryOutcome ? (
+          <p
+            role={RETRY_OUTCOME_PRESENTATION[retryOutcome].role}
+            data-testid="subscriptions-fetch-error-retry-outcome"
+            className={retryOutcomeVariants({ tone: RETRY_OUTCOME_PRESENTATION[retryOutcome].tone, className: "mt-2" })}
+          >
+            {labels.retryOutcome(retryOutcome)}
           </p>
         ) : null}
       </div>
@@ -413,7 +446,9 @@ export function SubscriptionDetailPane({
     retrying: "Retrying",
     editFeedUrl: "Review feed destination",
     reason: (kind) => kind,
+    retryOutcome: (kind) => kind,
   },
+  retryOutcome = null,
   onRetryFeed = () => undefined,
   onEditFeed = () => undefined,
   isRetryingFeed = () => false,
@@ -451,6 +486,7 @@ export function SubscriptionDetailPane({
                 <FetchErrorDetailCard
                   errorKind={fetchError.error_kind}
                   labels={fetchErrorLabels}
+                  retryOutcome={retryOutcome}
                   formattedLastAttempt={formattedLastAttempt}
                   diagnosticId={fetchError.diagnostic_id}
                   feedId={row.feed.id}
