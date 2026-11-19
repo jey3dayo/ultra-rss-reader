@@ -212,21 +212,22 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
         .accelerator("CmdOrCtrl+,")
         .build(app)?;
 
-    let check_updates_item =
-        MenuItemBuilder::with_id(CHECK_FOR_UPDATES_MENU_ID, labels.check_for_updates)
-            .enabled(is_check_for_updates_menu_available(
-                is_updater_manual_check_configured(app.config()),
-            ))
-            .build(app)?;
-
-    let app_submenu = SubmenuBuilder::new(app, labels.app_submenu_title)
+    let mut app_submenu_builder = SubmenuBuilder::new(app, labels.app_submenu_title)
         .item(&about_item)
         .separator()
-        .item(&settings_item)
-        .item(&check_updates_item)
-        .separator()
-        .quit()
-        .build()?;
+        .item(&settings_item);
+
+    // Builds without a configured updater (e.g. Microsoft Store) are updated
+    // through their distribution channel, so the item is omitted entirely
+    // instead of shown disabled.
+    if is_check_for_updates_menu_available(is_updater_manual_check_configured(app.config())) {
+        let check_updates_item =
+            MenuItemBuilder::with_id(CHECK_FOR_UPDATES_MENU_ID, labels.check_for_updates)
+                .build(app)?;
+        app_submenu_builder = app_submenu_builder.item(&check_updates_item);
+    }
+
+    let app_submenu = app_submenu_builder.separator().quit().build()?;
 
     // --- Edit submenu ---
     let edit_submenu = SubmenuBuilder::new(app, labels.edit_menu)
