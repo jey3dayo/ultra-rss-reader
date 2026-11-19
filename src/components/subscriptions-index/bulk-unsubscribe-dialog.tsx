@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
-import { Check, Clock, LoaderCircle, Minus, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Check, Clock, LoaderCircle, Minus, Trash2, X } from "lucide-react";
+import { type RefObject, useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   type BulkUnsubscribeOutcome,
@@ -9,6 +9,7 @@ import {
   orderBulkUnsubscribeTargets,
   useBulkUnsubscribeFeeds,
 } from "@/components/subscriptions-index/hooks/use-bulk-unsubscribe-feeds";
+import { MOTION_HOLD_CONFIRM_CLASS_NAME, MOTION_HOLD_CONFIRM_FILL_CLASS_NAME } from "@/constants";
 import {
   Button,
   DeleteButton,
@@ -20,8 +21,10 @@ import {
   DialogTitle,
   FeedFavicon,
   LabelChip,
+  resolveHoldButtonProps,
   ScrollArea,
   SurfaceCard,
+  useHoldToConfirm,
 } from "@/design-system";
 import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 import { readMatchMedia } from "@/lib/runtime/match-media-listener";
@@ -160,9 +163,112 @@ function ResultNotice({ outcome, succeededCount, failedRows, skippedCount }: Res
   return null;
 }
 
-export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onClose }: BulkUnsubscribeDialogProps) {
+type BulkRun = ReturnType<typeof useBulkUnsubscribeFeeds>;
+
+const ACTION_ROW_CLASS_NAME = "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end";
+
+type ConfirmActionsProps = {
+  open: boolean;
+  run: BulkRun;
+  targets: ReadonlyArray<BulkUnsubscribeTarget>;
+  feedCount: number;
+  confirmButtonRef: RefObject<HTMLButtonElement | null>;
+  onClose: BulkUnsubscribeDialogProps["onClose"];
+};
+
+// Mounted only in the confirm step, so leaving it (run start, close, unmount) tears down any pending hold timer.
+function ConfirmActions({ open, run, targets, feedCount, confirmButtonRef, onClose }: ConfirmActionsProps) {
   const { t } = useTranslation("subscriptions");
   const { t: tc } = useTranslation("common");
+  const holdHintId = useId();
+  const { holding, cancelHold, cancelPointerHold, handlePointerDown, handleClick } = useHoldToConfirm({
+    enabled: open,
+    onConfirm: () => run.start(targets),
+  });
+
+  return (
+    <>
+      <div className={ACTION_ROW_CLASS_NAME}>
+        <Button variant="outline" className="min-h-11" onClick={() => onClose({ allSucceeded: false })}>
+          {tc("cancel")}
+        </Button>
+        <DeleteButton
+          ref={confirmButtonRef}
+          showIcon={false}
+          className={`${MOTION_HOLD_CONFIRM_CLASS_NAME} min-h-11 touch-none select-none`}
+          aria-label={t("bulk_dialog_confirm_aria", { count: feedCount })}
+          aria-describedby={holdHintId}
+          onClick={handleClick}
+          {...resolveHoldButtonProps({ holdEnabled: true, holding, handlePointerDown, cancelPointerHold, cancelHold })}
+        >
+          <span
+            aria-hidden="true"
+            data-testid="confirm-dialog-hold-fill"
+            className={MOTION_HOLD_CONFIRM_FILL_CLASS_NAME}
+          />
+          <Trash2 aria-hidden="true" className="relative size-3.5" />
+          <span className="relative">{t("bulk_dialog_confirm", { count: feedCount })}</span>
+        </DeleteButton>
+      </div>
+      <p id={holdHintId} className="text-right text-foreground-soft text-xs leading-relaxed">
+        {tc("hold_to_confirm")}
+      </p>
+    </>
+  );
+}
+
+function RunningActions({ run }: { run: BulkRun }) {
+  const { t } = useTranslation("subscriptions");
+
+  return (
+    <div className={ACTION_ROW_CLASS_NAME}>
+      <Button variant="outline" className="min-h-11" autoFocus disabled={run.stopRequested} onClick={run.stop}>
+        {run.stopRequested ? t("bulk_dialog_stopping") : t("bulk_dialog_stop")}
+      </Button>
+    </div>
+  );
+}
+
+function ResultActions({ run, onClose }: { run: BulkRun; onClose: BulkUnsubscribeDialogProps["onClose"] }) {
+  const { t } = useTranslation("subscriptions");
+  const { t: tc } = useTranslation("common");
+  const canRetry = run.outcome === "partial" || run.outcome === "busy";
+
+  return (
+    <div className={ACTION_ROW_CLASS_NAME}>
+      <Button
+        variant="outline"
+        className="min-h-11"
+        autoFocus
+        onClick={() => onClose({ allSucceeded: run.outcome === "completed" })}
+      >
+        {tc("close")}
+      </Button>
+      {canRetry ? (
+        <Button variant="outline" className="min-h-11" onClick={run.retry}>
+          {t("bulk_dialog_retry", { count: run.retryCount })}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+type BulkUnsubscribeFooterProps = ConfirmActionsProps;
+
+function BulkUnsubscribeFooter(props: BulkUnsubscribeFooterProps) {
+  const { run } = props;
+
+  return (
+    <DialogFooter className="flex-col sm:flex-col">
+      {run.phase === "confirm" ? <ConfirmActions {...props} /> : null}
+      {run.phase === "running" ? <RunningActions run={run} /> : null}
+      {run.phase === "result" ? <ResultActions run={run} onClose={props.onClose} /> : null}
+    </DialogFooter>
+  );
+}
+
+export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onClose }: BulkUnsubscribeDialogProps) {
+  const { t } = useTranslation("subscriptions");
   const run = useBulkUnsubscribeFeeds({ open, accountId, onSettled, onClose });
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusElementRef = useRef<HTMLElement | null>(null);
@@ -192,7 +298,6 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
     .map((entry) => ({ feedId: entry.target.row.feed.id, title: entry.target.row.feed.title, reason: entry.reason }));
   const succeededCount = entries.filter((entry) => entry.status === "done").length;
   const skippedCount = entries.filter((entry) => entry.status === "skipped").length;
-  const canRetry = run.phase === "result" && (run.outcome === "partial" || run.outcome === "busy");
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen || running || run.outcome === "completed") {
@@ -253,45 +358,14 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
           failedRows={failedRows}
           skippedCount={skippedCount}
         />
-        <DialogFooter>
-          {run.phase === "confirm" ? (
-            <>
-              <Button variant="outline" className="min-h-11" onClick={() => onClose({ allSucceeded: false })}>
-                {tc("cancel")}
-              </Button>
-              <DeleteButton
-                ref={confirmButtonRef}
-                className="min-h-11"
-                aria-label={t("bulk_dialog_confirm_aria", { count: entries.length })}
-                onClick={() => run.start(targets)}
-              >
-                {t("bulk_dialog_confirm", { count: entries.length })}
-              </DeleteButton>
-            </>
-          ) : null}
-          {running ? (
-            <Button variant="outline" className="min-h-11" autoFocus disabled={run.stopRequested} onClick={run.stop}>
-              {run.stopRequested ? t("bulk_dialog_stopping") : t("bulk_dialog_stop")}
-            </Button>
-          ) : null}
-          {run.phase === "result" ? (
-            <>
-              <Button
-                variant="outline"
-                className="min-h-11"
-                autoFocus
-                onClick={() => onClose({ allSucceeded: run.outcome === "completed" })}
-              >
-                {tc("close")}
-              </Button>
-              {canRetry ? (
-                <Button variant="outline" className="min-h-11" onClick={run.retry}>
-                  {t("bulk_dialog_retry", { count: run.retryCount })}
-                </Button>
-              ) : null}
-            </>
-          ) : null}
-        </DialogFooter>
+        <BulkUnsubscribeFooter
+          run={run}
+          open={open}
+          targets={targets}
+          feedCount={entries.length}
+          confirmButtonRef={confirmButtonRef}
+          onClose={onClose}
+        />
       </DialogContent>
     </Dialog>
   );

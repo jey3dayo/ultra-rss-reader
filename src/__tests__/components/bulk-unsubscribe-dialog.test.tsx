@@ -1,15 +1,17 @@
 import { Result } from "@praha/byethrow";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
+import { holdToConfirm } from "@tests/helpers/hold-to-confirm";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { useState } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { BulkUnsubscribeDialog } from "@/components/subscriptions-index/bulk-unsubscribe-dialog";
 import type { BulkUnsubscribeTarget } from "@/components/subscriptions-index/hooks/use-bulk-unsubscribe-feeds";
+import { MOTION_HOLD_CONFIRM_DURATION_MS } from "@/constants";
 import { buildSubscriptionListRows } from "@/lib/subscriptions/subscriptions-index";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -94,6 +96,12 @@ function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>) {
   return { onSettled, onClose, queryClient, unmount };
 }
 
+async function confirmWithKeyboard(user: ReturnType<typeof userEvent.setup>, feedCount: number) {
+  const confirmButton = await screen.findByRole("button", { name: new RegExp(`Unsubscribe from ${feedCount} feeds`) });
+  await waitFor(() => expect(confirmButton).toHaveFocus());
+  await user.keyboard("{Enter}");
+}
+
 describe("BulkUnsubscribeDialog", () => {
   const showToast = vi.fn();
 
@@ -104,6 +112,10 @@ describe("BulkUnsubscribeDialog", () => {
       showToast,
       subscriptionsWorkspace: { kind: "index", accountId: "acc-1" },
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("lists kept feeds in their own section and focuses the confirm button first", async () => {
@@ -136,7 +148,7 @@ describe("BulkUnsubscribeDialog", () => {
     const { onSettled, onClose, queryClient } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await confirmWithKeyboard(user, 3);
 
     await waitFor(() => expect(onClose).toHaveBeenCalledWith({ allSucceeded: true }));
     expect(calls).toEqual(["a", "b", "c"]);
@@ -155,7 +167,7 @@ describe("BulkUnsubscribeDialog", () => {
     const { calls } = setupDeleteFeed({ b: () => Promise.reject(new Error(BUSY_MESSAGE)) });
     const { onSettled, onClose } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c"), makeTarget("d")]);
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 4 feeds/ }));
+    await confirmWithKeyboard(user, 4);
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Stopped because a sync is running. 2 not run.");
@@ -176,7 +188,7 @@ describe("BulkUnsubscribeDialog", () => {
     });
     const { onSettled, onClose } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await confirmWithKeyboard(user, 3);
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Unsubscribed from 2. 1 could not be unsubscribed.");
@@ -208,7 +220,7 @@ describe("BulkUnsubscribeDialog", () => {
     });
     const { onSettled, onClose } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await confirmWithKeyboard(user, 3);
     await started.promise;
 
     await user.keyboard("{Escape}");
@@ -235,7 +247,7 @@ describe("BulkUnsubscribeDialog", () => {
     setupDeleteFeed({ a: () => Promise.reject(new Error(BUSY_MESSAGE)) });
     const { onClose } = renderDialog([makeTarget("a"), makeTarget("b")]);
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 2 feeds/ }));
+    await confirmWithKeyboard(user, 2);
     await user.click(await screen.findByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledWith({ allSucceeded: false });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -263,7 +275,7 @@ describe("BulkUnsubscribeDialog", () => {
     ]);
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await confirmWithKeyboard(user, 3);
     await started.promise;
     unmount();
     inFlight.resolve(null);
@@ -287,7 +299,7 @@ describe("BulkUnsubscribeDialog", () => {
     });
     const { onSettled } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await confirmWithKeyboard(user, 3);
     await started.promise;
     act(() => {
       useUiStore.setState({ subscriptionsWorkspace: { kind: "index", accountId: "acc-2" } });
@@ -312,7 +324,7 @@ describe("BulkUnsubscribeDialog", () => {
     });
     const { onSettled } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
 
-    await user.click(await screen.findByRole("button", { name: /Unsubscribe from 3 feeds/ }));
+    await confirmWithKeyboard(user, 3);
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Feed b: unexpected boom");
@@ -321,5 +333,74 @@ describe("BulkUnsubscribeDialog", () => {
     expect(onSettled).toHaveBeenCalledTimes(1);
     expect(onSettled).toHaveBeenCalledWith(["a"]);
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("unexpected error"), expect.any(Error));
+  });
+});
+
+describe("BulkUnsubscribeDialog hold-to-confirm", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      showToast: vi.fn(),
+      subscriptionsWorkspace: { kind: "index", accountId: "acc-1" },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("does not start unsubscribing when the pointer is released before the hold completes", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { calls } = setupDeleteFeed();
+    renderDialog([makeTarget("a"), makeTarget("b")]);
+
+    const confirmButton = await screen.findByRole("button", { name: /Unsubscribe from 2 feeds/ });
+    expect(confirmButton).toHaveAccessibleDescription("Press and hold to confirm");
+    await user.click(confirmButton);
+    act(() => {
+      vi.advanceTimersByTime(MOTION_HOLD_CONFIRM_DURATION_MS);
+    });
+    await act(async () => {});
+
+    expect(calls).toEqual([]);
+    expect(screen.getByRole("button", { name: /Unsubscribe from 2 feeds/ })).toBeInTheDocument();
+  });
+
+  it("starts unsubscribing only once the pointer hold reaches the hold duration", async () => {
+    const { calls } = setupDeleteFeed();
+    renderDialog([makeTarget("a"), makeTarget("b")]);
+
+    const confirmButton = await screen.findByRole("button", { name: /Unsubscribe from 2 feeds/ });
+    fireEvent.pointerDown(confirmButton);
+    act(() => {
+      vi.advanceTimersByTime(MOTION_HOLD_CONFIRM_DURATION_MS - 1);
+    });
+    await act(async () => {});
+    expect(calls).toEqual([]);
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    await waitFor(() => expect(calls).toEqual(["a", "b"]));
+  });
+
+  it("completes a full pointer hold and runs every feed", async () => {
+    const { calls } = setupDeleteFeed();
+    renderDialog([makeTarget("a")]);
+
+    holdToConfirm(await screen.findByRole("button", { name: /Unsubscribe from 1 feed/ }));
+
+    await waitFor(() => expect(calls).toEqual(["a"]));
+  });
+
+  it("starts immediately on Enter without waiting for the hold", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { calls } = setupDeleteFeed();
+    renderDialog([makeTarget("a"), makeTarget("b")]);
+
+    await confirmWithKeyboard(user, 2);
+
+    await waitFor(() => expect(calls).toEqual(["a", "b"]));
   });
 });

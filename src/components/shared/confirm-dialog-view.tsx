@@ -1,123 +1,17 @@
 import { cn } from "cn";
 import { AlertTriangle, CheckCheck, Trash2 } from "lucide-react";
-import {
-  type ComponentProps,
-  type ComponentType,
-  type MouseEvent,
-  type PointerEvent,
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentProps, type ComponentType, useEffect, useId, useRef } from "react";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
+import { resolveHoldButtonProps, useHoldToConfirm } from "@/components/shared/hold-to-confirm";
 import { stateSurfaceButtonVariants } from "@/components/shared/state-surface-button";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  MOTION_DATA_HOLD_ATTRIBUTE,
   MOTION_HOLD_CONFIRM_CLASS_NAME,
-  MOTION_HOLD_CONFIRM_DURATION_MS,
   MOTION_HOLD_CONFIRM_FILL_CLASS_NAME,
   PHRASE_AWARE_TEXT_CLASS_NAME,
 } from "@/constants";
-
-type UseHoldToConfirmOptions = {
-  enabled: boolean;
-  onConfirm: () => void;
-};
-
-/**
- * Pointer press-and-hold gate for destructive confirms. Keyboard activation stays
- * immediate so the action does not depend on key repeat behavior.
- */
-function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
-  const [holding, setHolding] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activePointerIdRef = useRef<number | null>(null);
-
-  const clearTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
-
-  const cancelHold = useCallback(() => {
-    clearTimer();
-    activePointerIdRef.current = null;
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (hold-to-confirm teardown), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
-    setHolding(false);
-  }, [clearTimer]);
-
-  const cancelPointerHold = useCallback(
-    (event: PointerEvent<HTMLButtonElement>) => {
-      if (activePointerIdRef.current !== event.pointerId) {
-        return;
-      }
-
-      cancelHold();
-    },
-    [cancelHold],
-  );
-
-  useEffect(() => cancelHold, [cancelHold]);
-
-  // Disabling detaches the pointer handlers, so a release can no longer clear the
-  // press. Reset the state itself or a later re-enable would resume a fill with no
-  // timer behind it.
-  useEffect(() => {
-    if (!enabled) {
-      cancelHold();
-    }
-  }, [cancelHold, enabled]);
-
-  const handlePointerDown = useCallback(
-    (event: PointerEvent<HTMLButtonElement>) => {
-      if (!enabled || timerRef.current !== null) {
-        return;
-      }
-
-      activePointerIdRef.current = event.pointerId;
-      setHolding(true);
-      const handle = setTimeout(() => {
-        // Ignore a timer that a newer press or a cleanup already replaced.
-        if (timerRef.current !== handle) {
-          return;
-        }
-        timerRef.current = null;
-        activePointerIdRef.current = null;
-        setHolding(false);
-        onConfirm();
-      }, MOTION_HOLD_CONFIRM_DURATION_MS);
-      timerRef.current = handle;
-    },
-    [enabled, onConfirm],
-  );
-
-  const handleClick = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      // detail === 0 is keyboard activation (Enter / Space); pointer clicks are
-      // handled by the hold timer instead.
-      if (enabled && event.detail > 0) {
-        return;
-      }
-
-      onConfirm();
-    },
-    [enabled, onConfirm],
-  );
-
-  return {
-    holding: holding && enabled,
-    cancelHold,
-    cancelPointerHold,
-    handlePointerDown,
-    handleClick,
-  };
-}
 
 type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
 
@@ -171,34 +65,6 @@ const confirmDialogVariantStyles = {
     fallbackIcon: Trash2,
   },
 } satisfies Record<ConfirmDialogVariant, ConfirmDialogVariantStyle>;
-
-type HoldButtonPropsInput = {
-  holdEnabled: boolean;
-  holding: boolean;
-  handlePointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
-  cancelPointerHold: (event: PointerEvent<HTMLButtonElement>) => void;
-  cancelHold: () => void;
-};
-
-function resolveHoldButtonProps({
-  holdEnabled,
-  holding,
-  handlePointerDown,
-  cancelPointerHold,
-  cancelHold,
-}: HoldButtonPropsInput) {
-  if (!holdEnabled) {
-    return {};
-  }
-  return {
-    onPointerDown: handlePointerDown,
-    onPointerUp: cancelPointerHold,
-    onPointerLeave: cancelPointerHold,
-    onPointerCancel: cancelPointerHold,
-    onBlur: cancelHold,
-    [MOTION_DATA_HOLD_ATTRIBUTE]: holding ? "true" : "false",
-  };
-}
 
 type ConfirmDialogHeaderProps = {
   title: ConfirmDialogViewProps["title"];
