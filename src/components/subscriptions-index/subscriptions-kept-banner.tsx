@@ -7,7 +7,11 @@ export type SubscriptionsKeptBanner = {
   onReset: () => void;
 };
 
-export function SubscriptionsKeptBannerView({ banner }: { banner: SubscriptionsKeptBanner }) {
+export function SubscriptionsKeptBannerView({ banner }: { banner: SubscriptionsKeptBanner | null | undefined }) {
+  if (!banner) {
+    return null;
+  }
+
   return (
     <div
       data-testid="subscriptions-kept-banner"

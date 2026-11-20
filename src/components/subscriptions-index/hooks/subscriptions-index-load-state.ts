@@ -60,5 +60,11 @@ export function resolveListPaneDisplay(loadState: SubscriptionsListLoadState, ha
   const loading = loadState.status === "loading";
   const listUnavailable = loadState.status === "error" && !loadState.hasData;
   const showEmptyState = !hasRows && !loading && !listUnavailable;
-  return { loading, listUnavailable, showRows: hasRows && !loading, showEmptyState };
+  return {
+    loading,
+    listUnavailable,
+    showRows: hasRows && !loading,
+    showEmptyState,
+    showKeptBanner: !loading && !listUnavailable,
+  };
 }

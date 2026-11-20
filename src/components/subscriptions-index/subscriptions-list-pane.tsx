@@ -264,7 +264,10 @@ export function SubscriptionsListPane({
   const totalRowCount = countSubscriptionGroupRows(groups);
   const hasRows = totalRowCount > 0;
   const selecting = bulkSelection?.mode === true;
-  const { loading, listUnavailable, showRows, showEmptyState } = resolveListPaneDisplay(loadState, hasRows);
+  const { loading, listUnavailable, showRows, showEmptyState, showKeptBanner } = resolveListPaneDisplay(
+    loadState,
+    hasRows,
+  );
 
   useLayoutEffect(() => {
     onListScrollTopChangeRef.current = onListScrollTopChange;
@@ -399,7 +402,7 @@ export function SubscriptionsListPane({
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
         <SubscriptionsListLoadStatus loadState={loadState} />
-        {keptBanner && !loading && !listUnavailable ? <SubscriptionsKeptBannerView banner={keptBanner} /> : null}
+        <SubscriptionsKeptBannerView banner={showKeptBanner ? keptBanner : null} />
         {bulkSelection && selecting && showRows ? (
           <SubscriptionsBulkSelectAllRow bulkSelection={bulkSelection} visibleRowCount={totalRowCount} />
         ) : null}
