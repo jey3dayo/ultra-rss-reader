@@ -13,6 +13,7 @@ import {
   type VisibleRowsSnapshot,
 } from "@/components/subscriptions-index/lib/subscriptions-index-state-model";
 import { resolveBulkSelectableFeedIds, resolveBulkUnsubscribeTargets } from "@/lib/subscriptions/bulk-unsubscribe";
+import { resolveExistingKeptFeedIds, resolveHiddenKeptFeedIds } from "@/lib/subscriptions/subscription-kept-visibility";
 import { buildSubscriptionListGroups, buildVisibleSubscriptionRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type {
@@ -46,6 +47,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   const keptFeedIds = useKeptFeedIds(accountId);
   const [storedCheckedFeedIds, setStoredCheckedFeedIds] = useState<Set<string>>(() => new Set());
   const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
+  const [showKept, setShowKept] = useState(false);
   const [searchQuery, setSearchQuery] = useState(options?.initialSearchQuery ?? "");
   const [expandedGroups, setExpandedGroups] = useState<Record<SubscriptionsWorkspaceExpandedGroupKey, boolean>>(() =>
     sanitizeExpandedGroups(options?.initialExpandedGroups),
@@ -58,10 +60,16 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       rows,
       activeSummaryFilter,
       keptFeedIds,
+      showKept,
       searchQuery,
       sortKey: "title",
     });
-  }, [activeSummaryFilter, keptFeedIds, rows, searchQuery]);
+  }, [activeSummaryFilter, keptFeedIds, rows, searchQuery, showKept]);
+  const hiddenKeptFeedIds = useMemo(
+    () => resolveHiddenKeptFeedIds({ rows, activeSummaryFilter, keptFeedIds, searchQuery }),
+    [activeSummaryFilter, keptFeedIds, rows, searchQuery],
+  );
+  const existingKeptFeedIds = useMemo(() => resolveExistingKeptFeedIds(rows, keptFeedIds), [keptFeedIds, rows]);
   const checkedFeedIds = useMemo(() => {
     const existingFeedIds = new Set(rows.map((row) => row.feed.id));
     const effective = new Set<string>();
@@ -227,6 +235,11 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     activeSummaryFilter,
     expandedGroups,
     keptFeedIds,
+    showKept,
+    hiddenKeptCount: hiddenKeptFeedIds.size,
+    existingKeptCount: existingKeptFeedIds.size,
+    toggleShowKept: () => setShowKept((current) => !current),
+    collapseKept: () => setShowKept(false),
     bulkSelectionMode,
     checkedFeedIds,
     checkedCount: checkedFeedIds.size,

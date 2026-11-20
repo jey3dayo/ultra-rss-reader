@@ -19,6 +19,7 @@ import { useSubscriptionsFeedDialogs } from "./hooks/use-subscriptions-feed-dial
 import { useSubscriptionsIndexEscape } from "./hooks/use-subscriptions-index-escape";
 import { useSubscriptionsIndexViewProps } from "./hooks/use-subscriptions-index-view-props";
 import { useSubscriptionsReviewClock } from "./hooks/use-subscriptions-review-clock";
+import { ResetKeptDialog } from "./reset-kept-dialog";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 
 function getViewportHeight(): number {
@@ -173,6 +174,7 @@ export function SubscriptionsIndexPage() {
         key={accountId ?? "no-account"}
         ref={contentRef}
         accountId={accountId}
+        accountName={currentAccount?.name ?? ""}
         selectOpen={selectOpen && canSelectAccount}
         workspaceScrollRef={workspaceScrollRef}
         viewportWidth={viewportWidth}
@@ -185,6 +187,7 @@ export function SubscriptionsIndexPage() {
 function SubscriptionsIndexPageForAccount({
   ref,
   accountId: selectedAccountId,
+  accountName,
   selectOpen,
   workspaceScrollRef,
   viewportWidth,
@@ -192,6 +195,7 @@ function SubscriptionsIndexPageForAccount({
 }: {
   ref: Ref<IndexHandle>;
   accountId: string | null;
+  accountName: string;
   selectOpen: boolean;
   workspaceScrollRef: React.RefObject<HTMLDivElement | null>;
   viewportWidth: number;
@@ -222,8 +226,11 @@ function SubscriptionsIndexPageForAccount({
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkDialogSession, setBulkDialogSession] = useState(0);
+  const [resetKeptDialog, setResetKeptDialog] = useState({ open: false, keptCount: 0 });
   const bulkToggleRef = useRef<HTMLButtonElement>(null);
   const focusBulkToggleAfterCloseRef = useRef(false);
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
+  const focusListHeadingAfterResetRef = useRef(false);
   const reviewClock = useSubscriptionsReviewClock();
   const viewportHeight = useSyncExternalStore(subscribeToViewport, getViewportHeight);
 
@@ -269,9 +276,11 @@ function SubscriptionsIndexPageForAccount({
       setBulkDialogSession((session) => session + 1);
       setBulkDialogOpen(true);
     },
+    onRequestResetKept: (keptCount) => setResetKeptDialog({ open: true, keptCount }),
     bulkToggleRef,
+    listHeadingRef,
   });
-  const hasOpenDialog = editTargetFeed !== null || deleteTargetFeed !== null || bulkDialogOpen;
+  const hasOpenDialog = editTargetFeed !== null || deleteTargetFeed !== null || bulkDialogOpen || resetKeptDialog.open;
 
   useEffect(() => {
     if (!bulkDialogOpen && focusBulkToggleAfterCloseRef.current) {
@@ -279,6 +288,14 @@ function SubscriptionsIndexPageForAccount({
       bulkToggleRef.current?.focus();
     }
   }, [bulkDialogOpen]);
+
+  // The banner that opened the reset dialog is gone once the reset runs, so focus moves to the list heading.
+  useEffect(() => {
+    if (!resetKeptDialog.open && focusListHeadingAfterResetRef.current) {
+      focusListHeadingAfterResetRef.current = false;
+      listHeadingRef.current?.focus();
+    }
+  }, [resetKeptDialog.open]);
 
   useImperativeHandle(ref, () => ({
     captureState: viewProps.captureState,
@@ -319,6 +336,18 @@ function SubscriptionsIndexPageForAccount({
         onClose={({ allSucceeded }) => {
           focusBulkToggleAfterCloseRef.current = allSucceeded;
           setBulkDialogOpen(false);
+        }}
+      />
+
+      <ResetKeptDialog
+        open={resetKeptDialog.open}
+        accountId={selectedAccountId}
+        accountName={accountName}
+        keptCount={resetKeptDialog.keptCount}
+        onOpenChange={(open) => setResetKeptDialog((current) => ({ ...current, open }))}
+        onReset={() => {
+          focusListHeadingAfterResetRef.current = true;
+          viewProps.collapseKept();
         }}
       />
 

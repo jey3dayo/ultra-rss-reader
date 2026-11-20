@@ -19,6 +19,7 @@ import {
   SubscriptionsBulkSelectAllRow,
   type SubscriptionsBulkSelection,
 } from "./subscriptions-bulk-selection";
+import { type SubscriptionsKeptBanner, SubscriptionsKeptBannerView } from "./subscriptions-kept-banner";
 import { type SubscriptionsKeptMarker, SubscriptionsListRow } from "./subscriptions-list-row";
 import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
 
@@ -65,6 +66,8 @@ type SubscriptionsListPaneProps = {
   scrollResetKey?: number;
   loadState?: SubscriptionsListLoadState;
   kept?: SubscriptionsKeptMarker;
+  keptBanner?: SubscriptionsKeptBanner | null;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
   bulkSelection?: SubscriptionsBulkSelection;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
@@ -241,6 +244,8 @@ export function SubscriptionsListPane({
   scrollResetKey = 0,
   loadState = READY_LOAD_STATE,
   kept,
+  keptBanner,
+  headingRef,
   bulkSelection,
   onSelectFeed,
   onListScrollTopChange,
@@ -261,7 +266,10 @@ export function SubscriptionsListPane({
   const totalRowCount = countSubscriptionGroupRows(groups);
   const hasRows = totalRowCount > 0;
   const selecting = bulkSelection?.mode === true;
-  const { loading, listUnavailable, showRows, showEmptyState } = resolveListPaneDisplay(loadState, hasRows);
+  const { loading, listUnavailable, showRows, showEmptyState, showKeptBanner } = resolveListPaneDisplay(
+    loadState,
+    hasRows,
+  );
 
   useLayoutEffect(() => {
     onListScrollTopChangeRef.current = onListScrollTopChange;
@@ -360,6 +368,8 @@ export function SubscriptionsListPane({
       <div className="mb-4 flex flex-col gap-3 border-b border-border/55 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2.5">
           <h2
+            ref={headingRef}
+            tabIndex={-1}
             id={headingId}
             className="min-w-[4rem] truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
           >
@@ -396,6 +406,7 @@ export function SubscriptionsListPane({
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
         <SubscriptionsListLoadStatus loadState={loadState} />
+        <SubscriptionsKeptBannerView banner={showKeptBanner ? keptBanner : null} />
         {bulkSelection && selecting && showRows ? (
           <SubscriptionsBulkSelectAllRow bulkSelection={bulkSelection} visibleRowCount={totalRowCount} />
         ) : null}

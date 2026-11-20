@@ -72,11 +72,12 @@ function rowMatchesSubscriptionDecisionVisibility(params: {
   row: SubscriptionListRow;
   activeSummaryFilter: SubscriptionSummaryFilterKey;
   keptFeedIds: ReadonlySet<string>;
+  showKept: boolean;
 }): boolean {
-  const { row, activeSummaryFilter, keptFeedIds } = params;
+  const { row, activeSummaryFilter, keptFeedIds, showKept } = params;
 
   // Only the stale filter hides decided feeds. Other filters keep all their matches visible.
-  if (activeSummaryFilter !== "stale") {
+  if (activeSummaryFilter !== "stale" || showKept) {
     return true;
   }
 
@@ -142,12 +143,14 @@ export function buildVisibleSubscriptionRows({
   rows,
   activeSummaryFilter,
   keptFeedIds,
+  showKept,
   searchQuery,
   sortKey,
 }: {
   rows: SubscriptionListRow[];
   activeSummaryFilter: SubscriptionSummaryFilterKey;
   keptFeedIds: ReadonlySet<string>;
+  showKept: boolean;
   searchQuery: string;
   sortKey: SubscriptionSortKey;
 }): SubscriptionListRow[] {
@@ -160,6 +163,7 @@ export function buildVisibleSubscriptionRows({
         row,
         activeSummaryFilter,
         keptFeedIds,
+        showKept,
       }) &&
       rowMatchesSubscriptionSearch(row, normalizedQuery),
   );
