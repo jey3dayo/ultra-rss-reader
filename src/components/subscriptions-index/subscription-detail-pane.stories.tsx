@@ -222,7 +222,7 @@ export const KeptDecision: Story = {
     decisionActions: {
       kind: "kept",
       keptChipLabel: "Excluded from review",
-      keptEffectLabel: "Left out of the 90+ days without updates list and of Select all shown.",
+      keptEffectLabel: 'Excluded from the 90+ days without updates list and from "Select all shown".',
       unkeepLabel: "Remove review exclusion",
       editLabel: "Edit",
       deleteLabel: "Unsubscribe",

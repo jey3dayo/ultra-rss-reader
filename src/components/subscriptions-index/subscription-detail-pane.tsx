@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 import { Check, Copy, Globe, Pencil, RefreshCw, Rss, Trash2, Undo2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, type Ref, useRef } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import {
@@ -95,7 +95,7 @@ type SubscriptionDetailPaneProps = {
 
 type DecisionActionConfig = {
   key: "keep" | "edit" | "delete";
-  intent: "keep" | "edit" | "delete";
+  intent: "keep" | "neutral" | "edit" | "delete";
   label: string;
   onClick: () => void;
   icon: typeof Check;
@@ -112,13 +112,12 @@ const decisionButtonVariants = cva("", {
 });
 
 // The keep and delete keys stay the same while the row is flagged, so toggling the decision keeps their DOM nodes and focus.
-// Unexcluding a row that is no longer flagged swaps the bar for the management bar, which remounts the buttons.
 function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions): DecisionActionConfig[] {
   if (decisionActions.kind === "kept") {
     return [
       {
         key: "keep",
-        intent: "keep",
+        intent: "neutral",
         label: decisionActions.unkeepLabel,
         onClick: decisionActions.onUnkeep,
         icon: Undo2,
@@ -447,9 +446,10 @@ function DecisionBar({ decisionActions }: DecisionBarProps) {
 
 type ManagementBarProps = {
   managementActions: SubscriptionManagementActions;
+  editButtonRef: Ref<HTMLButtonElement>;
 };
 
-function ManagementBar({ managementActions }: ManagementBarProps) {
+function ManagementBar({ managementActions, editButtonRef }: ManagementBarProps) {
   return (
     <div
       data-testid="subscriptions-detail-management-bar"
@@ -457,6 +457,7 @@ function ManagementBar({ managementActions }: ManagementBarProps) {
       className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 flex shrink-0 flex-wrap justify-end gap-2 border-t border-[var(--workspace-low-wire-divider)] pt-3.5`}
     >
       <WorkspaceManagementActionButton
+        ref={editButtonRef}
         intent="edit"
         label={managementActions.editLabel}
         onClick={managementActions.onEdit}
@@ -519,6 +520,30 @@ export function SubscriptionDetailPane({
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const hasFetchError = Boolean(fetchError?.error_kind);
+  // Unexcluding a row that is no longer flagged swaps the decision bar for the management bar, so focus moves to its edit button.
+  const focusEditAfterUnkeepRef = useRef(false);
+  const focusEditButtonOnMount = (button: HTMLButtonElement | null) => {
+    if (button && focusEditAfterUnkeepRef.current) {
+      focusEditAfterUnkeepRef.current = false;
+      button.focus();
+    }
+  };
+  const armEditFocus = () => {
+    focusEditAfterUnkeepRef.current = true;
+    setTimeout(() => {
+      focusEditAfterUnkeepRef.current = false;
+    }, 0);
+  };
+  const barDecisionActions =
+    decisionActions?.kind === "kept"
+      ? {
+          ...decisionActions,
+          onUnkeep: () => {
+            armEditFocus();
+            decisionActions.onUnkeep();
+          },
+        }
+      : decisionActions;
   const showReviewContext = !hasFetchError || (row !== null && row.status.labelKey !== "normal");
   const formattedLastAttempt = fetchError?.last_attempt_at
     ? formatShortDateTime(fetchError.last_attempt_at, dateLocale)
@@ -596,10 +621,14 @@ export function SubscriptionDetailPane({
             </div>
           </div>
 
-          {decisionActions ? (
-            <DecisionBar key={`${row.feed.id}-decision-bar`} decisionActions={decisionActions} />
+          {barDecisionActions ? (
+            <DecisionBar key={`${row.feed.id}-decision-bar`} decisionActions={barDecisionActions} />
           ) : managementActions ? (
-            <ManagementBar key={`${row.feed.id}-management-bar`} managementActions={managementActions} />
+            <ManagementBar
+              key={`${row.feed.id}-management-bar`}
+              managementActions={managementActions}
+              editButtonRef={focusEditButtonOnMount}
+            />
           ) : null}
         </>
       )}

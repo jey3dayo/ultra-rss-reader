@@ -831,6 +831,7 @@ describe("SubscriptionsIndexPage", () => {
     const unkeepButton = within(decisionBar).getByRole("button", { name: "見直し対象外を解除" });
     expect(unkeepButton).toBe(keepButton);
     expect(unkeepButton).toHaveFocus();
+    expect(unkeepButton.className).not.toContain("state-success");
     expect(within(decisionBar).getByRole("button", { name: "編集" })).toBeInTheDocument();
     expect(within(screen.getByRole("button", { name: /Example Feed/ })).getByText("見直し対象外")).toBeInTheDocument();
 
@@ -840,6 +841,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByTestId("subscriptions-detail-decision-bar")).toBe(decisionBar);
     expect(within(decisionBar).getByRole("button", { name: "見直し対象外にする" })).toBe(keepButton);
     expect(within(decisionBar).queryByRole("button", { name: "編集" })).toBeNull();
+    expect(keepButton.className).toContain("state-success");
     expect(within(screen.getByRole("button", { name: /Example Feed/ })).queryByText("見直し対象外")).toBeNull();
     expect(useUiStore.getState().toastMessage).toBeNull();
 
@@ -848,6 +850,10 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(freshBar).getByRole("button", { name: "見直し対象外を解除" })).toBeInTheDocument();
     expect(within(freshBar).getByRole("button", { name: "編集" })).toBeInTheDocument();
     expect(within(detailPane).queryByTestId("subscriptions-detail-management-bar")).toBeNull();
+
+    await user.click(within(freshBar).getByRole("button", { name: "見直し対象外を解除" }));
+    const managementBar = within(detailPane).getByTestId("subscriptions-detail-management-bar");
+    expect(within(managementBar).getByRole("button", { name: "編集" })).toHaveFocus();
   });
 
   it("removes kept feeds from the active stale filter and clears the detail pane", async () => {
