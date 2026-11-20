@@ -62,12 +62,18 @@ export const useSubscriptionReviewStore = create<SubscriptionReviewState & Subsc
     return snapshot;
   },
 
+  // Adds the snapshot back instead of replacing, so decisions made after the clear survive an undo.
   restore: (accountId, snapshot) =>
     set((state) => {
-      if (snapshot.size === 0 && !state.kept.has(accountId)) {
+      const current = state.kept.get(accountId) ?? EMPTY_FEED_IDS;
+      const next = new Set(current);
+      for (const feedId of snapshot) {
+        next.add(feedId);
+      }
+      if (next.size === current.size) {
         return state;
       }
-      return { kept: withAccountFeedIds(state.kept, accountId, new Set(snapshot)) };
+      return { kept: withAccountFeedIds(state.kept, accountId, next) };
     }),
 
   forget: (accountId, feedIds) =>

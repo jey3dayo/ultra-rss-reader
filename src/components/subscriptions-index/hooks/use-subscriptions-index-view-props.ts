@@ -54,6 +54,7 @@ import {
   resolveListLoadState,
 } from "./subscriptions-index-load-state";
 import { useSubscriptionDecisionActions } from "./use-subscription-decision-actions";
+import { useSubscriptionsKeptBanner } from "./use-subscriptions-kept-banner";
 
 type SubscriptionsIndexPageViewProps = ComponentProps<typeof SubscriptionsIndexPageView>;
 
@@ -83,6 +84,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
   onRequestBulkUnsubscribe: () => void;
+  onRequestResetKept: (keptCount: number) => void;
   bulkToggleRef: RefObject<HTMLButtonElement | null>;
 };
 
@@ -112,6 +114,7 @@ export function useSubscriptionsIndexViewProps({
   setDeleteTargetFeed,
   setEditTargetFeed,
   onRequestBulkUnsubscribe,
+  onRequestResetKept,
   bulkToggleRef,
 }: UseSubscriptionsIndexViewPropsParams) {
   const { t, i18n } = useTranslation("subscriptions");
@@ -270,6 +273,15 @@ export function useSubscriptionsIndexViewProps({
     setEditTargetFeed,
   });
 
+  const keptBanner = useSubscriptionsKeptBanner({
+    activeSummaryFilter: state.activeSummaryFilter,
+    showKept: state.showKept,
+    hiddenKeptCount: state.hiddenKeptCount,
+    existingKeptCount: state.existingKeptCount,
+    onToggleShowKept: state.toggleShowKept,
+    onRequestReset: onRequestResetKept,
+  });
+
   const viewProps = {
     summaryCards,
     summaryLabels: {
@@ -374,6 +386,7 @@ export function useSubscriptionsIndexViewProps({
     viewportWidth,
     scrollReady: !rowsPending || (!feedLoad.pending && !feedLoad.error && feeds.length === 0),
     kept: { feedIds: state.keptFeedIds, chipLabel: t("kept_chip") },
+    keptBanner,
     bulkSelection: {
       mode: state.bulkSelectionMode,
       checkedFeedIds: state.checkedFeedIds,
@@ -452,6 +465,7 @@ export function useSubscriptionsIndexViewProps({
     search,
     navigateToSummaryFilter: state.navigateToSummaryFilter,
     purgeUnsubscribedFeed: state.purgeUnsubscribedFeed,
+    collapseKept: state.collapseKept,
     bulk,
   };
 }

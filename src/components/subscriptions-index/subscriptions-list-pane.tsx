@@ -19,6 +19,7 @@ import {
   SubscriptionsBulkSelectAllRow,
   type SubscriptionsBulkSelection,
 } from "./subscriptions-bulk-selection";
+import { type SubscriptionsKeptBanner, SubscriptionsKeptBannerView } from "./subscriptions-kept-banner";
 import { type SubscriptionsKeptMarker, SubscriptionsListRow } from "./subscriptions-list-row";
 import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
 
@@ -65,6 +66,7 @@ type SubscriptionsListPaneProps = {
   scrollResetKey?: number;
   loadState?: SubscriptionsListLoadState;
   kept?: SubscriptionsKeptMarker;
+  keptBanner?: SubscriptionsKeptBanner | null;
   bulkSelection?: SubscriptionsBulkSelection;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
@@ -241,6 +243,7 @@ export function SubscriptionsListPane({
   scrollResetKey = 0,
   loadState = READY_LOAD_STATE,
   kept,
+  keptBanner,
   bulkSelection,
   onSelectFeed,
   onListScrollTopChange,
@@ -396,6 +399,7 @@ export function SubscriptionsListPane({
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
         <SubscriptionsListLoadStatus loadState={loadState} />
+        {keptBanner && !loading && !listUnavailable ? <SubscriptionsKeptBannerView banner={keptBanner} /> : null}
         {bulkSelection && selecting && showRows ? (
           <SubscriptionsBulkSelectAllRow bulkSelection={bulkSelection} visibleRowCount={totalRowCount} />
         ) : null}

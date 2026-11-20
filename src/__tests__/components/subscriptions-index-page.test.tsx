@@ -1528,6 +1528,52 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.queryByTestId("test-toast-host")).not.toBeInTheDocument();
   });
 
+  it("reaches kept feeds hidden by the stale filter and resets every kept decision of the account after confirming", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    useSubscriptionReviewStore.setState({ kept: new Map([["acc-1", new Set(["feed-1", "feed-3"])]]) });
+    const keptFeedIds = () => [...(useSubscriptionReviewStore.getState().kept.get("acc-1") ?? [])].sort();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
+    const banner = await screen.findByTestId("subscriptions-kept-banner");
+    expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(within(banner).getByText("見直し対象外にした1件を隠しています")).toBeInTheDocument();
+
+    await user.click(within(banner).getByRole("button", { name: "表示する" }));
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toHaveTextContent("見直し対象外");
+    expect(within(banner).getByText("見直し対象外の1件を表示しています")).toBeInTheDocument();
+
+    await user.click(within(banner).getByRole("button", { name: "すべて取り消す" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Local の見直し対象外2件をすべて取り消します/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/検索で表示されていないフィードの判断も含まれます/)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "キャンセル" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(keptFeedIds()).toEqual(["feed-1", "feed-3"]);
+    expect(screen.getByRole("button", { name: /Example Feed/ })).toHaveTextContent("見直し対象外");
+
+    await user.click(within(banner).getByRole("button", { name: "すべて取り消す" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "すべて取り消す" }));
+
+    await waitFor(() => {
+      expect(keptFeedIds()).toEqual([]);
+    });
+    expect(screen.getByRole("button", { name: /Example Feed/ })).not.toHaveTextContent("見直し対象外");
+    expect(screen.queryByTestId("subscriptions-kept-banner")).not.toBeInTheDocument();
+    const toastHost = screen.getByTestId("test-toast-host");
+    expect(within(toastHost).getByText("見直し対象外を2件取り消しました")).toBeInTheDocument();
+
+    await user.click(within(toastHost).getByRole("button", { name: "元に戻す" }));
+
+    expect(keptFeedIds()).toEqual(["feed-1", "feed-3"]);
+  });
+
   it("drops an unsubscribed feed from the remembered kept feeds", async () => {
     const user = userEvent.setup();
     deleteFeedHandler = () => {
