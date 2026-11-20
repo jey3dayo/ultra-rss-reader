@@ -14,6 +14,7 @@ type SubscriptionReviewActions = {
   forget: (accountId: string, feedIds: Iterable<string>) => void;
 };
 
+// Held in memory only: decisions outlive the workspace view but not the app session.
 const EMPTY_FEED_IDS: ReadonlySet<string> = new Set();
 
 function withAccountFeedIds(

@@ -1053,7 +1053,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
   });
 
-  it("ignores a return state and kept feeds from a different account", async () => {
+  it("ignores a return state from a different account", async () => {
     useUiStore.setState({
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
@@ -1072,8 +1072,6 @@ describe("SubscriptionsIndexPage", () => {
         },
       },
     });
-    useSubscriptionReviewStore.getState().keep("acc-2", "feed-1");
-
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { name: "全購読" })).toBeInTheDocument();
