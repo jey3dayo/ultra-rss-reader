@@ -111,7 +111,8 @@ const decisionButtonVariants = cva("", {
   },
 });
 
-// The keep and delete keys stay the same in every state, so toggling the decision keeps their DOM nodes and focus.
+// The keep and delete keys stay the same while the row is flagged, so toggling the decision keeps their DOM nodes and focus.
+// Unexcluding a row that is no longer flagged swaps the bar for the management bar, which remounts the buttons.
 function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions): DecisionActionConfig[] {
   if (decisionActions.kind === "kept") {
     return [

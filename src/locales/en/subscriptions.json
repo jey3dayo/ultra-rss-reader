@@ -49,7 +49,7 @@
   "decision_kept": "Excluded {{title}} from review",
   "decision_undo_keep": "Undo",
   "decision_unkeep": "Remove review exclusion",
-  "decision_kept_effect": "Left out of the 90+ days without updates list and of multi-select.",
+  "decision_kept_effect": "Left out of the 90+ days without updates list and of Select all shown.",
   "inventory_heading": "All subscriptions",
   "search_label": "Search subscriptions",
   "search_placeholder": "Search subscriptions",

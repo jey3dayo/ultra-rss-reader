@@ -49,7 +49,7 @@
   "decision_kept": "{{title}} を見直し対象外にしました",
   "decision_undo_keep": "元に戻す",
   "decision_unkeep": "見直し対象外を解除",
-  "decision_kept_effect": "90日以上未更新の一覧と、まとめて選択の対象から外れています。",
+  "decision_kept_effect": "90日以上未更新の一覧と、「表示中をすべて選択」の対象から外れています。",
   "inventory_heading": "全購読",
   "search_label": "購読を検索",
   "search_placeholder": "購読を検索",
