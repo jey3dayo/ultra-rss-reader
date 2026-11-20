@@ -14,8 +14,9 @@ import {
   SectionHeading,
   SurfaceCard,
 } from "@/design-system";
-import type { SubscriptionFilterOption, SubscriptionListGroup } from "@/lib/subscriptions/subscriptions-index.types";
+import type { SubscriptionFilterOption } from "@/lib/subscriptions/subscriptions-index.types";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
+import { SPECIMEN_SUBSCRIPTION_GROUPS } from "./ui-reference-subscription-fixtures";
 
 export { AnnotatedNote, ReferencePage };
 
@@ -24,86 +25,6 @@ const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-md";
 const SUMMARY_FILTER_OPTIONS: SubscriptionFilterOption[] = [
   { filterKey: "all", label: "すべての購読", count: 163, isActive: true },
   { filterKey: "stale", label: "90日以上未更新", count: 8, isActive: false },
-];
-
-const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
-  {
-    key: "folder-design",
-    label: "Design",
-    folderId: "folder-design",
-    rows: [
-      {
-        folderId: "folder-design",
-        folderName: "Design",
-        latestArticleAt: "2026-04-29T08:00:00Z",
-        recentArticleCount: 0,
-        status: { labelKey: "normal" },
-        reasonTooltipKey: null,
-        feed: {
-          id: "feed-cafict",
-          account_id: "account-local",
-          folder_id: "folder-design",
-          remote_id: null,
-          title: "CAFICT",
-          url: "https://cafict.com/feed/",
-          site_url: "https://cafict.com",
-          icon_url: null,
-          unread_count: 5,
-          reader_mode: "inherit",
-          web_preview_mode: "inherit",
-        },
-      },
-      {
-        folderId: "folder-design",
-        folderName: "Design",
-        latestArticleAt: "2026-04-21T11:30:00Z",
-        recentArticleCount: 0,
-        status: { labelKey: "quiet_no_unread" },
-        reasonTooltipKey: "quiet_no_unread",
-        feed: {
-          id: "feed-99diy",
-          account_id: "account-local",
-          folder_id: "folder-design",
-          remote_id: null,
-          title: "99% DIY -DIYブログ-",
-          url: "https://99diy.tokyo/feed/",
-          site_url: "https://99diy.tokyo",
-          icon_url: null,
-          unread_count: 0,
-          reader_mode: "inherit",
-          web_preview_mode: "inherit",
-        },
-      },
-    ],
-  },
-  {
-    key: "ungrouped",
-    label: "フォルダなし",
-    folderId: null,
-    rows: [
-      {
-        folderId: null,
-        folderName: null,
-        latestArticleAt: null,
-        recentArticleCount: 0,
-        status: { labelKey: "stale_90d" },
-        reasonTooltipKey: "stale_90d",
-        feed: {
-          id: "feed-archive",
-          account_id: "account-local",
-          folder_id: null,
-          remote_id: null,
-          title: "Archive notes",
-          url: "https://example.com/archive.xml",
-          site_url: "https://example.com",
-          icon_url: null,
-          unread_count: 18,
-          reader_mode: "inherit",
-          web_preview_mode: "inherit",
-        },
-      },
-    ],
-  },
 ];
 
 export function WorkspaceFilterClusterSpecimen() {
@@ -233,7 +154,7 @@ export function SubscriptionGroupDisclosureSpecimen() {
       >
         <SubscriptionsListPane
           heading="購読一覧"
-          groups={SUBSCRIPTION_GROUPS}
+          groups={SPECIMEN_SUBSCRIPTION_GROUPS}
           selectedFeedId={selectedFeedId}
           emptyLabel="購読はありません"
           searchQuery=""
