@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import type { SubscriptionsBulkSelection } from "@/components/subscriptions-index/subscriptions-bulk-selection";
+import type { SubscriptionsFilterBarProps } from "@/components/subscriptions-index/subscriptions-filter-bar";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
 import type { SubscriptionsKeptMarker } from "@/components/subscriptions-index/subscriptions-list-row";
 import type { SubscriptionsListLoadState } from "@/components/subscriptions-index/subscriptions-load-status";
@@ -53,6 +54,7 @@ function renderListPane(
     kept?: SubscriptionsKeptMarker;
     bulkSelection?: SubscriptionsBulkSelection;
     loadState?: SubscriptionsListLoadState;
+    filterBar?: SubscriptionsFilterBarProps;
   },
 ) {
   const groups: SubscriptionListGroup[] = options?.groups ?? [
@@ -79,6 +81,7 @@ function renderListPane(
       kept={options?.kept}
       bulkSelection={options?.bulkSelection}
       loadState={options?.loadState}
+      filterBar={options?.filterBar}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
       onListScrollTopChange={options?.onListScrollTopChange}
       onSearchQueryChange={vi.fn()}
@@ -277,20 +280,23 @@ describe("SubscriptionsListPane", () => {
     expect(screen.getByRole("region", { name: "全購読" })).toBeInTheDocument();
   });
 
-  it("centers the subscription count against the heading", () => {
-    renderListPane([
-      {
-        feed: buildFeed({ title: "Aligned Feed" }),
-        folderId: null,
-        folderName: null,
-        latestArticleAt: null,
-        recentArticleCount: 0,
-        status: { labelKey: "normal" },
-        reasonTooltipKey: null,
+  it("explains the active filter criteria in the empty state", () => {
+    const criteria = "直近30日で20本以上かつ未読50件以上";
+    renderListPane([], {
+      groups: [],
+      filterBar: {
+        model: {
+          ariaLabel: "購読の絞り込み",
+          options: [{ filterKey: "frequent", label: "更新過多", count: 0, isActive: true, tooltip: criteria }],
+          activeDescription: criteria,
+        },
+        onSelect: vi.fn(),
       },
-    ]);
+    });
 
-    expect(screen.getByRole("heading", { name: "全購読" }).parentElement).toHaveClass("items-center");
+    expect(screen.getByRole("status")).toHaveTextContent("一致する購読はありません。");
+    expect(screen.getAllByText(criteria)).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /^更新過多/ })).toHaveAccessibleDescription(criteria);
   });
 
   it("does not add a duplicate clear button to the search input", () => {

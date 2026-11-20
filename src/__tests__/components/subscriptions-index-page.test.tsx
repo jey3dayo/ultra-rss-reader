@@ -15,9 +15,9 @@ import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscripti
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
+  SubscriptionFilterOption,
   SubscriptionListGroup,
   SubscriptionListRow,
-  SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useSubscriptionReviewStore } from "@/stores/subscription-review-store";
@@ -215,7 +215,7 @@ describe("SubscriptionsIndexPage", () => {
     setDocumentVisibilityState("visible");
   });
 
-  it("renders summary cards and selects the first feed by default", async () => {
+  it("renders the filter bar and selects the first feed by default", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
@@ -245,7 +245,7 @@ describe("SubscriptionsIndexPage", () => {
     );
   });
 
-  it("puts recorded fetch errors first with the danger tone", async () => {
+  it("puts the fetch error filter after the fixed filters once a feed has a recorded error", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "list_feeds") return feedRows;
       if (cmd === "get_local_feed_sync_statuses") {
@@ -265,70 +265,13 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const fetchErrors = await screen.findByRole("button", { name: /^取得エラー / });
-    const summaryActions = screen.getAllByRole("button", {
-      name: /^(取得エラー|総購読数|90日以上未更新|更新過多) /,
-    });
-    expect(summaryActions[0]).toBe(fetchErrors);
-    expect(fetchErrors).toHaveClass("border-state-danger-border/72");
-  });
-
-  it("keeps zero fetch errors first as a neutral non-actionable card", async () => {
-    setupTauriMocks((cmd) => {
-      if (cmd === "list_feeds") return feedRows;
-      if (cmd === "get_local_feed_sync_statuses") return [];
-      return undefined;
-    });
-
-    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
-
-    const caption = await screen.findByText("取得エラーなし");
-    const staticCard = caption.closest("[data-subscriptions-summary-static-card]");
-    expect(staticCard).toBeInTheDocument();
-    expect(staticCard?.parentElement?.firstElementChild).toBe(staticCard);
-    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
-    expect(staticCard).not.toHaveClass("border-state-danger-border/72");
-  });
-
-  it("keeps pending fetch status free of failure copy before showing unavailable status", async () => {
-    let rejectStatusRead: ((reason: Error) => void) | undefined;
-    const pendingStatuses = new Promise<LocalFeedSyncStatusDto[]>((_resolve, reject) => {
-      rejectStatusRead = reject;
-    });
-    setupTauriMocks((cmd) => {
-      if (cmd === "list_feeds") return feedRows;
-      if (cmd === "get_local_feed_sync_statuses") return pendingStatuses;
-      return undefined;
-    });
-
-    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
-
-    const loadingValue = await screen.findByText("確認中");
-    const pendingCard = getRequiredHTMLElement(
-      loadingValue.closest("[data-subscriptions-summary-static-card]"),
-      "pending fetch error summary card",
-    );
-    expect(within(pendingCard).queryByText("取得状態を確認できません")).not.toBeInTheDocument();
-    expect(within(pendingCard).queryByText("0")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
-
-    const rejectStatus = rejectStatusRead;
-    if (!rejectStatus) {
-      throw new Error("Expected the local feed status request to remain pending.");
-    }
-    await act(async () => {
-      rejectStatus(new Error("Could not load local feed statuses"));
-      await Promise.resolve();
-    });
-
-    const unavailableValue = await screen.findByText("未取得");
-    const unavailableCard = getRequiredHTMLElement(
-      unavailableValue.closest("[data-subscriptions-summary-static-card]"),
-      "unavailable fetch error summary card",
-    );
-    expect(within(unavailableCard).getByText("取得状態を確認できません")).toBeInTheDocument();
-    expect(within(unavailableCard).queryByText("0")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
+    const group = await screen.findByRole("group", { name: "購読の絞り込み" });
+    expect(await within(group).findByRole("button", { name: "取得エラー1" })).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(group)
+        .getAllByRole("button")
+        .map((button) => button.textContent?.replace(/\d+$/, "")),
+    ).toEqual(["総購読数", "90日以上未更新", "更新過多", "取得エラー"]);
   });
 
   it("replaces the empty state with a retryable load error when the feed list fails", async () => {
@@ -379,7 +322,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.queryByTestId("subscriptions-list-skeleton")).not.toBeInTheDocument();
   });
 
-  it("marks summary-derived cards unavailable with one retry when the summaries fail", async () => {
+  it("hides summary-derived counts and retries once when the summaries fail", async () => {
     const user = userEvent.setup();
     let summaryReads = 0;
     setupTauriMocks((cmd) => {
@@ -396,20 +339,16 @@ describe("SubscriptionsIndexPage", () => {
 
     const banner = await screen.findByTestId("subscriptions-summary-load-error");
     expect(banner).toHaveAttribute("role", "alert");
-    expect(await screen.findByRole("button", { name: /^総購読数/ })).toBeInTheDocument();
-    for (const label of ["90日以上未更新", "更新過多"]) {
-      const card = getRequiredHTMLElement(
-        screen.getByText(label).closest("[data-subscriptions-summary-static-card]"),
-        `${label} card`,
-      );
-      expect(within(card).getByText("未取得")).toBeInTheDocument();
-      expect(within(card).queryByText("0")).not.toBeInTheDocument();
-    }
+    const group = screen.getByRole("group", { name: "購読の絞り込み" });
+    expect(await within(group).findByRole("button", { name: "総購読数3" })).toBeInTheDocument();
+    expect(within(group).getByRole("button", { name: "90日以上未更新" })).toBeInTheDocument();
+    expect(within(group).getByRole("button", { name: "更新過多" })).toBeInTheDocument();
 
     await user.click(within(banner).getByRole("button", { name: "再試行" }));
 
     await waitFor(() => expect(screen.queryByTestId("subscriptions-summary-load-error")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /^90日以上未更新 / })).toBeInTheDocument();
+    expect(within(group).getByRole("button", { name: /^90日以上未更新\d+$/ })).toBeInTheDocument();
+    expect(summaryReads).toBe(2);
   });
 
   it("keeps an incomplete retry result in the fetch error card instead of a toast", async () => {
@@ -528,7 +467,7 @@ describe("SubscriptionsIndexPage", () => {
   it("keeps the page view props aligned with the shared subscriptions index models", () => {
     type PageViewProps = ComponentProps<typeof SubscriptionsIndexPageView>;
 
-    expectTypeOf<PageViewProps["summaryCards"][number]>().toEqualTypeOf<SubscriptionSummaryCard>();
+    expectTypeOf<PageViewProps["filterBar"]["options"][number]>().toEqualTypeOf<SubscriptionFilterOption>();
     expectTypeOf<PageViewProps["groups"][number]>().toEqualTypeOf<SubscriptionListGroup>();
     expectTypeOf<PageViewProps["selectedRow"]>().toEqualTypeOf<SubscriptionListRow | null>();
     expectTypeOf<PageViewProps["selectedMetrics"]>().toEqualTypeOf<SubscriptionDetailMetrics | null>();
@@ -580,28 +519,18 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
   });
 
-  it("treats summary cards as in-place filters instead of workspace navigation", async () => {
+  it("places the wrapping filter bar in the list pane instead of workspace navigation", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const totalSubscriptionsLabel = await screen.findByRole("button", {
-      name: /総購読数/,
-    });
-    const summarySection = totalSubscriptionsLabel.closest("section");
-    expect(summarySection).not.toBeNull();
+    const group = await screen.findByRole("group", { name: "購読の絞り込み" });
+    const listPane = getRequiredHTMLElement(
+      screen.getByRole("heading", { name: "全購読" }).closest("section"),
+      "list pane",
+    );
+    expect(listPane).toContainElement(group);
+    expect(group).toHaveClass("flex-wrap");
     expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
-    expect(summarySection).toHaveClass("p-0", "shadow-none");
-    expect(summarySection).not.toHaveClass("rounded-md", "border");
-    expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
-    expect(summarySection?.querySelector(".grid")).toHaveClass(
-      "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
-      "lg:gap-3",
-    );
     expect(screen.queryByRole("button", { name: /見直し候補/ })).toBeNull();
-    expect(await screen.findByRole("button", { name: /90日以上未更新/ })).toHaveClass(
-      "rounded-md",
-      "border-state-danger-border/72",
-      "bg-state-danger-surface/82",
-    );
     expect(screen.queryByRole("button", { name: /参照エラー/ })).not.toBeInTheDocument();
   });
 
@@ -735,7 +664,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(detailScrollRegion).toHaveClass("lg:overflow-y-auto");
   });
 
-  it("filters the list in place from the summary cards and restores all subscriptions", async () => {
+  it("filters the list in place from the filter bar and restores all subscriptions", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -748,8 +677,14 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.queryByRole("button", { name: "まとめて処理" })).toBeNull();
     expect(screen.queryByRole("button", { name: /参照エラー/ })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
+    const group = screen.getByRole("group", { name: "購読の絞り込み" });
+    expect(within(group).getByRole("button", { name: "総購読数3" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(group).getByRole("button", { name: "90日以上未更新1" })).toHaveAttribute("aria-pressed", "false");
 
+    await user.click(within(group).getByRole("button", { name: "90日以上未更新1" }));
+
+    expect(within(group).getByRole("button", { name: "90日以上未更新1" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(group).getByRole("button", { name: "総購読数3" })).toHaveAttribute("aria-pressed", "false");
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
       accountId: "acc-1",
@@ -900,13 +835,16 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /^取得エラー / }));
+    await user.click(await screen.findByRole("button", { name: /^取得エラー/ }));
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "再取得" }));
 
     expect(await screen.findByText("取得エラーのある購読はありません")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^総購読数 / })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取得エラー0" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: /^総購読数/ }));
+
+    expect(screen.queryByRole("button", { name: /^取得エラー/ })).not.toBeInTheDocument();
   });
 
   it("restores a returned stale filter, collapsed group state, and list scroll position", async () => {

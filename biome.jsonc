@@ -29,8 +29,11 @@
   },
   "overrides": [
     {
-      // Article option groups belong to a listbox; fieldset semantics are for form controls.
-      "includes": ["src/components/reader/article-groups-view.tsx"],
+      // Article option groups belong to a listbox, and the subscription filter bar groups toggle buttons; fieldset semantics are for form controls.
+      "includes": [
+        "src/components/reader/article-groups-view.tsx",
+        "src/components/subscriptions-index/subscriptions-filter-bar.tsx"
+      ],
       "linter": {
         "rules": {
           "a11y": {

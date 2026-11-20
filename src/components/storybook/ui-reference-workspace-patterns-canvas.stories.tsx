@@ -6,7 +6,7 @@ import {
   MotionNumberSpecimen,
   ReferencePage,
   SubscriptionGroupDisclosureSpecimen,
-  SummaryFilterCardsSpecimen,
+  SummaryFilterBarSpecimen,
   WorkspaceActionClusterSpecimen,
   WorkspaceFilterClusterSpecimen,
   WorkspaceTwoPaneSpecimen,
@@ -20,7 +20,7 @@ export function ViewSpecimensCanvas() {
           title="View specimens"
           body="Feature-local display fragments, dense workspace patterns, and two-pane specimens live here."
         />
-        <SummaryFilterCardsSpecimen />
+        <SummaryFilterBarSpecimen />
         <div className="grid items-start gap-4 xl:grid-cols-2">
           <WorkspaceFilterClusterSpecimen />
           <MotionNumberSpecimen />

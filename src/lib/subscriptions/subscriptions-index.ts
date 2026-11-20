@@ -9,10 +9,10 @@ import {
 } from "@/lib/subscriptions/subscription-review-candidates";
 import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
 import type {
+  SubscriptionFilterOption,
   SubscriptionListGroup,
   SubscriptionListRow,
   SubscriptionRowStatus,
-  SubscriptionSummaryCard,
   SubscriptionSummaryFilterKey,
 } from "@/lib/subscriptions/subscriptions-index.types";
 
@@ -31,16 +31,6 @@ export {
 } from "./subscription-detail";
 
 type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
-
-function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
-  let count = 0;
-  for (const candidate of candidates) {
-    if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
-      count += 1;
-    }
-  }
-  return count;
-}
 
 function rowMatchesSubscriptionSummaryFilter(
   row: SubscriptionListRow,
@@ -171,98 +161,50 @@ export function buildVisibleSubscriptionRows({
   return visibleRows;
 }
 
-function countFrequentFeeds(feeds: FeedDto[], feedArticleSummaryMap: Map<string, FeedArticleSummaryDto>): number {
-  let count = 0;
-  for (const feed of feeds) {
-    const recentArticleCount = feedArticleSummaryMap.get(feed.id)?.recent_article_count ?? 0;
-    if (isOverloaded({ postsLast30Days: recentArticleCount, unreadCount: feed.unread_count })) {
-      count += 1;
+const SUBSCRIPTION_SUMMARY_FILTER_KEYS = [
+  "all",
+  "stale",
+  "frequent",
+  "fetch_errors",
+] as const satisfies readonly SubscriptionSummaryFilterKey[];
+
+export function countSubscriptionFilterRows(
+  rows: SubscriptionListRow[],
+  keptFeedIds: ReadonlySet<string>,
+): Record<SubscriptionSummaryFilterKey, number> {
+  const counts: Record<SubscriptionSummaryFilterKey, number> = { all: 0, stale: 0, frequent: 0, fetch_errors: 0 };
+
+  for (const row of rows) {
+    for (const filterKey of SUBSCRIPTION_SUMMARY_FILTER_KEYS) {
+      if (
+        rowMatchesSubscriptionSummaryFilter(row, filterKey) &&
+        rowMatchesSubscriptionDecisionVisibility({
+          row,
+          activeSummaryFilter: filterKey,
+          keptFeedIds,
+          showKept: false,
+        })
+      ) {
+        counts[filterKey] += 1;
+      }
     }
   }
-  return count;
-}
 
-export function buildSubscriptionsIndexSummary({
-  feeds,
-  candidates,
-  feedArticleSummaryMap,
-}: {
-  feeds: FeedDto[];
-  candidates: SubscriptionReviewCandidate[];
-  feedArticleSummaryMap: Map<string, FeedArticleSummaryDto>;
-}): {
-  totalCount: number;
-  staleCount: number;
-  frequentCount: number;
-} {
-  return {
-    totalCount: feeds.length,
-    staleCount: countStaleCandidates(candidates),
-    frequentCount: countFrequentFeeds(feeds, feedArticleSummaryMap),
-  };
-}
-
-export function buildSubscriptionSummaryCards(params: {
-  summary: {
-    totalCount: number;
-    staleCount: number;
-    frequentCount: number;
-  };
-  activeSummaryFilter: SubscriptionSummaryFilterKey;
-  labels: {
-    total: string;
-    totalCaption: (count: number) => string;
-    stale: string;
-    staleCaption: (count: number) => string;
-    frequent: string;
-    frequentCaption: (count: number) => string;
-  };
-}): SubscriptionSummaryCard[] {
-  const { summary, activeSummaryFilter, labels } = params;
-  const totalCount = normalizeSubscriptionCount(summary.totalCount);
-  const staleCount = normalizeSubscriptionCount(summary.staleCount);
-  const frequentCount = normalizeSubscriptionCount(summary.frequentCount);
-
-  return [
-    {
-      filterKey: "all",
-      label: labels.total,
-      value: String(totalCount),
-      caption: labels.totalCaption(totalCount),
-      tone: "neutral",
-      isActive: activeSummaryFilter === "all",
-    },
-    {
-      filterKey: "stale",
-      label: labels.stale,
-      value: String(staleCount),
-      caption: labels.staleCaption(staleCount),
-      tone: "stale",
-      isActive: activeSummaryFilter === "stale",
-    },
-    {
-      filterKey: "frequent",
-      label: labels.frequent,
-      value: String(frequentCount),
-      caption: labels.frequentCaption(frequentCount),
-      tone: "neutral",
-      isActive: activeSummaryFilter === "frequent",
-    },
-  ];
+  return counts;
 }
 
 export function resolveSubscriptionsInventoryHeading(params: {
   activeSummaryFilter: SubscriptionSummaryFilterKey;
-  summaryCards: SubscriptionSummaryCard[];
+  filterOptions: SubscriptionFilterOption[];
   defaultHeading: string;
 }): string {
-  const { activeSummaryFilter, summaryCards, defaultHeading } = params;
+  const { activeSummaryFilter, filterOptions, defaultHeading } = params;
 
   if (activeSummaryFilter === "all") {
     return defaultHeading;
   }
 
-  return summaryCards.find((card) => card.filterKey === activeSummaryFilter)?.label ?? defaultHeading;
+  return filterOptions.find((option) => option.filterKey === activeSummaryFilter)?.label ?? defaultHeading;
 }
 
 export function buildSubscriptionListGroups(

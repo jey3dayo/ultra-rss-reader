@@ -306,9 +306,6 @@
   --subscriptions-list-row-selected-border: rgba(38, 37, 30, 0.16);
   --subscriptions-list-row-selected-shadow: 0 8px 20px -18px rgba(38, 37, 30, 0.28);
   --subscriptions-list-group-collapsed-shadow: 0 10px 28px -24px rgba(38, 37, 30, 0.42);
-  --subscriptions-summary-active-shadow-neutral: 0 18px 38px -24px rgba(0, 0, 0, 0.34);
-  --subscriptions-summary-active-shadow-stale: 0 18px 38px -24px rgba(0, 0, 0, 0.38);
-  --subscriptions-summary-badge-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
   --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-workspace-surface: rgba(247, 247, 244, 0.58);
   --subscriptions-workspace-shadow: 0 14px 34px -30px rgba(38, 37, 30, 0.14);
@@ -668,9 +665,6 @@
   --subscriptions-list-row-selected-border: rgba(243, 239, 230, 0.12);
   --subscriptions-list-row-selected-shadow: 0 8px 20px -18px rgba(0, 0, 0, 0.34);
   --subscriptions-list-group-collapsed-shadow: 0 10px 28px -24px rgba(0, 0, 0, 0.48);
-  --subscriptions-summary-active-shadow-neutral: 0 18px 38px -24px rgba(0, 0, 0, 0.4);
-  --subscriptions-summary-active-shadow-stale: 0 18px 38px -24px rgba(0, 0, 0, 0.44);
-  --subscriptions-summary-badge-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-workspace-surface: rgba(34, 30, 25, 0.5);
   --subscriptions-workspace-shadow: 0 16px 38px -34px rgba(0, 0, 0, 0.24);

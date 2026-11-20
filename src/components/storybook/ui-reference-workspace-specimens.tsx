@@ -1,8 +1,8 @@
 import { cn } from "cn";
 import { Check, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { SubscriptionsFilterBar } from "@/components/subscriptions-index/subscriptions-filter-bar";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
-import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import {
   ControlChipButton,
@@ -14,39 +14,16 @@ import {
   SectionHeading,
   SurfaceCard,
 } from "@/design-system";
-import type { SubscriptionListGroup, SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
+import type { SubscriptionFilterOption, SubscriptionListGroup } from "@/lib/subscriptions/subscriptions-index.types";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
 export { AnnotatedNote, ReferencePage };
 
 const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-md";
 
-const SUMMARY_FILTER_CARDS: SubscriptionSummaryCard[] = [
-  {
-    filterKey: "all",
-    label: "すべての購読",
-    value: "163",
-    caption: "現在管理しているフィード",
-    tone: "neutral",
-    isActive: true,
-  },
-  {
-    filterKey: "stale",
-    label: "90日以上未更新",
-    value: "8",
-    caption: "最近動きがない購読",
-    tone: "stale",
-    isActive: false,
-  },
-  {
-    filterKey: "all",
-    label: "同期状態",
-    value: "Ready",
-    caption: "押せない static sibling",
-    tone: "neutral",
-    isActive: false,
-    isActionable: false,
-  },
+const SUMMARY_FILTER_OPTIONS: SubscriptionFilterOption[] = [
+  { filterKey: "all", label: "すべての購読", count: 163, isActive: true },
+  { filterKey: "stale", label: "90日以上未更新", count: 8, isActive: false },
 ];
 
 const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
@@ -210,22 +187,22 @@ export function MotionNumberSpecimen() {
   );
 }
 
-export function SummaryFilterCardsSpecimen() {
-  const [activeFilter, setActiveFilter] = useState<SubscriptionSummaryCard["filterKey"]>("all");
-  const cards = SUMMARY_FILTER_CARDS.map((card) => ({
-    ...card,
-    isActive: card.isActionable !== false && card.filterKey === activeFilter,
-  }));
+export function SummaryFilterBarSpecimen() {
+  const [activeFilter, setActiveFilter] = useState<SubscriptionFilterOption["filterKey"]>("all");
+  const options = SUMMARY_FILTER_OPTIONS.map((option) => ({ ...option, isActive: option.filterKey === activeFilter }));
 
   return (
     <SurfaceCard variant="section">
-      <SectionHeading className="mb-2">Summary filter cards</SectionHeading>
-      <div data-testid="reference-summary-filter-card-frame">
-        <SubscriptionsOverviewSummary cards={cards} onSelectFilter={setActiveFilter} />
+      <SectionHeading className="mb-2">Summary filter bar</SectionHeading>
+      <div data-testid="reference-summary-filter-bar-frame">
+        <SubscriptionsFilterBar
+          model={{ ariaLabel: "購読の絞り込み", options, activeDescription: null }}
+          onSelect={setActiveFilter}
+        />
       </div>
       <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
-        card 全体が filter button になる workspace summary。active accent、badge slot、numeric typography、押せない
-        static sibling の差分をここで確認してから wrapper 化する。
+        一覧見出しの下に並ぶ件数付きの絞り込みボタン。選択中は aria-pressed
+        と配色で示し、件数は検索なしで一覧に出る数に揃える。
       </p>
     </SurfaceCard>
   );
