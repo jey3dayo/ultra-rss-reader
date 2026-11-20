@@ -778,7 +778,7 @@ describe("SubscriptionsIndexPage", () => {
     const decisionBar = await within(detailPane).findByTestId("subscriptions-detail-decision-bar");
     expect(decisionBar).toBeVisible();
     const keepButton = within(detailPane).getByRole("button", {
-      name: /^(残す|decision_keep)$/,
+      name: /^(見直し対象外にする|decision_keep)$/,
     });
     const deleteButton = within(detailPane).getByRole("button", {
       name: /^(購読解除|unsubscribe_action)$/,
@@ -789,7 +789,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(deleteButton.querySelector("svg")).toHaveClass("size-4");
 
     await user.click(keepButton);
-    expect(useUiStore.getState().toastMessage?.message).toMatch(/^(Example Feed を残すにしました|decision_kept)$/);
+    expect(useUiStore.getState().toastMessage?.message).toMatch(
+      /^(Example Feed を見直し対象外にしました|decision_kept)$/,
+    );
     await user.click(deleteButton);
     const unsubscribeDialog = await screen.findByRole("dialog");
     expect(unsubscribeDialog).toBeInTheDocument();
@@ -813,6 +815,47 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ })).toBeInTheDocument();
   });
 
+  it("shows the review exclusion in the list and detail pane and lets the detail pane remove it", async () => {
+    const user = userEvent.setup();
+    useSubscriptionReviewStore.getState().keep("acc-1", "feed-2");
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    const decisionBar = await within(detailPane).findByTestId("subscriptions-detail-decision-bar");
+    const keepButton = within(decisionBar).getByRole("button", { name: "見直し対象外にする" });
+    await user.click(keepButton);
+
+    expect(within(detailPane).getByTestId("subscriptions-detail-decision-bar")).toBe(decisionBar);
+    const unkeepButton = within(decisionBar).getByRole("button", { name: "見直し対象外を解除" });
+    expect(unkeepButton).toBe(keepButton);
+    expect(unkeepButton).toHaveFocus();
+    expect(unkeepButton.className).not.toContain("state-success");
+    expect(within(decisionBar).getByRole("button", { name: "編集" })).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: /Example Feed/ })).getByText("見直し対象外")).toBeInTheDocument();
+
+    useUiStore.getState().clearToast();
+    await user.click(unkeepButton);
+
+    expect(within(detailPane).getByTestId("subscriptions-detail-decision-bar")).toBe(decisionBar);
+    expect(within(decisionBar).getByRole("button", { name: "見直し対象外にする" })).toBe(keepButton);
+    expect(within(decisionBar).queryByRole("button", { name: "編集" })).toBeNull();
+    expect(keepButton.className).toContain("state-success");
+    expect(within(screen.getByRole("button", { name: /Example Feed/ })).queryByText("見直し対象外")).toBeNull();
+    expect(useUiStore.getState().toastMessage).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
+    const freshBar = within(detailPane).getByTestId("subscriptions-detail-decision-bar");
+    expect(within(freshBar).getByRole("button", { name: "見直し対象外を解除" })).toBeInTheDocument();
+    expect(within(freshBar).getByRole("button", { name: "編集" })).toBeInTheDocument();
+    expect(within(detailPane).queryByTestId("subscriptions-detail-management-bar")).toBeNull();
+
+    await user.click(within(freshBar).getByRole("button", { name: "見直し対象外を解除" }));
+    const managementBar = within(detailPane).getByTestId("subscriptions-detail-management-bar");
+    expect(within(managementBar).getByRole("button", { name: "編集" })).toHaveFocus();
+  });
+
   it("removes kept feeds from the active stale filter and clears the detail pane", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
@@ -824,7 +867,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    await user.click(within(detailPane).getByRole("button", { name: "残す" }));
+    await user.click(within(detailPane).getByRole("button", { name: "見直し対象外にする" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
@@ -1472,7 +1515,9 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
-    await user.click(within(screen.getByTestId("subscriptions-detail-pane")).getByRole("button", { name: "残す" }));
+    await user.click(
+      within(screen.getByTestId("subscriptions-detail-pane")).getByRole("button", { name: "見直し対象外にする" }),
+    );
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     });
@@ -1494,7 +1539,7 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    await user.click(within(detailPane).getByRole("button", { name: "残す" }));
+    await user.click(within(detailPane).getByRole("button", { name: "見直し対象外にする" }));
     await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
     const unsubscribeDialog = await screen.findByRole("dialog");
     await user.click(within(unsubscribeDialog).getByRole("button", { name: /^「Example Feed」の購読を解除します/ }));

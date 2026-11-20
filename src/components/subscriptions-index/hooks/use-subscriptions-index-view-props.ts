@@ -23,7 +23,6 @@ import {
 } from "@/lib/subscriptions/subscription-update-frequency";
 import {
   buildFeedArticleSummaryMap,
-  buildSubscriptionDecisionActions,
   buildSubscriptionDetailCandidate,
   buildSubscriptionListGroups,
   buildSubscriptionListRows,
@@ -31,19 +30,16 @@ import {
   buildSubscriptionSummaryCards,
   buildSubscriptionsIndexSummary,
   formatSubscriptionDate,
-  isSubscriptionRowFlagged,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
   resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionsInventoryHeading,
-  type SubscriptionDecisionActions,
 } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
-import { useUiStore } from "@/stores/ui-store";
 import type { SubscriptionsIndexPageView } from "../subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
 import {
@@ -57,6 +53,7 @@ import {
   type QueryLoadState,
   resolveListLoadState,
 } from "./subscriptions-index-load-state";
+import { useSubscriptionDecisionActions } from "./use-subscription-decision-actions";
 
 type SubscriptionsIndexPageViewProps = ComponentProps<typeof SubscriptionsIndexPageView>;
 
@@ -119,9 +116,6 @@ export function useSubscriptionsIndexViewProps({
 }: UseSubscriptionsIndexViewPropsParams) {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
-  const { t: tc } = useTranslation("common");
-  const showToast = useUiStore((state) => state.showToast);
-  const clearToast = useUiStore((state) => state.clearToast);
 
   const candidates = useMemo(
     () =>
@@ -267,53 +261,14 @@ export function useSubscriptionsIndexViewProps({
     defaultHeading: t("inventory_heading"),
   });
 
-  const decisionActions = buildSubscriptionDecisionActions({
+  const { decisionActions, managementActions } = useSubscriptionDecisionActions({
     selectedRow: state.selectedRow,
-    isFlagged: state.selectedRow ? isSubscriptionRowFlagged(state.selectedRow.status) : false,
-    labels: {
-      keep: t("decision_keep"),
-      delete: t("unsubscribe_action"),
-    },
-    onKeep: (selectedRow) => {
-      const keptFeedId = selectedRow.feed.id;
-      state.markSelectedFeedKept();
-      showToast({
-        message: t("decision_kept", { title: selectedRow.feed.title }),
-        actions: [
-          {
-            label: t("decision_undo_keep"),
-            onClick: () => {
-              state.unkeepFeed(keptFeedId);
-              clearToast();
-            },
-          },
-        ],
-      });
-    },
-    onDelete: () => {
-      if (state.selectedRow) {
-        setDeleteTargetFeed(state.selectedRow.feed);
-      }
-    },
-  }) satisfies SubscriptionDecisionActions | null;
-
-  const managementActions =
-    state.selectedRow && !decisionActions
-      ? {
-          editLabel: tc("edit"),
-          deleteLabel: t("unsubscribe_action"),
-          onEdit: () => {
-            if (state.selectedRow) {
-              setEditTargetFeed(state.selectedRow.feed);
-            }
-          },
-          onDelete: () => {
-            if (state.selectedRow) {
-              setDeleteTargetFeed(state.selectedRow.feed);
-            }
-          },
-        }
-      : null;
+    keptFeedIds: state.keptFeedIds,
+    markSelectedFeedKept: state.markSelectedFeedKept,
+    unkeepFeed: state.unkeepFeed,
+    setDeleteTargetFeed,
+    setEditTargetFeed,
+  });
 
   const viewProps = {
     summaryCards,
@@ -418,10 +373,10 @@ export function useSubscriptionsIndexViewProps({
     workspaceScrollRef,
     viewportWidth,
     scrollReady: !rowsPending || (!feedLoad.pending && !feedLoad.error && feeds.length === 0),
+    kept: { feedIds: state.keptFeedIds, chipLabel: t("kept_chip") },
     bulkSelection: {
       mode: state.bulkSelectionMode,
       checkedFeedIds: state.checkedFeedIds,
-      keptFeedIds: state.keptFeedIds,
       checkedCount: state.checkedCount,
       hiddenCheckedCount: state.hiddenCheckedCount,
       allVisibleCheckState: state.allVisibleCheckState,
@@ -434,7 +389,6 @@ export function useSubscriptionsIndexViewProps({
         selectAllVisibleAria: t("bulk_select_all_visible_aria"),
         skippedKept: (count) => t("bulk_skipped_kept", { count }),
         rowSelectAria: (title) => t("bulk_row_select_aria", { title }),
-        keptChip: t("bulk_kept_chip"),
         selectedCount: (count) => t("bulk_selected_count", { count }),
         selectedCountHidden: (count, hidden) => t("bulk_selected_count_hidden", { count, hidden }),
         unsubscribeAction: t("bulk_unsubscribe_action"),

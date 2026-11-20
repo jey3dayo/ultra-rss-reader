@@ -16,16 +16,29 @@ import type {
   SubscriptionRowStatus,
 } from "@/lib/subscriptions/subscriptions-index.types";
 
-export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
+function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
   return status.labelKey !== "normal" && status.labelKey !== "attention_30d";
 }
 
-export type SubscriptionDecisionActions = {
-  keepLabel: string;
-  deleteLabel: string;
-  onKeep: () => void;
-  onDelete: () => void;
-};
+export type SubscriptionDecisionActions =
+  | {
+      kind: "undecided";
+      keepLabel: string;
+      deleteLabel: string;
+      onKeep: () => void;
+      onDelete: () => void;
+    }
+  | {
+      kind: "kept";
+      keptChipLabel: string;
+      keptEffectLabel: string;
+      unkeepLabel: string;
+      editLabel: string;
+      deleteLabel: string;
+      onUnkeep: () => void;
+      onEdit: () => void;
+      onDelete: () => void;
+    };
 
 export function buildSubscriptionDetailCandidate(params: {
   selectedRow: SubscriptionListRow | null;
@@ -133,20 +146,45 @@ export function resolveSelectedSubscriptionDisplayModeLabel(params: {
 
 export function buildSubscriptionDecisionActions(params: {
   selectedRow: SubscriptionListRow | null;
-  isFlagged: boolean;
+  isKept: boolean;
   labels: {
     keep: string;
+    unkeep: string;
     delete: string;
+    edit: string;
+    keptChip: string;
+    keptEffect: string;
   };
   onKeep: (selectedRow: SubscriptionListRow) => void;
+  onUnkeep: (selectedRow: SubscriptionListRow) => void;
+  onEdit: () => void;
   onDelete: () => void;
 }): SubscriptionDecisionActions | null {
-  const { selectedRow, isFlagged, labels, onKeep, onDelete } = params;
-  if (!selectedRow || !isFlagged || !isSubscriptionRowFlagged(selectedRow.status)) {
+  const { selectedRow, isKept, labels, onKeep, onUnkeep, onEdit, onDelete } = params;
+  if (!selectedRow) {
+    return null;
+  }
+
+  if (isKept) {
+    return {
+      kind: "kept",
+      keptChipLabel: labels.keptChip,
+      keptEffectLabel: labels.keptEffect,
+      unkeepLabel: labels.unkeep,
+      editLabel: labels.edit,
+      deleteLabel: labels.delete,
+      onUnkeep: () => onUnkeep(selectedRow),
+      onEdit,
+      onDelete,
+    };
+  }
+
+  if (!isSubscriptionRowFlagged(selectedRow.status)) {
     return null;
   }
 
   return {
+    kind: "undecided",
     keepLabel: labels.keep,
     deleteLabel: labels.delete,
     onKeep: () => onKeep(selectedRow),

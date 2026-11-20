@@ -123,13 +123,14 @@ describe("BulkUnsubscribeDialog", () => {
     renderDialog([makeTarget("a"), makeTarget("b", true), makeTarget("c")]);
 
     const dialog = await screen.findByRole("dialog");
-    const keptHeading = within(dialog).getByRole("heading", { name: "Feeds you marked Keep (1)" });
+    const keptHeading = within(dialog).getByRole("heading", { name: "Feeds excluded from review (1)" });
     const keptSection = keptHeading.closest("section");
     if (keptSection === null) {
       throw new Error("Expected the kept feeds to be grouped in their own section");
     }
     expect(within(keptSection).getByText("Feed b")).toBeInTheDocument();
-    expect(within(keptSection).getByText("Keep")).toBeInTheDocument();
+    expect(within(keptSection).getByText("Excluded from review")).toBeInTheDocument();
+    expect(within(keptSection).getByText("These are included in this unsubscribe.")).toBeInTheDocument();
     expect(within(keptSection).queryByText("Feed a")).toBeNull();
     expect(
       keptHeading.compareDocumentPosition(within(dialog).getByText("Feed a")) & Node.DOCUMENT_POSITION_FOLLOWING,

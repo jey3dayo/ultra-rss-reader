@@ -195,7 +195,8 @@ const meta = {
     displayModeValue: "Default",
     dateLocale: "en-US",
     decisionActions: {
-      keepLabel: "Keep",
+      kind: "undecided",
+      keepLabel: "Exclude from review",
       deleteLabel: "Unsubscribe",
       onKeep: fn(),
       onDelete: fn(),
@@ -215,6 +216,22 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const KeptDecision: Story = {
+  args: {
+    decisionActions: {
+      kind: "kept",
+      keptChipLabel: "Excluded from review",
+      keptEffectLabel: 'Excluded from the 90+ days without updates list and from "Select all shown".',
+      unkeepLabel: "Remove review exclusion",
+      editLabel: "Edit",
+      deleteLabel: "Unsubscribe",
+      onUnkeep: fn(),
+      onEdit: fn(),
+      onDelete: fn(),
+    },
+  },
+};
 
 export const Empty: Story = {
   args: {

@@ -25,7 +25,6 @@ export {
   buildSubscriptionDetailMetrics,
   buildSubscriptionReviewCandidateMap,
   formatSubscriptionDate,
-  isSubscriptionRowFlagged,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
   resolveSelectedSubscriptionDisplayModeLabel,

@@ -6,7 +6,6 @@ import { Button, Checkbox, DeleteButton } from "@/design-system";
 export type SubscriptionsBulkSelection = {
   mode: boolean;
   checkedFeedIds: ReadonlySet<string>;
-  keptFeedIds: ReadonlySet<string>;
   checkedCount: number;
   hiddenCheckedCount: number;
   allVisibleCheckState: "none" | "some" | "all";
@@ -19,7 +18,6 @@ export type SubscriptionsBulkSelection = {
     selectAllVisibleAria: string;
     skippedKept: (count: number) => string;
     rowSelectAria: (title: string) => string;
-    keptChip: string;
     selectedCount: (count: number) => string;
     selectedCountHidden: (count: number, hiddenCount: number) => string;
     unsubscribeAction: string;

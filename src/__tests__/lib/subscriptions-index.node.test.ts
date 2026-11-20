@@ -665,127 +665,100 @@ describe("subscriptions index helpers", () => {
     ).toBeNull();
   });
 
-  it("builds decision actions only for flagged subscription rows", () => {
-    const rows = buildSubscriptionListRows({
-      feeds,
-      candidateMap: new Map([
-        [
-          "feed-stale",
-          {
-            feedId: "feed-stale",
-            title: "Old Product Blog",
-            folderId: "folder-work",
-            folderName: "Work",
-            latestArticleAt: "2025-11-01T10:00:00Z",
-            unreadCount: 0,
-            starredCount: 1,
-            staleDays: 155,
-            reasonKeys: ["stale_90d"],
-          },
-        ],
-      ]),
-      feedArticleSummaryMap,
-      folderNameById: new Map([["folder-work", "Work"]]),
+  describe("buildSubscriptionDecisionActions", () => {
+    const labels = {
+      keep: "Exclude from review",
+      unkeep: "Remove review exclusion",
+      delete: "Delete",
+      edit: "Edit",
+      keptChip: "Excluded from review",
+      keptEffect: "Left out of lists",
+    };
+
+    function buildRowsWithFlaggedFirst() {
+      return buildSubscriptionListRows({
+        feeds,
+        candidateMap: new Map([
+          [
+            "feed-stale",
+            {
+              feedId: "feed-stale",
+              title: "Old Product Blog",
+              folderId: "folder-work",
+              folderName: "Work",
+              latestArticleAt: "2025-11-01T10:00:00Z",
+              unreadCount: 0,
+              starredCount: 1,
+              staleDays: 155,
+              reasonKeys: ["stale_90d"],
+            },
+          ],
+        ]),
+        feedArticleSummaryMap,
+        folderNameById: new Map([["folder-work", "Work"]]),
+      });
+    }
+
+    function buildCallbacks() {
+      return { onKeep: vi.fn(), onUnkeep: vi.fn(), onEdit: vi.fn(), onDelete: vi.fn() };
+    }
+
+    it("builds the undecided actions for a flagged row that is not kept", () => {
+      const rows = buildRowsWithFlaggedFirst();
+      const callbacks = buildCallbacks();
+
+      const actions = buildSubscriptionDecisionActions({ selectedRow: rows[0], isKept: false, labels, ...callbacks });
+
+      expect(actions).toMatchObject({ kind: "undecided", keepLabel: "Exclude from review", deleteLabel: "Delete" });
+      if (actions?.kind !== "undecided") {
+        throw new Error("expected undecided actions");
+      }
+      actions.onKeep();
+      actions.onDelete();
+      expect(callbacks.onKeep).toHaveBeenCalledWith(rows[0]);
+      expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
     });
-    const onKeep = vi.fn();
-    const onDelete = vi.fn();
 
-    const actions = buildSubscriptionDecisionActions({
-      selectedRow: rows[0],
-      isFlagged: true,
-      labels: { keep: "Keep", delete: "Delete" },
-      onKeep,
-      onDelete,
+    it("builds the kept actions for a kept row whether or not it is flagged", () => {
+      const rows = buildRowsWithFlaggedFirst();
+
+      for (const selectedRow of [rows[0], rows[1]]) {
+        const callbacks = buildCallbacks();
+        const actions = buildSubscriptionDecisionActions({ selectedRow, isKept: true, labels, ...callbacks });
+
+        expect(actions).toMatchObject({
+          kind: "kept",
+          keptChipLabel: "Excluded from review",
+          keptEffectLabel: "Left out of lists",
+          unkeepLabel: "Remove review exclusion",
+          editLabel: "Edit",
+          deleteLabel: "Delete",
+        });
+        if (actions?.kind !== "kept") {
+          throw new Error("expected kept actions");
+        }
+        actions.onUnkeep();
+        actions.onEdit();
+        actions.onDelete();
+        expect(callbacks.onUnkeep).toHaveBeenCalledWith(selectedRow);
+        expect(callbacks.onEdit).toHaveBeenCalledTimes(1);
+        expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
+      }
     });
 
-    expect(actions).toMatchObject({
-      keepLabel: "Keep",
-      deleteLabel: "Delete",
+    it("builds no actions without a selected row or for an unflagged row that is not kept", () => {
+      const rows = buildRowsWithFlaggedFirst();
+
+      expect(
+        buildSubscriptionDecisionActions({ selectedRow: null, isKept: false, labels, ...buildCallbacks() }),
+      ).toBeNull();
+      expect(
+        buildSubscriptionDecisionActions({ selectedRow: null, isKept: true, labels, ...buildCallbacks() }),
+      ).toBeNull();
+      expect(
+        buildSubscriptionDecisionActions({ selectedRow: rows[1], isKept: false, labels, ...buildCallbacks() }),
+      ).toBeNull();
     });
-    actions?.onKeep();
-    actions?.onDelete();
-    expect(onKeep).toHaveBeenCalledTimes(1);
-    expect(onDelete).toHaveBeenCalledTimes(1);
-    expect(
-      buildSubscriptionDecisionActions({
-        selectedRow: rows[0],
-        isFlagged: false,
-        labels: { keep: "Keep", delete: "Delete" },
-        onKeep,
-        onDelete,
-      }),
-    ).toBeNull();
-  });
-
-  it("does not build decision actions for null or unflagged selected rows", () => {
-    const rows = buildSubscriptionListRows({
-      feeds,
-      candidateMap: new Map(),
-      feedArticleSummaryMap,
-      folderNameById: new Map([["folder-work", "Work"]]),
-    });
-    const onKeep = vi.fn();
-    const onDelete = vi.fn();
-    const labels = { keep: "Keep", delete: "Delete" };
-
-    expect(
-      buildSubscriptionDecisionActions({
-        selectedRow: null,
-        isFlagged: true,
-        labels,
-        onKeep,
-        onDelete,
-      }),
-    ).toBeNull();
-    expect(
-      buildSubscriptionDecisionActions({
-        selectedRow: rows[0],
-        isFlagged: true,
-        labels,
-        onKeep,
-        onDelete,
-      }),
-    ).toBeNull();
-  });
-
-  it("captures the selected row when keep callback is generated", () => {
-    const rows = buildSubscriptionListRows({
-      feeds,
-      candidateMap: new Map([
-        [
-          "feed-stale",
-          {
-            feedId: "feed-stale",
-            title: "Old Product Blog",
-            folderId: "folder-work",
-            folderName: "Work",
-            latestArticleAt: "2025-11-01T10:00:00Z",
-            unreadCount: 0,
-            starredCount: 1,
-            staleDays: 155,
-            reasonKeys: ["stale_90d"],
-          },
-        ],
-      ]),
-      feedArticleSummaryMap,
-      folderNameById: new Map([["folder-work", "Work"]]),
-    });
-    const onKeep = vi.fn();
-    let selectedRow = rows[0];
-
-    const actions = buildSubscriptionDecisionActions({
-      selectedRow,
-      isFlagged: true,
-      labels: { keep: "Keep", delete: "Delete" },
-      onKeep,
-      onDelete: vi.fn(),
-    });
-    selectedRow = rows[1];
-
-    actions?.onKeep();
-
-    expect(selectedRow.feed.id).toBe("feed-active");
-    expect(onKeep).toHaveBeenCalledWith(rows[0]);
   });
 
   it("hides a kept stale feed from the stale filter", () => {

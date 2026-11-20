@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { SubscriptionDetailPane } from "@/components/subscriptions-index/subscription-detail-pane";
 import { WorkspaceManagementActionButton } from "@/design-system";
+import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionDetailMetrics, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto> = {}): FeedDto {
@@ -402,11 +403,12 @@ describe("SubscriptionDetailPane", () => {
 
   it("delegates decision bar actions and hides management actions while decisions are present", () => {
     const decisionActions = {
-      keepLabel: "Keep",
+      kind: "undecided",
+      keepLabel: "Exclude from review",
       deleteLabel: "Delete",
       onKeep: vi.fn(),
       onDelete: vi.fn(),
-    };
+    } satisfies SubscriptionDecisionActions;
     const managementActions = {
       editLabel: "Edit",
       deleteLabel: "Remove",
@@ -420,13 +422,13 @@ describe("SubscriptionDetailPane", () => {
 
     expect(screen.getByTestId("subscriptions-detail-decision-bar")).toHaveClass("grid-cols-1", "sm:grid-cols-2");
     expect(screen.queryByTestId("subscriptions-detail-management-bar")).not.toBeInTheDocument();
-    for (const label of ["Keep", "Delete"]) {
+    for (const label of ["Exclude from review", "Delete"]) {
       const actionButton = screen.getByRole("button", { name: label });
       expect(actionButton).toBeVisible();
       expect(actionButton.querySelector("svg")).toHaveClass("size-4");
     }
 
-    fireEvent.click(screen.getByRole("button", { name: "Keep" }));
+    fireEvent.click(screen.getByRole("button", { name: "Exclude from review" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
     expect(decisionActions.onKeep).toHaveBeenCalledOnce();

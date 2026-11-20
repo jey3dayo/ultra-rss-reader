@@ -1,17 +1,9 @@
 import { cva } from "class-variance-authority";
-import { Check, Copy, Globe, Pencil, RefreshCw, Rss, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { Copy, Globe, Pencil, RefreshCw, Rss } from "lucide-react";
+import { type ReactNode, useRef } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import {
-  Button,
-  DecisionButton,
-  FeedDetailPanel,
-  FeedFavicon,
-  LabelChip,
-  SurfaceCard,
-  WorkspaceManagementActionButton,
-} from "@/design-system";
+import { Button, FeedDetailPanel, FeedFavicon, LabelChip, SurfaceCard } from "@/design-system";
 import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
 import { formatShortDateTime } from "@/lib/datetime";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
@@ -24,13 +16,7 @@ import type {
   SubscriptionDetailMetrics,
   SubscriptionListRow,
 } from "@/lib/subscriptions/subscriptions-index.types";
-
-export type SubscriptionManagementActions = {
-  editLabel: string;
-  deleteLabel: string;
-  onEdit: () => void;
-  onDelete: () => void;
-};
+import { DecisionBar, ManagementBar, type SubscriptionManagementActions } from "./subscription-decision-bar";
 
 type FetchErrorLabels = {
   heading: string;
@@ -92,33 +78,6 @@ type SubscriptionDetailPaneProps = {
   isRetryingFeed?: (feedId: string) => boolean;
   onCopyDiagnosticId?: (diagnosticId: string) => void;
 };
-
-type DecisionActionConfig = {
-  key: "keep" | "delete";
-  intent: "keep" | "delete";
-  label: string;
-  onClick: () => void;
-  icon: typeof Check;
-};
-
-function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions): DecisionActionConfig[] {
-  return [
-    {
-      key: "keep",
-      intent: "keep",
-      label: decisionActions.keepLabel,
-      onClick: decisionActions.onKeep,
-      icon: Check,
-    },
-    {
-      key: "delete",
-      intent: "delete",
-      label: decisionActions.deleteLabel,
-      onClick: decisionActions.onDelete,
-      icon: Trash2,
-    },
-  ];
-}
 
 function formatLatestArticleMetric(value: string | null, locale: string, emptyLabel: string): string {
   const formatted = formatSubscriptionDate(value, locale);
@@ -332,71 +291,6 @@ function FetchErrorDetailCard({
   );
 }
 
-type DecisionBarProps = {
-  decisionActions: SubscriptionDecisionActions;
-};
-
-function DecisionBar({ decisionActions }: DecisionBarProps) {
-  return (
-    <SurfaceCard
-      data-testid="subscriptions-detail-decision-bar"
-      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-      variant="section"
-      tone="default"
-      padding="compact"
-      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 grid shrink-0 grid-cols-1 gap-2.5 rounded-md border-transparent bg-[var(--workspace-low-wire-action-surface)] px-3.5 pt-3.5 shadow-none backdrop-blur-sm sm:grid-cols-2 sm:px-4`}
-    >
-      {buildDecisionActionConfigs(decisionActions).map((action) => {
-        const Icon = action.icon;
-
-        return (
-          <DecisionButton
-            key={action.key}
-            intent={action.intent}
-            size="lg"
-            aria-label={action.label}
-            onClick={action.onClick}
-          >
-            <Icon className="size-4" />
-            {action.label}
-          </DecisionButton>
-        );
-      })}
-    </SurfaceCard>
-  );
-}
-
-type ManagementBarProps = {
-  managementActions: SubscriptionManagementActions;
-};
-
-function ManagementBar({ managementActions }: ManagementBarProps) {
-  return (
-    <div
-      data-testid="subscriptions-detail-management-bar"
-      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 flex shrink-0 flex-wrap justify-end gap-2 border-t border-[var(--workspace-low-wire-divider)] pt-3.5`}
-    >
-      <WorkspaceManagementActionButton
-        intent="edit"
-        label={managementActions.editLabel}
-        onClick={managementActions.onEdit}
-      >
-        <Pencil className="size-4" />
-        {managementActions.editLabel}
-      </WorkspaceManagementActionButton>
-      <WorkspaceManagementActionButton
-        intent="delete"
-        label={managementActions.deleteLabel}
-        onClick={managementActions.onDelete}
-      >
-        <Trash2 className="size-4" />
-        {managementActions.deleteLabel}
-      </WorkspaceManagementActionButton>
-    </div>
-  );
-}
-
 export function SubscriptionDetailPane({
   heading,
   emptyLabel,
@@ -440,6 +334,30 @@ export function SubscriptionDetailPane({
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const hasFetchError = Boolean(fetchError?.error_kind);
+  // Unexcluding a row that is no longer flagged swaps the decision bar for the management bar, so focus moves to its edit button.
+  const focusEditAfterUnkeepRef = useRef(false);
+  const focusEditButtonOnMount = (button: HTMLButtonElement | null) => {
+    if (button && focusEditAfterUnkeepRef.current) {
+      focusEditAfterUnkeepRef.current = false;
+      button.focus();
+    }
+  };
+  const armEditFocus = () => {
+    focusEditAfterUnkeepRef.current = true;
+    setTimeout(() => {
+      focusEditAfterUnkeepRef.current = false;
+    }, 0);
+  };
+  const barDecisionActions =
+    decisionActions?.kind === "kept"
+      ? {
+          ...decisionActions,
+          onUnkeep: () => {
+            armEditFocus();
+            decisionActions.onUnkeep();
+          },
+        }
+      : decisionActions;
   const showReviewContext = !hasFetchError || (row !== null && row.status.labelKey !== "normal");
   const formattedLastAttempt = fetchError?.last_attempt_at
     ? formatShortDateTime(fetchError.last_attempt_at, dateLocale)
@@ -517,10 +435,14 @@ export function SubscriptionDetailPane({
             </div>
           </div>
 
-          {decisionActions ? (
-            <DecisionBar key={`${row.feed.id}-decision-bar`} decisionActions={decisionActions} />
+          {barDecisionActions ? (
+            <DecisionBar key={`${row.feed.id}-decision-bar`} decisionActions={barDecisionActions} />
           ) : managementActions ? (
-            <ManagementBar key={`${row.feed.id}-management-bar`} managementActions={managementActions} />
+            <ManagementBar
+              key={`${row.feed.id}-management-bar`}
+              managementActions={managementActions}
+              editButtonRef={focusEditButtonOnMount}
+            />
           ) : null}
         </>
       )}

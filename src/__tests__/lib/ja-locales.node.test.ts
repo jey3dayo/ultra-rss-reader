@@ -16,8 +16,9 @@ describe("Japanese feed management labels", () => {
     expect(jaSubscriptions.summary_stale).toBe("90日以上未更新");
   });
 
-  it("keeps in-place decision labels short", () => {
-    expect(jaSubscriptions.decision_keep).toBe("残す");
+  it("calls the in-place keep decision 見直し対象外", () => {
+    expect(jaSubscriptions.decision_keep).toBe("見直し対象外にする");
+    expect(jaSubscriptions.kept_chip).toBe("見直し対象外");
   });
 
   it("keeps settings labels concise around sidebar and reading controls", () => {
