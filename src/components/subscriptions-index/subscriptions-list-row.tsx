@@ -86,7 +86,7 @@ function SubscriptionRowChips({
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       {statusChip ? (
         <LabelChip tone={statusChip.tone} size="compact">
           {statusChip.label}
@@ -187,8 +187,8 @@ export function SubscriptionsListRow({
             size="md"
           />
         </span>
-        <div className="flex min-w-0 items-center gap-1.5">
-          <span className="min-w-0 truncate text-[0.95rem] font-semibold tracking-[-0.02em] text-foreground">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <span className="min-w-0 max-w-full truncate text-[0.95rem] font-semibold tracking-[-0.02em] text-foreground">
             {row.feed.title}
           </span>
           <SubscriptionRowChips statusChip={statusChip} keptChipLabel={kept ? keptChipLabel : null} />
