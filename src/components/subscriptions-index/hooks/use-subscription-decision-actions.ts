@@ -3,7 +3,7 @@ import type { FeedDto } from "@/api/tauri-commands";
 import { buildSubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { useUiStore } from "@/stores/ui-store";
-import type { SubscriptionManagementActions } from "../subscription-detail-pane";
+import type { SubscriptionManagementActions } from "../subscription-decision-bar";
 
 type UseSubscriptionDecisionActionsParams = {
   selectedRow: SubscriptionListRow | null;

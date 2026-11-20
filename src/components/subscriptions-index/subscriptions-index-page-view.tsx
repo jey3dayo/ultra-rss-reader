@@ -12,7 +12,8 @@ import type {
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
-import { SubscriptionDetailPane, type SubscriptionManagementActions } from "./subscription-detail-pane";
+import type { SubscriptionManagementActions } from "./subscription-decision-bar";
+import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 import type { SubscriptionsKeptMarker } from "./subscriptions-list-row";
