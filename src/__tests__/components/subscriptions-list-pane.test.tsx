@@ -5,7 +5,11 @@ import type { FeedDto } from "@/api/tauri-commands";
 import type { SubscriptionsBulkSelection } from "@/components/subscriptions-index/subscriptions-bulk-selection";
 import type { SubscriptionsFilterBarProps } from "@/components/subscriptions-index/subscriptions-filter-bar";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
-import type { SubscriptionsKeptMarker } from "@/components/subscriptions-index/subscriptions-list-row";
+import type {
+  SubscriptionsActionableStatusLabels,
+  SubscriptionsKeptMarker,
+  SubscriptionsLatestArticleLabels,
+} from "@/components/subscriptions-index/subscriptions-list-row";
 import type { SubscriptionsListLoadState } from "@/components/subscriptions-index/subscriptions-load-status";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
@@ -27,15 +31,19 @@ function buildFeed(overrides: Partial<FeedDto>): FeedDto {
 }
 
 const statusLabels = {
-  normal: "対応不要",
   attention_30d: "注意",
   stale_90d: "長期未更新",
   quiet_no_unread: "静か",
-} satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
+} satisfies SubscriptionsActionableStatusLabels;
+
+const latestArticleLabels = {
+  srPrefix: "RSS上の最終更新",
+  none: "取得記事なし",
+  formatDaysAgo: (days) => (days === 0 ? "今日" : `${days}日前`),
+} satisfies SubscriptionsLatestArticleLabels;
 
 const reasonTooltipLabels = {
   no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
-  normal: "最近も動きがあります。今はそのままでよさそうです。",
   attention_30d: "最終記事から30日以上たっているため注意表示です",
   stale_90d: "最後に取得した記事から90日以上経過しています",
   quiet_no_unread: "更新停止が続いていて、未読もありません",
@@ -74,7 +82,7 @@ function renderListPane(
       statusLabels={statusLabels}
       reasonTooltipLabels={options?.reasonTooltipLabels ?? reasonTooltipLabels}
       formatUnreadCountLabel={(count) => `未読 ${count}件`}
-      formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+      latestArticleLabels={latestArticleLabels}
       isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
       initialScrollTop={options?.initialScrollTop}
       scrollResetKey={options?.scrollResetKey}
@@ -125,6 +133,7 @@ function buildBulkRows(): SubscriptionListRow[] {
     folderId: null,
     folderName: null,
     latestArticleAt: null,
+    latestArticleDays: null,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -271,6 +280,7 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: null,
+        latestArticleDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: null,
@@ -305,6 +315,7 @@ describe("SubscriptionsListPane", () => {
       folderId: null,
       folderName: null,
       latestArticleAt: null,
+      latestArticleDays: null,
       recentArticleCount: 0,
       status: { labelKey: "normal" },
       reasonTooltipKey: null,
@@ -323,7 +334,7 @@ describe("SubscriptionsListPane", () => {
         statusLabels={statusLabels}
         reasonTooltipLabels={reasonTooltipLabels}
         formatUnreadCountLabel={(count) => `未読 ${count}件`}
-        formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+        latestArticleLabels={latestArticleLabels}
         isGroupExpanded={() => true}
         onSelectFeed={vi.fn()}
         onSearchQueryChange={vi.fn()}
@@ -352,7 +363,7 @@ describe("SubscriptionsListPane", () => {
         statusLabels={statusLabels}
         reasonTooltipLabels={reasonTooltipLabels}
         formatUnreadCountLabel={(count) => `未読 ${count}件`}
-        formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+        latestArticleLabels={latestArticleLabels}
         isGroupExpanded={() => true}
         onSelectFeed={vi.fn()}
         onSearchQueryChange={onSearchQueryChange}
@@ -377,6 +388,7 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: null,
+        latestArticleDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: "no_articles",
@@ -384,14 +396,51 @@ describe("SubscriptionsListPane", () => {
     ]);
 
     const row = screen.getByRole("button", { name: /No Article Feed/ });
-    expect(row).toHaveAccessibleName(/対応不要/);
-    expect(row).not.toHaveAccessibleName(/取得記事なし/);
 
     await user.hover(row);
 
     expect(await screen.findByText("記事がまだ取れていないため、見直し候補にはしていません")).toHaveClass(
       "motion-popup-surface",
     );
+  });
+
+  it("shows a status chip only when action is needed and the latest article age as a column", () => {
+    const base = { folderId: null, folderName: null, recentArticleCount: 0, reasonTooltipKey: null } as const;
+    renderListPane([
+      {
+        ...base,
+        feed: buildFeed({ id: "calm", title: "Calm Feed" }),
+        latestArticleAt: "2026-05-07T00:00:00Z",
+        latestArticleDays: 0,
+        status: { labelKey: "normal" },
+      },
+      {
+        ...base,
+        feed: buildFeed({ id: "old", title: "Old Feed" }),
+        latestArticleAt: "2025-01-01T00:00:00Z",
+        latestArticleDays: 120,
+        status: { labelKey: "stale_90d" },
+      },
+      {
+        ...base,
+        feed: buildFeed({ id: "empty", title: "Empty Feed" }),
+        latestArticleAt: null,
+        latestArticleDays: null,
+        status: { labelKey: "normal" },
+      },
+    ]);
+
+    const calmRow = screen.getByRole("button", { name: /Calm Feed/ });
+    const oldRow = screen.getByRole("button", { name: /Old Feed/ });
+    const emptyRow = screen.getByRole("button", { name: /Empty Feed/ });
+    expect(calmRow.querySelector("[data-label-chip]")).toBeNull();
+    expect(emptyRow.querySelector("[data-label-chip]")).toBeNull();
+    expect(within(oldRow).getByText("長期未更新")).toBeInTheDocument();
+    expect(oldRow.querySelectorAll("[data-label-chip]")).toHaveLength(1);
+    expect(calmRow).toHaveTextContent("今日");
+    expect(oldRow).toHaveTextContent("RSS上の最終更新 120日前");
+    expect(emptyRow).toHaveTextContent("取得記事なし");
+    expect(emptyRow).not.toHaveTextContent("RSS上の最終更新");
   });
 
   it("shows the active review reason on keyboard focus", async () => {
@@ -403,6 +452,7 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: "2025-01-01T00:00:00Z",
+        latestArticleDays: 1,
         recentArticleCount: 0,
         status: { labelKey: "quiet_no_unread" },
         reasonTooltipKey: "quiet_no_unread",
@@ -423,6 +473,7 @@ describe("SubscriptionsListPane", () => {
       folderId: null,
       folderName: null,
       latestArticleAt: null,
+      latestArticleDays: null,
       recentArticleCount: 0,
       status: { labelKey: "normal" },
       reasonTooltipKey: "normal",
@@ -460,6 +511,7 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: "2026-05-07T00:00:00Z",
+        latestArticleDays: 1,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: null,
@@ -486,6 +538,7 @@ describe("SubscriptionsListPane", () => {
           folderId: null,
           folderName: null,
           latestArticleAt: null,
+          latestArticleDays: null,
           recentArticleCount: 0,
           status: { labelKey: "normal" },
           reasonTooltipKey: null,
@@ -522,6 +575,7 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: null,
+        latestArticleDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: null,
@@ -542,7 +596,7 @@ describe("SubscriptionsListPane", () => {
           statusLabels={statusLabels}
           reasonTooltipLabels={reasonTooltipLabels}
           formatUnreadCountLabel={(count) => `未読 ${count}件`}
-          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          latestArticleLabels={latestArticleLabels}
           isGroupExpanded={() => true}
           initialScrollTop={42}
           scrollResetKey={0}
@@ -565,7 +619,7 @@ describe("SubscriptionsListPane", () => {
           statusLabels={statusLabels}
           reasonTooltipLabels={reasonTooltipLabels}
           formatUnreadCountLabel={(count) => `未読 ${count}件`}
-          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          latestArticleLabels={latestArticleLabels}
           isGroupExpanded={() => true}
           initialScrollTop={84}
           scrollResetKey={0}
@@ -598,6 +652,7 @@ describe("SubscriptionsListPane", () => {
             folderId: null,
             folderName: null,
             latestArticleAt: null,
+            latestArticleDays: null,
             recentArticleCount: 0,
             status: { labelKey: "normal" },
             reasonTooltipKey: null,
@@ -640,6 +695,7 @@ describe("SubscriptionsListPane", () => {
             folderId: null,
             folderName: null,
             latestArticleAt: null,
+            latestArticleDays: null,
             recentArticleCount: 0,
             status: { labelKey: "normal" },
             reasonTooltipKey: null,
@@ -672,6 +728,7 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: null,
+        latestArticleDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: null,
@@ -690,7 +747,7 @@ describe("SubscriptionsListPane", () => {
           statusLabels={statusLabels}
           reasonTooltipLabels={reasonTooltipLabels}
           formatUnreadCountLabel={(count) => `未読 ${count}件`}
-          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          latestArticleLabels={latestArticleLabels}
           isGroupExpanded={() => true}
           initialScrollTop={initialScrollTop}
           scrollResetKey={scrollResetKey}
@@ -724,6 +781,7 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: null,
+        latestArticleDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: null,
@@ -742,7 +800,7 @@ describe("SubscriptionsListPane", () => {
           statusLabels={statusLabels}
           reasonTooltipLabels={reasonTooltipLabels}
           formatUnreadCountLabel={(count) => `未読 ${count}件`}
-          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          latestArticleLabels={latestArticleLabels}
           isGroupExpanded={() => true}
           initialScrollTop={0}
           scrollResetKey={scrollResetKey}
@@ -774,6 +832,7 @@ describe("SubscriptionsListPane", () => {
       folderId: "folder-a",
       folderName: "Same Folder",
       latestArticleAt: null,
+      latestArticleDays: null,
       recentArticleCount: 0,
       status: { labelKey: "normal" },
       reasonTooltipKey: null,
@@ -783,6 +842,7 @@ describe("SubscriptionsListPane", () => {
       folderId: "folder-b",
       folderName: "Same Folder",
       latestArticleAt: null,
+      latestArticleDays: null,
       recentArticleCount: 0,
       status: { labelKey: "normal" },
       reasonTooltipKey: null,

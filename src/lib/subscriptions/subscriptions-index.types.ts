@@ -22,6 +22,7 @@ export type SubscriptionListRow = {
   folderId: string | null;
   folderName: string | null;
   latestArticleAt: string | null;
+  latestArticleDays: number | null;
   recentArticleCount: number;
   status: SubscriptionRowStatus;
   reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | "fetch_error" | null;

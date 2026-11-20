@@ -29,6 +29,7 @@ function buildRow(): SubscriptionListRow {
     folderId: null,
     folderName: null,
     latestArticleAt: null,
+    latestArticleDays: null,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,

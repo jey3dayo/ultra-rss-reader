@@ -4,6 +4,7 @@ import type { FeedDto } from "@/api/tauri-commands";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
+import type { SubscriptionsActionableStatusLabels } from "./subscriptions-list-row";
 
 function buildFeed(overrides: Partial<FeedDto>): FeedDto {
   return {
@@ -28,6 +29,7 @@ const rows = [
     folderId: "folder-1",
     folderName: "Work",
     latestArticleAt: "2024-01-01T10:00:00Z",
+    latestArticleDays: 820,
     recentArticleCount: 0,
     status: { labelKey: "stale_90d" },
     reasonTooltipKey: "stale_90d",
@@ -44,6 +46,7 @@ const rows = [
     folderId: "folder-2",
     folderName: "Design",
     latestArticleAt: "2026-04-01T10:00:00Z",
+    latestArticleDays: 36,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -60,6 +63,7 @@ const rows = [
     folderId: null,
     folderName: null,
     latestArticleAt: null,
+    latestArticleDays: null,
     recentArticleCount: 0,
     status: { labelKey: "quiet_no_unread" },
     reasonTooltipKey: "quiet_no_unread",
@@ -83,9 +87,10 @@ const readerAlignedRows = [
     folderId: "misc",
     folderName: "Misc",
     latestArticleAt: "2026-05-07T10:00:00Z",
+    latestArticleDays: 0,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
-    reasonTooltipKey: "normal",
+    reasonTooltipKey: null,
   },
   {
     feed: buildFeed({
@@ -99,6 +104,7 @@ const readerAlignedRows = [
     folderId: "misc",
     folderName: "Misc",
     latestArticleAt: null,
+    latestArticleDays: null,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: "no_articles",
@@ -115,6 +121,7 @@ const readerAlignedRows = [
     folderId: "news",
     folderName: "News",
     latestArticleAt: "2026-05-07T10:00:00Z",
+    latestArticleDays: 0,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -131,6 +138,7 @@ const readerAlignedRows = [
     folderId: "tech",
     folderName: "Tech",
     latestArticleAt: "2026-05-06T10:00:00Z",
+    latestArticleDays: 1,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -144,15 +152,13 @@ const readerAlignedGroups = [
 ] satisfies SubscriptionListGroup[];
 
 const statusLabels = {
-  normal: "No action",
   attention_30d: "Attention",
   stale_90d: "Long-term inactive",
   quiet_no_unread: "Quiet",
-} satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
+} satisfies SubscriptionsActionableStatusLabels;
 
 const reasonTooltipLabels = {
   no_articles: "No fetched articles yet",
-  normal: "No action needed",
   attention_30d: "Latest article is older than 30 days",
   stale_90d: "Latest article is older than 90 days",
   quiet_no_unread: "Latest article is older than 60 days and the feed has no unread items",
@@ -164,15 +170,6 @@ function isEveryGroupExpanded(_groupKey?: string) {
 
 function isOnlyDesignGroupCollapsed(groupKey?: string) {
   return groupKey !== "folder-2";
-}
-
-function formatJapaneseStoryLatestArticleLabel(value: string | null) {
-  if (!value) {
-    return "取得記事なし";
-  }
-
-  const date = new Date(value);
-  return `最終更新 ${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 const meta = {
@@ -191,7 +188,11 @@ const meta = {
     statusLabels,
     reasonTooltipLabels,
     formatUnreadCountLabel: (count: number) => `Unread ${count}`,
-    formatLatestArticleLabel: (value: string | null) => (value ? `Updated ${value.slice(0, 10)}` : "No updates"),
+    latestArticleLabels: {
+      srPrefix: "Latest RSS update",
+      none: "No articles fetched",
+      formatDaysAgo: (days: number) => (days === 0 ? "Today" : `${days} days ago`),
+    },
     isGroupExpanded: isEveryGroupExpanded,
     onSelectFeed: fn(),
     onListScrollTopChange: fn(),
@@ -255,12 +256,12 @@ export const ReaderAligned: Story = {
     groups: readerAlignedGroups,
     selectedFeedId: "automation",
     heading: "全購読",
-    statusLabels: {
-      ...statusLabels,
-      normal: "対応不要",
-    },
     formatUnreadCountLabel: (count: number) => `未読 ${count}件`,
-    formatLatestArticleLabel: formatJapaneseStoryLatestArticleLabel,
+    latestArticleLabels: {
+      srPrefix: "RSS上の最終更新",
+      none: "取得記事なし",
+      formatDaysAgo: (days: number) => (days === 0 ? "今日" : `${days}日前`),
+    },
   },
 };
 

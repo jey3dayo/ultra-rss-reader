@@ -27,7 +27,6 @@ import {
   buildSubscriptionListGroups,
   buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
-  formatSubscriptionDate,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
   resolveSelectedSubscriptionDisplayModeLabel,
@@ -322,14 +321,12 @@ export function useSubscriptionsIndexViewProps({
     searchClearLabel: t("search_clear"),
     detailEmptyLabel: t("detail_empty"),
     statusLabels: {
-      normal: t("status_normal"),
       attention_30d: t("status_attention_30d"),
       stale_90d: t("status_stale_90d"),
       quiet_no_unread: t("status_quiet_no_unread"),
     },
     reasonTooltipLabels: {
       no_articles: t("tooltip_reason_no_articles"),
-      normal: t("detail_reason_normal"),
       attention_30d: t("tooltip_reason_attention_30d"),
       stale_90d: t("tooltip_reason_stale_90d"),
       quiet_no_unread: t("tooltip_reason_quiet_no_unread"),
@@ -337,8 +334,12 @@ export function useSubscriptionsIndexViewProps({
     },
     fetchErrorLabel: t("status_fetch_error"),
     formatUnreadCountLabel: (count) => t("meta_unread_count", { count }),
-    formatLatestArticleLabel: (value) =>
-      t("meta_latest_article", { date: formatSubscriptionDate(value, i18n.language) }),
+    latestArticleLabels: {
+      srPrefix: t("meta_latest_article_label"),
+      none: t("meta_latest_article_none"),
+      formatDaysAgo: (days) =>
+        days === 0 ? t("meta_latest_article_today") : t("meta_latest_article_days_ago", { count: days }),
+    },
     dateLocale: i18n.language,
     folderLabel: t("folder"),
     listScrollResetKey: state.listScrollResetKey,

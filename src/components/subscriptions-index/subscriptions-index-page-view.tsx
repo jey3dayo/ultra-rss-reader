@@ -18,7 +18,11 @@ import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection"
 import type { SubscriptionsFilterBarModel } from "./subscriptions-filter-bar";
 import type { SubscriptionsKeptBanner } from "./subscriptions-kept-banner";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
-import type { SubscriptionsKeptMarker } from "./subscriptions-list-row";
+import type {
+  SubscriptionsActionableStatusLabels,
+  SubscriptionsKeptMarker,
+  SubscriptionsLatestArticleLabels,
+} from "./subscriptions-list-row";
 import type { SubscriptionsListLoadState, SubscriptionsLoadFailure } from "./subscriptions-load-status";
 
 type SubscriptionsIndexPageViewProps = {
@@ -54,11 +58,11 @@ type SubscriptionsIndexPageViewProps = {
   searchPlaceholder: string;
   searchClearLabel: string;
   detailEmptyLabel: string;
-  statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
+  statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel: string;
   formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string) => string;
+  latestArticleLabels: SubscriptionsLatestArticleLabels;
   dateLocale: string;
   listScrollResetKey: number;
   listScrollTop: number;
@@ -122,7 +126,7 @@ export function SubscriptionsIndexPageView({
   reasonTooltipLabels,
   fetchErrorLabel,
   formatUnreadCountLabel,
-  formatLatestArticleLabel,
+  latestArticleLabels,
   dateLocale,
   listScrollResetKey,
   listScrollTop,
@@ -189,7 +193,7 @@ export function SubscriptionsIndexPageView({
               reasonTooltipLabels={reasonTooltipLabels}
               fetchErrorLabel={fetchErrorLabel}
               formatUnreadCountLabel={formatUnreadCountLabel}
-              formatLatestArticleLabel={formatLatestArticleLabel}
+              latestArticleLabels={latestArticleLabels}
               isGroupExpanded={isGroupExpanded}
               scrollResetKey={listScrollResetKey}
               initialScrollTop={listScrollTop}

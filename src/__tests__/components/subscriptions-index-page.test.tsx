@@ -230,10 +230,8 @@ describe("SubscriptionsIndexPage", () => {
       0,
     );
     expect(screen.getByText("未読 0件")).toBeInTheDocument();
-    expect(
-      screen.getByText((text) => text.startsWith("RSS上の最終更新 ") && text.includes("2024")),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("対応不要").length).toBeGreaterThan(0);
+    expect(screen.getByText(/^[\d,]+日前$/)).toBeInTheDocument();
+    expect(screen.getAllByText("今日")).toHaveLength(2);
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
@@ -484,10 +482,7 @@ describe("SubscriptionsIndexPage", () => {
     const secondaryFeed = screen.getByRole("button", { name: /Fresh Feed/ });
     expect(selectedFeed).toHaveAccessibleName(/Example Feed/);
     expect(selectedFeed).toHaveAccessibleName(/未読 0件/);
-    expect(within(secondaryFeed).getByText("対応不要").closest("[data-label-chip]")).toHaveAttribute(
-      "data-label-chip",
-      "neutral",
-    );
+    expect(secondaryFeed.querySelector("[data-label-chip]")).toBeNull();
     await waitFor(() => {
       expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
     });

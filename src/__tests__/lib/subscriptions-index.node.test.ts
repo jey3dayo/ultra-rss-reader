@@ -323,6 +323,7 @@ describe("subscriptions index helpers", () => {
           folderId: "folder-work",
           folderName: "Work",
           latestArticleAt: firstCandidate.latestArticleAt,
+          latestArticleDays: firstCandidate.staleDays,
           recentArticleCount: 0,
           status: { labelKey: "stale_90d" },
           reasonTooltipKey: "stale_90d",
@@ -584,9 +585,21 @@ describe("subscriptions index helpers", () => {
       folderId: "folder-work",
       folderName: "Work",
       latestArticleAt: "2025-11-01T10:00:00Z",
+      latestArticleDays: 155,
       status: { labelKey: "stale_90d" },
       reasonTooltipKey: "stale_90d",
     });
+    expect(rows[0].latestArticleDays).toBe(
+      candidates.find((candidate) => candidate.feedId === "feed-stale")?.staleDays,
+    );
+    expect(
+      buildSubscriptionListRows({
+        feeds,
+        candidateMap: new Map(),
+        feedArticleSummaryMap,
+        folderNameById: new Map(),
+      })[0].latestArticleDays,
+    ).toBeNull();
     expect(
       resolveSelectedSubscriptionCandidate({
         selectedRow: rows[0],
@@ -1558,6 +1571,7 @@ describe("subscriptions index helpers", () => {
         folderId: "folder-work",
         folderName: "Work",
         latestArticleAt: selectedCandidate?.latestArticleAt ?? null,
+        latestArticleDays: selectedCandidate?.staleDays ?? null,
         recentArticleCount: 0,
         status: { labelKey: "stale_90d" },
         reasonTooltipKey: "stale_90d",
@@ -1586,6 +1600,7 @@ describe("subscriptions index helpers", () => {
         folderId: "folder-work",
         folderName: "Work",
         latestArticleAt: null,
+        latestArticleDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: "normal",
@@ -1609,6 +1624,7 @@ describe("subscriptions index helpers", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: null,
+        latestArticleDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: "normal",
