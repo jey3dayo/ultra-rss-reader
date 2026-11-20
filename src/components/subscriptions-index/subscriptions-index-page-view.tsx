@@ -8,25 +8,21 @@ import type {
   SubscriptionDetailMetrics,
   SubscriptionListGroup,
   SubscriptionListRow,
-  SubscriptionSummaryCard,
+  SubscriptionSummaryFilterKey,
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import type { SubscriptionManagementActions } from "./subscription-decision-bar";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
+import type { SubscriptionsFilterBarModel } from "./subscriptions-filter-bar";
 import type { SubscriptionsKeptBanner } from "./subscriptions-kept-banner";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 import type { SubscriptionsKeptMarker } from "./subscriptions-list-row";
 import type { SubscriptionsListLoadState, SubscriptionsLoadFailure } from "./subscriptions-load-status";
-import {
-  SubscriptionsOverviewSummary,
-  type SubscriptionsOverviewSummaryLabels,
-} from "./subscriptions-overview-summary";
 
 type SubscriptionsIndexPageViewProps = {
-  summaryCards: SubscriptionSummaryCard[];
-  summaryLabels: SubscriptionsOverviewSummaryLabels;
+  filterBar: SubscriptionsFilterBarModel;
   inventoryHeading: string;
   detailHeading: string;
   groups: SubscriptionListGroup[];
@@ -91,7 +87,7 @@ type SubscriptionsIndexPageViewProps = {
   decisionActions: SubscriptionDecisionActions | null;
   managementActions: SubscriptionManagementActions | null;
   isGroupExpanded: (groupKey: string) => boolean;
-  onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  onSelectSummaryFilter: (filterKey: SubscriptionSummaryFilterKey) => void;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange: (scrollTop: number) => void;
   onSearchQueryChange: (query: string) => void;
@@ -99,8 +95,7 @@ type SubscriptionsIndexPageViewProps = {
 };
 
 export function SubscriptionsIndexPageView({
-  summaryCards,
-  summaryLabels,
+  filterBar,
   inventoryHeading,
   detailHeading,
   groups,
@@ -172,12 +167,6 @@ export function SubscriptionsIndexPageView({
     <div className="contents">
       <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-2 sm:pt-3`}>
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
-          <SubscriptionsOverviewSummary
-            cards={summaryCards}
-            labels={summaryLabels}
-            loadFailure={summaryLoadFailure}
-            onSelectFilter={onSelectSummaryFilter}
-          />
           <div
             data-testid="subscriptions-workspace-shell"
             className={workspaceSplitShellClassName("mt-0 bg-clip-padding")}
@@ -211,6 +200,7 @@ export function SubscriptionsIndexPageView({
               kept={kept}
               keptBanner={keptBanner}
               headingRef={listHeadingRef}
+              filterBar={{ model: filterBar, loadFailure: summaryLoadFailure, onSelect: onSelectSummaryFilter }}
               bulkSelection={bulkSelection}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}

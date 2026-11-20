@@ -500,7 +500,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-workspace-filter-cluster-frame")).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "すべて163" })).toHaveClass("rounded-md");
     expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");
-    expect(screen.getByText("Summary filter cards")).toBeInTheDocument();
+    expect(screen.getByText("Summary filter bar")).toBeInTheDocument();
     expect(screen.getByText("Short numeric swaps")).toBeInTheDocument();
     expect(screen.getByTestId("reference-motion-number-frame")).toHaveClass("rounded-md");
     const motionNumberFrame = screen.getByTestId("reference-motion-number-frame");
@@ -517,17 +517,11 @@ describe("UI Reference canvases", () => {
       throw new Error("Motion number chip specimen did not render a digit group");
     }
     expect(chipMotionNumber).toHaveClass("t-digit-group", "tabular-nums");
-    expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
-    const summaryFilterCardFrame = screen.getByTestId("reference-summary-filter-card-frame");
-    expect(summaryFilterCardFrame.querySelectorAll(".t-digit-group")).toHaveLength(0);
-    const staleFilterCard = within(summaryFilterCardFrame).getByRole("button", { name: /^90日以上未更新/ });
-    expect(within(staleFilterCard).getByText("8")).toHaveClass("tabular-nums");
-    expect(staleFilterCard).toHaveAttribute("aria-pressed", "false");
-    expect(
-      within(screen.getByTestId("reference-summary-filter-card-frame")).queryByRole("button", { name: /同期状態/ }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText("同期状態").closest("[data-subscriptions-summary-static-card]")).toHaveClass("rounded-md");
-    expect(screen.getByText("参照")).toBeInTheDocument();
+    const summaryFilterBarFrame = screen.getByTestId("reference-summary-filter-bar-frame");
+    expect(summaryFilterBarFrame.querySelectorAll(".t-digit-group")).toHaveLength(0);
+    const staleFilterButton = within(summaryFilterBarFrame).getByRole("button", { name: /^90日以上未更新/ });
+    expect(within(staleFilterButton).getByText("8")).toHaveClass("tabular-nums");
+    expect(staleFilterButton).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Subscription group disclosure")).toBeInTheDocument();
     expect(screen.getByTestId("reference-subscription-group-disclosure-frame")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Design2" })).toHaveAttribute("aria-expanded", "true");

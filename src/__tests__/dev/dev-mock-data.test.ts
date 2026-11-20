@@ -19,8 +19,10 @@ import {
   mockTags,
   resetMockDataForDevMocks,
 } from "@/dev/mock-data";
-import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
-import { buildSubscriptionsIndexSummary } from "@/lib/subscriptions/subscriptions-index";
+import {
+  buildSubscriptionReviewCandidates,
+  hasSubscriptionReviewReason,
+} from "@/lib/subscriptions/subscription-review-candidates";
 
 function requireFirstItem<T>(items: readonly T[], label: string): T {
   const item = items[0];
@@ -208,13 +210,9 @@ describe("dev mock data", () => {
       feedArticleSummaries,
       now: new Date("2026-06-26T13:00:00+09:00"),
     });
-    const summary = buildSubscriptionsIndexSummary({
-      feeds: mockFeeds,
-      candidates,
-      feedArticleSummaryMap: new Map(feedArticleSummaries.map((s) => [s.feed_id, s])),
-    });
+    const staleCount = candidates.filter((candidate) => hasSubscriptionReviewReason(candidate, "stale_90d")).length;
 
-    expect(summary.staleCount).toBeGreaterThanOrEqual(3);
+    expect(staleCount).toBeGreaterThanOrEqual(3);
   });
 
   it("documents fixture boundaries by dev usage surface", () => {

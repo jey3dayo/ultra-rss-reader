@@ -32,7 +32,7 @@ export const UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS = [
   "reference-primitive-collection-states",
   "reference-workspace-filter-cluster-frame",
   "reference-motion-number-frame",
-  "reference-summary-filter-card-frame",
+  "reference-summary-filter-bar-frame",
   "reference-subscription-group-disclosure-frame",
   "reference-workspace-action-cluster",
   "reference-detail-panel-frame",

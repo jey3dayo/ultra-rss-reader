@@ -102,8 +102,10 @@ import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { mockArticles, refreshRelativeMockArticleDates } from "@/dev/mock-data";
 import { setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
-import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
-import { buildSubscriptionsIndexSummary } from "@/lib/subscriptions/subscriptions-index";
+import {
+  buildSubscriptionReviewCandidates,
+  hasSubscriptionReviewReason,
+} from "@/lib/subscriptions/subscription-review-candidates";
 
 type DevMockDiagnosticsTestWindow = Window & {
   __ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__?: Array<{
@@ -936,13 +938,9 @@ describe("setupDevMocks", () => {
       feedArticleSummaries,
       now: new Date("2026-06-26T13:00:00+09:00"),
     });
-    const summary = buildSubscriptionsIndexSummary({
-      feeds,
-      candidates,
-      feedArticleSummaryMap: new Map(feedArticleSummaries.map((s) => [s.feed_id, s])),
-    });
+    const staleCount = candidates.filter((candidate) => hasSubscriptionReviewReason(candidate, "stale_90d")).length;
 
-    expect(summary.staleCount).toBeGreaterThanOrEqual(3);
+    expect(staleCount).toBeGreaterThanOrEqual(3);
   });
 
   it("resets mutable browser-only mock state on each setup", async () => {

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ArticleDto, FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type {
+  ArticleDto,
+  FeedArticleSummaryDto,
+  FeedDto,
+  FolderDto,
+  LocalFeedSyncStatusDto,
+} from "@/api/tauri-commands";
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
 import {
@@ -10,9 +16,8 @@ import {
   buildSubscriptionListGroups,
   buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
-  buildSubscriptionSummaryCards,
-  buildSubscriptionsIndexSummary,
   buildVisibleSubscriptionRows,
+  countSubscriptionFilterRows,
   formatSubscriptionDate,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
@@ -21,6 +26,7 @@ import {
   resolveSubscriptionRowStatus,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions/subscriptions-index";
+import type { SubscriptionFilterOption } from "@/lib/subscriptions/subscriptions-index.types";
 
 const feeds: FeedDto[] = [
   {
@@ -188,25 +194,81 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
 const feedArticleSummaryMap = buildFeedArticleSummaryMap(feedArticleSummaries);
 
 describe("subscriptions index helpers", () => {
-  it("builds summary counts from the subscription inventory", () => {
-    const candidates = buildSubscriptionReviewCandidates({
-      feeds,
-      folders,
-      feedArticleSummaries,
-      now: new Date("2026-04-05T00:00:00Z"),
-    });
-
-    expect(
-      buildSubscriptionsIndexSummary({
-        feeds,
-        candidates,
-        feedArticleSummaryMap: new Map(feedArticleSummaries.map((s) => [s.feed_id, s])),
+  it("counts each filter as the rows it lists without search, ignoring the show-kept toggle", () => {
+    const fixtureFeeds = [
+      "stale-open",
+      "stale-kept",
+      "stale-kept-error",
+      "stale-attention",
+      "frequent-kept",
+      "plain",
+    ].map(
+      (id): FeedDto => ({
+        ...feeds[0],
+        id,
+        title: id,
+        folder_id: null,
+        unread_count: id === "frequent-kept" ? 100 : 0,
       }),
-    ).toEqual({
-      totalCount: 4,
-      staleCount: 2,
-      frequentCount: 0,
+    );
+    const staleCandidate = (feedId: string, reasonKeys: SubscriptionReviewCandidate["reasonKeys"]) => ({
+      feedId,
+      title: feedId,
+      folderId: null,
+      folderName: null,
+      latestArticleAt: null,
+      staleDays: 120,
+      unreadCount: 0,
+      starredCount: 0,
+      reasonKeys,
     });
+    const fetchError: LocalFeedSyncStatusDto = {
+      feed_id: "stale-kept-error",
+      last_attempt_at: "2026-04-04T12:00:00Z",
+      last_success_at: null,
+      error_kind: "network",
+      error_count: 1,
+      diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+    };
+    const rows = buildSubscriptionListRows({
+      feeds: fixtureFeeds,
+      candidateMap: buildSubscriptionReviewCandidateMap([
+        staleCandidate("stale-open", ["stale_90d"]),
+        staleCandidate("stale-kept", ["stale_90d"]),
+        staleCandidate("stale-kept-error", ["stale_90d"]),
+        staleCandidate("stale-attention", ["attention_30d", "stale_90d"]),
+      ]),
+      feedArticleSummaryMap: new Map([
+        [
+          "frequent-kept",
+          {
+            feed_id: "frequent-kept",
+            latest_article_at: null,
+            last_seen_article_at: null,
+            starred_count: 0,
+            recent_article_count: 90,
+          },
+        ],
+      ]),
+      folderNameById: new Map(),
+    }).map((row) => (row.feed.id === fetchError.feed_id ? { ...row, fetchError } : row));
+    const keptFeedIds = new Set(["stale-kept", "stale-kept-error", "frequent-kept"]);
+
+    const counts = countSubscriptionFilterRows(rows, keptFeedIds);
+
+    expect(counts).toEqual({ all: 6, stale: 2, frequent: 1, fetch_errors: 1 });
+    for (const filterKey of ["all", "stale", "frequent", "fetch_errors"] as const) {
+      expect(counts[filterKey]).toBe(
+        buildVisibleSubscriptionRows({
+          rows,
+          activeSummaryFilter: filterKey,
+          keptFeedIds,
+          showKept: false,
+          searchQuery: "",
+          sortKey: "title",
+        }).length,
+      );
+    }
   });
 
   it("calculates stale days from UTC calendar days across timezone offsets", () => {
@@ -232,7 +294,7 @@ describe("subscriptions index helpers", () => {
     });
   });
 
-  it("uses the last duplicate review candidate feed id while summary counts preserve caller input", () => {
+  it("uses the last duplicate review candidate for a feed id", () => {
     const firstCandidate: SubscriptionReviewCandidate = {
       feedId: "feed-stale",
       title: "First duplicate",
@@ -269,17 +331,6 @@ describe("subscriptions index helpers", () => {
       }),
     ).toBe(secondCandidate);
     expect(resolveSelectedSubscriptionCandidate({ selectedRow: null, candidateMap })).toBeNull();
-    expect(
-      buildSubscriptionsIndexSummary({
-        feeds: [feeds[0]],
-        candidates: [firstCandidate, secondCandidate],
-        feedArticleSummaryMap: new Map(),
-      }),
-    ).toEqual({
-      totalCount: 1,
-      staleCount: 2,
-      frequentCount: 0,
-    });
   });
 
   it("derives row status from review candidates only", () => {
@@ -496,60 +547,22 @@ describe("subscriptions index helpers", () => {
     });
   });
 
-  it("builds summary cards and derives the filtered inventory heading", () => {
-    const summaryCards = buildSubscriptionSummaryCards({
-      summary: { totalCount: 4, staleCount: 2, frequentCount: 1 },
-      activeSummaryFilter: "stale",
-      labels: {
-        total: "All",
-        totalCaption: (count) => `${count} feeds`,
-        stale: "Stale",
-        staleCaption: (count) => `${count} stale`,
-        frequent: "Frequent",
-        frequentCaption: (count) => `${count} frequent`,
-      },
-    });
+  it("derives the inventory heading from the active filter option", () => {
+    const filterOptions = [
+      { filterKey: "all", label: "All", count: 4, isActive: false },
+      { filterKey: "stale", label: "Stale", count: 2, isActive: true },
+    ] satisfies SubscriptionFilterOption[];
 
-    expect(summaryCards).toMatchObject([
-      { filterKey: "all", value: "4", isActive: false },
-      { filterKey: "stale", value: "2", isActive: true },
-      { filterKey: "frequent", value: "1", isActive: false },
-    ]);
     expect(
       resolveSubscriptionsInventoryHeading({
         activeSummaryFilter: "stale",
-        summaryCards,
+        filterOptions,
         defaultHeading: "Inventory",
       }),
     ).toBe("Stale");
-  });
-
-  it("falls back invalid summary card counts to zero before formatting labels", () => {
-    const totalCaption = vi.fn((count: number) => `${count} feeds`);
-    const staleCaption = vi.fn((count: number) => `${count} stale`);
-    const frequentCaption = vi.fn((count: number) => `${count} frequent`);
-
-    const summaryCards = buildSubscriptionSummaryCards({
-      summary: {
-        totalCount: -1,
-        staleCount: Number.POSITIVE_INFINITY,
-        frequentCount: Number.NEGATIVE_INFINITY,
-      },
-      activeSummaryFilter: "all",
-      labels: {
-        total: "All",
-        totalCaption,
-        stale: "Stale",
-        staleCaption,
-        frequent: "Frequent",
-        frequentCaption,
-      },
-    });
-
-    expect(summaryCards.map((card) => card.value)).toEqual(["0", "0", "0"]);
-    expect(totalCaption).toHaveBeenCalledWith(0);
-    expect(staleCaption).toHaveBeenCalledWith(0);
-    expect(frequentCaption).toHaveBeenCalledWith(0);
+    expect(
+      resolveSubscriptionsInventoryHeading({ activeSummaryFilter: "all", filterOptions, defaultHeading: "Inventory" }),
+    ).toBe("Inventory");
   });
 
   it("builds list rows with folder names and candidate status", () => {
@@ -978,7 +991,7 @@ describe("subscriptions index helpers", () => {
     ).toEqual(["feed-quiet-overloaded"]);
   });
 
-  it("keeps the frequent card count consistent with the filtered list and does not hide kept overloaded feeds", () => {
+  it("keeps the frequent filter count consistent with the filtered list and does not hide kept overloaded feeds", () => {
     const overloadedFeeds = [{ ...feeds[1], unread_count: 100 }, feeds[0], feeds[2], feeds[3]];
     const frequentSummaryMap = new Map([
       [
@@ -1029,12 +1042,6 @@ describe("subscriptions index helpers", () => {
       folderNameById: new Map([["folder-work", "Work"]]),
     });
 
-    const { frequentCount } = buildSubscriptionsIndexSummary({
-      feeds: overloadedFeeds,
-      candidates: [],
-      feedArticleSummaryMap: frequentSummaryMap,
-    });
-
     // An overloaded feed that was kept must still appear under the
     // informational "frequent" filter (only review/stale hide decided feeds).
     const visibleFeedIds = buildVisibleSubscriptionRows({
@@ -1046,7 +1053,9 @@ describe("subscriptions index helpers", () => {
       sortKey: "title",
     }).map((row) => row.feed.id);
 
-    // Count side (summary card) and list side agree on the same input.
+    const frequentCount = countSubscriptionFilterRows(rows, new Set(["feed-active"])).frequent;
+
+    // Count side (filter button) and list side agree on the same input.
     expect(frequentCount).toBe(1);
     expect(visibleFeedIds).toEqual(["feed-active"]);
     expect(visibleFeedIds).toHaveLength(frequentCount);

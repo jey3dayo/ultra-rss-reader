@@ -9,14 +9,12 @@ export type SubscriptionRowStatus = {
 
 export type SubscriptionStatusTone = "neutral" | "warning" | "danger";
 
-export type SubscriptionSummaryCard = {
+export type SubscriptionFilterOption = {
   filterKey: SubscriptionSummaryFilterKey;
   label: string;
-  value: string;
-  caption?: string;
-  tone?: "neutral" | "stale" | "danger";
-  isActive?: boolean;
-  isActionable?: boolean;
+  count: number | null;
+  isActive: boolean;
+  tooltip?: string;
 };
 
 export type SubscriptionListRow = {

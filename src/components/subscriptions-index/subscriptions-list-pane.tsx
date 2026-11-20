@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
-import { ChevronDown, Folder, Search } from "lucide-react";
+import { ChevronDown, Folder } from "lucide-react";
 import { type RefObject, useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -10,7 +10,7 @@ import {
   MOTION_STATE_CLOSED,
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
-import { Button, Input } from "@/design-system";
+import { Button } from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { resolveListPaneDisplay } from "./hooks/subscriptions-index-load-state";
@@ -19,7 +19,9 @@ import {
   SubscriptionsBulkSelectAllRow,
   type SubscriptionsBulkSelection,
 } from "./subscriptions-bulk-selection";
+import type { SubscriptionsFilterBarProps } from "./subscriptions-filter-bar";
 import { type SubscriptionsKeptBanner, SubscriptionsKeptBannerView } from "./subscriptions-kept-banner";
+import { SubscriptionsListPaneHeader } from "./subscriptions-list-pane-header";
 import { type SubscriptionsKeptMarker, SubscriptionsListRow } from "./subscriptions-list-row";
 import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
 
@@ -68,6 +70,7 @@ type SubscriptionsListPaneProps = {
   kept?: SubscriptionsKeptMarker;
   keptBanner?: SubscriptionsKeptBanner | null;
   headingRef?: RefObject<HTMLHeadingElement | null>;
+  filterBar?: SubscriptionsFilterBarProps;
   bulkSelection?: SubscriptionsBulkSelection;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
@@ -77,10 +80,16 @@ type SubscriptionsListPaneProps = {
 
 function SubscriptionsListEmptyState({
   emptyLabel,
+  filterBar,
   searchQuery,
   searchClearLabel,
   onSearchQueryChange,
-}: Pick<SubscriptionsListPaneProps, "emptyLabel" | "searchQuery" | "searchClearLabel" | "onSearchQueryChange">) {
+}: Pick<
+  SubscriptionsListPaneProps,
+  "emptyLabel" | "filterBar" | "searchQuery" | "searchClearLabel" | "onSearchQueryChange"
+>) {
+  const description = filterBar?.model.activeDescription;
+
   return (
     <div
       {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
@@ -89,6 +98,7 @@ function SubscriptionsListEmptyState({
       <p role="status" className="text-foreground-soft">
         {emptyLabel}
       </p>
+      {description ? <p className="mt-1.5 text-xs leading-[1.5] text-foreground-soft">{description}</p> : null}
       {searchQuery.length > 0 ? (
         <Button
           type="button"
@@ -246,6 +256,7 @@ export function SubscriptionsListPane({
   kept,
   keptBanner,
   headingRef,
+  filterBar,
   bulkSelection,
   onSelectFeed,
   onListScrollTopChange,
@@ -340,23 +351,6 @@ export function SubscriptionsListPane({
     [clearPendingScrollTopCommit, commitPendingScrollTop],
   );
 
-  const searchField = (
-    <div className="relative w-full min-w-0 sm:max-w-[20rem]">
-      <Search
-        aria-hidden="true"
-        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-soft"
-      />
-      <Input
-        type="search"
-        value={searchQuery}
-        aria-label={searchLabel}
-        placeholder={searchPlaceholder}
-        onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
-        className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-3 text-[0.88rem] shadow-none"
-      />
-    </div>
-  );
-
   return (
     <section
       aria-labelledby={headingId}
@@ -365,40 +359,18 @@ export function SubscriptionsListPane({
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
     >
-      <div className="mb-4 flex flex-col gap-3 border-b border-border/55 pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <h2
-            ref={headingRef}
-            tabIndex={-1}
-            id={headingId}
-            className="min-w-[4rem] truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
-          >
-            {heading}
-          </h2>
-          {showRows ? (
-            <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-surface-1/58 px-2 font-sans text-(length:--font-size-2xs) font-medium tabular-nums text-foreground-soft shadow-none">
-              {totalRowCount}
-            </span>
-          ) : null}
-        </div>
-        {bulkSelection ? (
-          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:justify-end">
-            {searchField}
-            <Button
-              ref={bulkSelection.toggleButtonRef}
-              type="button"
-              variant="outline"
-              disabled={loading || listUnavailable}
-              onClick={selecting ? bulkSelection.onEnd : bulkSelection.onStart}
-              className="min-h-11 shrink-0"
-            >
-              {selecting ? bulkSelection.labels.end : bulkSelection.labels.start}
-            </Button>
-          </div>
-        ) : (
-          searchField
-        )}
-      </div>
+      <SubscriptionsListPaneHeader
+        heading={heading}
+        headingId={headingId}
+        headingRef={headingRef}
+        searchQuery={searchQuery}
+        searchLabel={searchLabel}
+        searchPlaceholder={searchPlaceholder}
+        filterBar={filterBar}
+        bulkSelection={bulkSelection}
+        bulkToggleDisabled={loading || listUnavailable}
+        onSearchQueryChange={onSearchQueryChange}
+      />
       <div
         ref={scrollRegionRef}
         data-testid="subscriptions-list-scroll-region"
@@ -413,6 +385,7 @@ export function SubscriptionsListPane({
         {showEmptyState ? (
           <SubscriptionsListEmptyState
             emptyLabel={emptyLabel}
+            filterBar={filterBar}
             searchQuery={searchQuery}
             searchClearLabel={searchClearLabel}
             onSearchQueryChange={onSearchQueryChange}

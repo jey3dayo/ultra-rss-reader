@@ -335,7 +335,7 @@ describe("Storybook Explorer organization", () => {
     expect(subscriptionsStories.groups).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.subscriptions));
     expect(subscriptionsStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
     expect(subscriptionsStories.titles).toContain(
-      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.subscriptions, "Summary", "SubscriptionsOverviewSummary"),
+      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.subscriptions, "Summary", "SubscriptionsFilterBar"),
     );
     expect(subscriptionsStories.titles).toContain(
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.subscriptions, "List", "SubscriptionsListPane"),

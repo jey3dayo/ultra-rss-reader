@@ -27,32 +27,19 @@ import {
   buildSubscriptionListGroups,
   buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
-  buildSubscriptionSummaryCards,
-  buildSubscriptionsIndexSummary,
   formatSubscriptionDate,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
   resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions/subscriptions-index";
-import type {
-  SubscriptionDetailCandidate,
-  SubscriptionSummaryCard,
-} from "@/lib/subscriptions/subscriptions-index.types";
+import type { SubscriptionDetailCandidate } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import type { SubscriptionsIndexPageView } from "../subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
-import {
-  attachLocalFeedFetchErrors,
-  buildLocalFetchErrorSummary,
-  resolveSubscriptionsEmptyLabel,
-} from "./subscriptions-index-fetch-error-summary";
-import {
-  applySummaryCardDataState,
-  isQueryUnavailable,
-  type QueryLoadState,
-  resolveListLoadState,
-} from "./subscriptions-index-load-state";
+import { attachLocalFeedFetchErrors, resolveSubscriptionsEmptyLabel } from "./subscriptions-index-fetch-error-summary";
+import { buildSubscriptionsFilterBarModel } from "./subscriptions-index-filter-options";
+import { isQueryUnavailable, type QueryLoadState, resolveListLoadState } from "./subscriptions-index-load-state";
 import { useSubscriptionDecisionActions } from "./use-subscription-decision-actions";
 import { useSubscriptionsKeptBanner } from "./use-subscriptions-kept-banner";
 
@@ -214,55 +201,35 @@ export function useSubscriptionsIndexViewProps({
     [state.visibleRows, t],
   );
 
-  const summary = buildSubscriptionsIndexSummary({ feeds, candidates, feedArticleSummaryMap });
-  const builtSummaryCards = buildSubscriptionSummaryCards({
-    summary,
+  const filterBar = buildSubscriptionsFilterBarModel({
+    rows,
+    keptFeedIds: state.keptFeedIds,
     activeSummaryFilter: state.activeSummaryFilter,
-    labels: {
-      total: t("summary_total"),
-      totalCaption: (count) => t("summary_total_caption", { count }),
-      stale: t("summary_stale"),
-      staleCaption: (count) => t("summary_stale_caption", { count }),
-      frequent: t("summary_frequent"),
-      frequentCaption: (count) =>
-        t("summary_frequent_caption", {
-          count,
-          days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
-          threshold: SUBSCRIPTION_OVERLOADED_RECENT_ARTICLE_THRESHOLD,
-          unread: SUBSCRIPTION_OVERLOADED_UNREAD_THRESHOLD,
-        }),
-    },
-  });
-  const summaryCards = applySummaryCardDataState({
-    cards: builtSummaryCards,
     accountSelected: selectedAccountId !== null,
     feeds: feedLoad,
     summaries: summaryLoad,
-    labels: { loading: t("summary_status_loading"), unavailable: t("summary_status_unavailable") },
-  }) satisfies SubscriptionSummaryCard[];
-  const fetchErrorSummary = buildLocalFetchErrorSummary({
-    isLocalAccount,
-    feeds,
-    statuses: feedSyncStatuses,
-    statusesPending: feedSyncStatusesPending,
-    statusesError: feedSyncStatusesError,
-    feedListPending: feedLoad.pending,
-    feedListError: feedLoad.error,
-    activeSummaryFilter: state.activeSummaryFilter,
+    fetchStatuses: {
+      isLocalAccount,
+      hasData: feedSyncStatuses !== undefined,
+      pending: feedSyncStatusesPending,
+      error: feedSyncStatusesError,
+    },
     labels: {
-      label: t("summary_fetch_errors"),
-      loading: t("summary_status_loading"),
-      unavailable: t("summary_status_unavailable"),
-      unknown: t("summary_fetch_errors_unknown"),
-      none: t("summary_fetch_errors_none"),
-      caption: (count) => t("summary_fetch_errors_caption", { count }),
+      group: t("summary_region_label"),
+      all: t("summary_total"),
+      stale: t("summary_stale"),
+      frequent: t("summary_frequent"),
+      frequentCriteria: t("summary_frequent_criteria", {
+        days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
+        threshold: SUBSCRIPTION_OVERLOADED_RECENT_ARTICLE_THRESHOLD,
+        unread: SUBSCRIPTION_OVERLOADED_UNREAD_THRESHOLD,
+      }),
+      fetchErrors: t("summary_fetch_errors"),
     },
   });
-  if (fetchErrorSummary.card) summaryCards.unshift(fetchErrorSummary.card);
-
   const inventoryHeading = resolveSubscriptionsInventoryHeading({
     activeSummaryFilter: state.activeSummaryFilter,
-    summaryCards,
+    filterOptions: filterBar.options,
     defaultHeading: t("inventory_heading"),
   });
 
@@ -285,14 +252,7 @@ export function useSubscriptionsIndexViewProps({
   });
 
   const viewProps = {
-    summaryCards,
-    summaryLabels: {
-      regionLabel: t("summary_region_label"),
-      activeBadge: t("summary_active_badge"),
-      staticBadge: t("summary_static_badge"),
-      filterAll: t("summary_action_filter_all"),
-      filter: t("summary_action_filter"),
-    },
+    filterBar,
     inventoryHeading,
     detailHeading: t("detail_heading"),
     groups: groupedRows,
@@ -347,7 +307,7 @@ export function useSubscriptionsIndexViewProps({
       : null,
     emptyLabel: resolveSubscriptionsEmptyLabel(
       state.activeSummaryFilter,
-      fetchErrorSummary.failedFeedCount,
+      filterBar.options.find((option) => option.filterKey === "fetch_errors")?.count ?? null,
       isQueryUnavailable(summaryLoad),
       {
         default: t("empty"),
