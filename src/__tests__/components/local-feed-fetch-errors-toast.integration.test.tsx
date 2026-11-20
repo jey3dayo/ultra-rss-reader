@@ -166,9 +166,9 @@ describe("fetch error toast navigation", () => {
     await mountSubscriptionsPage();
     await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
     await user.click(await screen.findByRole("button", { name: /A Keep Feed/ }));
-    await user.click(screen.getByRole("button", { name: "残す" }));
+    await user.click(screen.getByRole("button", { name: "見直し対象外にする" }));
     await user.click(await screen.findByRole("button", { name: /A Keep Two Feed/ }));
-    await user.click(screen.getByRole("button", { name: "残す" }));
+    await user.click(screen.getByRole("button", { name: "見直し対象外にする" }));
 
     const group = screen.getByTestId("subscriptions-folder-row-ungrouped");
     await user.click(group);

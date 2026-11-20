@@ -105,7 +105,7 @@ function BulkUnsubscribeRow({ target, status, reason, showStatus }: BulkUnsubscr
           <span className="truncate text-sm font-medium">{feed.title}</span>
           {target.wasKept ? (
             <LabelChip tone="warning" size="compact">
-              {t("bulk_kept_chip")}
+              {t("kept_chip")}
             </LabelChip>
           ) : null}
         </div>
@@ -347,6 +347,7 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
               <h3 className="px-3 pt-2 text-xs font-medium text-state-warning-foreground">
                 {t("bulk_dialog_kept_heading", { count: keptEntries.length })}
               </h3>
+              <p className="px-3 text-xs text-state-warning-foreground">{t("bulk_dialog_kept_included")}</p>
               <ul className="list-none">{keptEntries.map(renderRow)}</ul>
             </section>
           ) : null}

@@ -4,9 +4,16 @@ import { resolveSubscriptionStatusTone } from "@/lib/subscriptions/subscription-
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 
+export type SubscriptionsKeptMarker = {
+  feedIds: ReadonlySet<string>;
+  chipLabel: string;
+};
+
 type SubscriptionsListRowProps = {
   row: SubscriptionListRow;
   selected: boolean;
+  kept: boolean;
+  keptChipLabel: string;
   bulkSelection?: SubscriptionsBulkSelection;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
@@ -41,6 +48,8 @@ function LatestArticleMeta({
 export function SubscriptionsListRow({
   row,
   selected,
+  kept,
+  keptChipLabel,
   bulkSelection,
   statusLabels,
   reasonTooltipLabels,
@@ -96,9 +105,9 @@ export function SubscriptionsListRow({
           >
             {row.fetchError ? fetchErrorLabel : statusLabels[row.status.labelKey]}
           </LabelChip>
-          {bulkSelection && selecting && bulkSelection.keptFeedIds.has(row.feed.id) ? (
+          {kept ? (
             <LabelChip tone="neutral" size="compact">
-              {bulkSelection.labels.keptChip}
+              {keptChipLabel}
             </LabelChip>
           ) : null}
           <span

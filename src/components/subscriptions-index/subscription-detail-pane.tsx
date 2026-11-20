@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority";
-import { Check, Copy, Globe, Pencil, RefreshCw, Rss, Trash2 } from "lucide-react";
+import { Check, Copy, Globe, Pencil, RefreshCw, Rss, Trash2, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
@@ -94,14 +94,54 @@ type SubscriptionDetailPaneProps = {
 };
 
 type DecisionActionConfig = {
-  key: "keep" | "delete";
-  intent: "keep" | "delete";
+  key: "keep" | "edit" | "delete";
+  intent: "keep" | "edit" | "delete";
   label: string;
   onClick: () => void;
   icon: typeof Check;
+  fullWidth: boolean;
 };
 
+const decisionButtonVariants = cva("", {
+  variants: {
+    fullWidth: {
+      true: "col-span-full",
+      false: "",
+    },
+  },
+});
+
+// The keep and delete keys stay the same in every state, so toggling the decision keeps their DOM nodes and focus.
 function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions): DecisionActionConfig[] {
+  if (decisionActions.kind === "kept") {
+    return [
+      {
+        key: "keep",
+        intent: "keep",
+        label: decisionActions.unkeepLabel,
+        onClick: decisionActions.onUnkeep,
+        icon: Undo2,
+        fullWidth: true,
+      },
+      {
+        key: "edit",
+        intent: "edit",
+        label: decisionActions.editLabel,
+        onClick: decisionActions.onEdit,
+        icon: Pencil,
+        fullWidth: false,
+      },
+      {
+        key: "delete",
+        intent: "delete",
+        label: decisionActions.deleteLabel,
+        onClick: decisionActions.onDelete,
+        icon: Trash2,
+        fullWidth: false,
+      },
+    ];
+  }
+
   return [
     {
       key: "keep",
@@ -109,6 +149,7 @@ function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions
       label: decisionActions.keepLabel,
       onClick: decisionActions.onKeep,
       icon: Check,
+      fullWidth: false,
     },
     {
       key: "delete",
@@ -116,6 +157,7 @@ function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions
       label: decisionActions.deleteLabel,
       onClick: decisionActions.onDelete,
       icon: Trash2,
+      fullWidth: false,
     },
   ];
 }
@@ -336,6 +378,52 @@ type DecisionBarProps = {
   decisionActions: SubscriptionDecisionActions;
 };
 
+function KeptStatusRow({ chipLabel, effectLabel }: { chipLabel: string; effectLabel: string }) {
+  return (
+    <div
+      data-testid="subscriptions-detail-kept-status"
+      className="col-span-full flex flex-wrap items-center gap-x-2 gap-y-1"
+    >
+      <LabelChip tone="neutral" size="compact">
+        {chipLabel}
+      </LabelChip>
+      <p className="min-w-0 text-xs text-foreground-soft">{effectLabel}</p>
+    </div>
+  );
+}
+
+function DecisionBarButton({ action }: { action: DecisionActionConfig }) {
+  const Icon = action.icon;
+  const className = decisionButtonVariants({ fullWidth: action.fullWidth });
+
+  if (action.intent === "edit") {
+    return (
+      <WorkspaceManagementActionButton
+        intent="edit"
+        label={action.label}
+        className={className}
+        onClick={action.onClick}
+      >
+        <Icon className="size-4" />
+        {action.label}
+      </WorkspaceManagementActionButton>
+    );
+  }
+
+  return (
+    <DecisionButton
+      intent={action.intent}
+      size="lg"
+      aria-label={action.label}
+      className={className}
+      onClick={action.onClick}
+    >
+      <Icon className="size-4" />
+      {action.label}
+    </DecisionButton>
+  );
+}
+
 function DecisionBar({ decisionActions }: DecisionBarProps) {
   return (
     <SurfaceCard
@@ -346,22 +434,12 @@ function DecisionBar({ decisionActions }: DecisionBarProps) {
       padding="compact"
       className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 grid shrink-0 grid-cols-1 gap-2.5 rounded-md border-transparent bg-[var(--workspace-low-wire-action-surface)] px-3.5 pt-3.5 shadow-none backdrop-blur-sm sm:grid-cols-2 sm:px-4`}
     >
-      {buildDecisionActionConfigs(decisionActions).map((action) => {
-        const Icon = action.icon;
-
-        return (
-          <DecisionButton
-            key={action.key}
-            intent={action.intent}
-            size="lg"
-            aria-label={action.label}
-            onClick={action.onClick}
-          >
-            <Icon className="size-4" />
-            {action.label}
-          </DecisionButton>
-        );
-      })}
+      {decisionActions.kind === "kept" ? (
+        <KeptStatusRow chipLabel={decisionActions.keptChipLabel} effectLabel={decisionActions.keptEffectLabel} />
+      ) : null}
+      {buildDecisionActionConfigs(decisionActions).map((action) => (
+        <DecisionBarButton key={action.key} action={action} />
+      ))}
     </SurfaceCard>
   );
 }

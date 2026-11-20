@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import type { SubscriptionsBulkSelection } from "@/components/subscriptions-index/subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
+import type { SubscriptionsKeptMarker } from "@/components/subscriptions-index/subscriptions-list-row";
 import type { SubscriptionsListLoadState } from "@/components/subscriptions-index/subscriptions-load-status";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
@@ -49,6 +50,7 @@ function renderListPane(
     onSelectFeed?: (feedId: string) => void;
     onListScrollTopChange?: (scrollTop: number) => void;
     reasonTooltipLabels?: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
+    kept?: SubscriptionsKeptMarker;
     bulkSelection?: SubscriptionsBulkSelection;
     loadState?: SubscriptionsListLoadState;
   },
@@ -74,6 +76,7 @@ function renderListPane(
       isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
       initialScrollTop={options?.initialScrollTop}
       scrollResetKey={options?.scrollResetKey}
+      kept={options?.kept}
       bulkSelection={options?.bulkSelection}
       loadState={options?.loadState}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
@@ -88,7 +91,6 @@ function buildBulkSelection(overrides: Partial<SubscriptionsBulkSelection> = {})
   return {
     mode: true,
     checkedFeedIds: new Set(),
-    keptFeedIds: new Set(),
     checkedCount: 0,
     hiddenCheckedCount: 0,
     allVisibleCheckState: "none",
@@ -99,9 +101,8 @@ function buildBulkSelection(overrides: Partial<SubscriptionsBulkSelection> = {})
       end: "選択を終了",
       selectAllVisible: (count) => `表示中をすべて選択(${count}件)`,
       selectAllVisibleAria: "表示中の購読をすべて選択",
-      skippedKept: (count) => `「残す」の${count}件は含みません`,
+      skippedKept: (count) => `見直し対象外の${count}件は含みません`,
       rowSelectAria: (title) => `${title}を選択`,
-      keptChip: "残す",
       selectedCount: (count) => `${count}件を選択中`,
       selectedCountHidden: (count, hidden) => `${count}件を選択中(検索で非表示${hidden}件)`,
       unsubscribeAction: "購読解除…",
@@ -203,30 +204,32 @@ describe("SubscriptionsListPane bulk selection", () => {
     expect(screen.getByRole("checkbox", { name: "表示中の購読をすべて選択" })).toBeChecked();
   });
 
-  it("notes skipped Keep feeds only when some were skipped", () => {
+  it("notes skipped excluded feeds only when some were skipped", () => {
     const { unmount } = renderListPane(buildBulkRows(), {
-      bulkSelection: buildBulkSelection({ keptFeedIds: new Set(["alpha"]), skippedKeptCount: 1 }),
+      bulkSelection: buildBulkSelection({ skippedKeptCount: 1 }),
     });
-    expect(screen.getByText("「残す」の1件は含みません")).toBeInTheDocument();
+    expect(screen.getByText("見直し対象外の1件は含みません")).toBeInTheDocument();
     unmount();
 
-    renderListPane(buildBulkRows(), { bulkSelection: buildBulkSelection({ keptFeedIds: new Set(["alpha"]) }) });
+    renderListPane(buildBulkRows(), { bulkSelection: buildBulkSelection() });
     expect(screen.queryByText(/含みません/)).not.toBeInTheDocument();
   });
 
-  it("marks Keep rows only while selecting", () => {
+  it("marks excluded rows with a chip outside selection mode too", () => {
+    const kept = { feedIds: new Set(["alpha"]), chipLabel: "見直し対象外" };
     const { unmount } = renderListPane(buildBulkRows(), {
-      bulkSelection: buildBulkSelection({ keptFeedIds: new Set(["alpha"]), skippedKeptCount: 1 }),
+      kept,
+      bulkSelection: buildBulkSelection({ mode: false, skippedKeptCount: 1 }),
     });
-    expect(within(screen.getByRole("button", { name: /alpha feed/ })).getByText("残す")).toBeInTheDocument();
-    expect(within(screen.getByRole("button", { name: /beta feed/ })).queryByText("残す")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: /alpha feed/ })).getByText("見直し対象外")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("button", { name: /beta feed/ })).queryByText("見直し対象外"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/含みません/)).not.toBeInTheDocument();
     unmount();
 
-    renderListPane(buildBulkRows(), {
-      bulkSelection: buildBulkSelection({ mode: false, keptFeedIds: new Set(["alpha"]), skippedKeptCount: 1 }),
-    });
-    expect(screen.queryByText("残す")).not.toBeInTheDocument();
-    expect(screen.queryByText(/含みません/)).not.toBeInTheDocument();
+    renderListPane(buildBulkRows(), { kept, bulkSelection: buildBulkSelection({ skippedKeptCount: 1 }) });
+    expect(within(screen.getByRole("button", { name: /alpha feed/ })).getByText("見直し対象外")).toBeInTheDocument();
   });
 
   it("disables the unsubscribe action until something is checked and routes the request", async () => {

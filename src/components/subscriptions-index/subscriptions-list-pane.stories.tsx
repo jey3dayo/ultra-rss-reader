@@ -267,7 +267,6 @@ export const ReaderAligned: Story = {
 const bulkSelection = {
   mode: true,
   checkedFeedIds: new Set(["feed-2"]),
-  keptFeedIds: new Set(["feed-3"]),
   checkedCount: 1,
   hiddenCheckedCount: 0,
   allVisibleCheckState: "some",
@@ -278,9 +277,8 @@ const bulkSelection = {
     end: "Done selecting",
     selectAllVisible: (count) => `Select all shown (${count})`,
     selectAllVisibleAria: "Select all shown feeds",
-    skippedKept: (count) => `${count} feed marked Keep is not included`,
+    skippedKept: (count) => `${count} feed excluded from review is not included`,
     rowSelectAria: (title) => `Select ${title}`,
-    keptChip: "Keep",
     selectedCount: (count) => `${count} selected`,
     selectedCountHidden: (count, hidden) => `${count} selected (${hidden} hidden by search)`,
     unsubscribeAction: "Unsubscribe…",
@@ -293,5 +291,5 @@ const bulkSelection = {
 } satisfies SubscriptionsBulkSelection;
 
 export const BulkSelecting: Story = {
-  args: { bulkSelection },
+  args: { bulkSelection, kept: { feedIds: new Set(["feed-3"]), chipLabel: "Excluded from review" } },
 };

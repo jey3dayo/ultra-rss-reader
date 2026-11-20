@@ -15,6 +15,7 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane, type SubscriptionManagementActions } from "./subscription-detail-pane";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
+import type { SubscriptionsKeptMarker } from "./subscriptions-list-row";
 import type { SubscriptionsListLoadState, SubscriptionsLoadFailure } from "./subscriptions-load-status";
 import {
   SubscriptionsOverviewSummary,
@@ -67,6 +68,7 @@ type SubscriptionsIndexPageViewProps = {
   workspaceScrollRef: RefObject<HTMLDivElement | null>;
   viewportWidth: number;
   scrollReady: boolean;
+  kept?: SubscriptionsKeptMarker;
   bulkSelection?: SubscriptionsBulkSelection;
   folderLabel: string;
   latestArticleLabel: string;
@@ -129,6 +131,7 @@ export function SubscriptionsIndexPageView({
   workspaceScrollRef,
   viewportWidth,
   scrollReady,
+  kept,
   bulkSelection,
   folderLabel,
   latestArticleLabel,
@@ -199,6 +202,7 @@ export function SubscriptionsIndexPageView({
               workspaceScrollRef={workspaceScrollRef}
               viewportWidth={viewportWidth}
               scrollReady={scrollReady}
+              kept={kept}
               bulkSelection={bulkSelection}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}

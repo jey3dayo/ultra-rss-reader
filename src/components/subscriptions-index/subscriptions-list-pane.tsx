@@ -19,7 +19,7 @@ import {
   SubscriptionsBulkSelectAllRow,
   type SubscriptionsBulkSelection,
 } from "./subscriptions-bulk-selection";
-import { SubscriptionsListRow } from "./subscriptions-list-row";
+import { type SubscriptionsKeptMarker, SubscriptionsListRow } from "./subscriptions-list-row";
 import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
@@ -64,6 +64,7 @@ type SubscriptionsListPaneProps = {
   scrollReady?: boolean;
   scrollResetKey?: number;
   loadState?: SubscriptionsListLoadState;
+  kept?: SubscriptionsKeptMarker;
   bulkSelection?: SubscriptionsBulkSelection;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
@@ -140,6 +141,7 @@ function SubscriptionGroupDisclosureButton({
 type SubscriptionGroupSectionProps = Pick<
   SubscriptionsListPaneProps,
   | "selectedFeedId"
+  | "kept"
   | "bulkSelection"
   | "statusLabels"
   | "reasonTooltipLabels"
@@ -159,6 +161,7 @@ function SubscriptionGroupSection({
   expanded,
   selecting,
   selectedFeedId,
+  kept,
   bulkSelection,
   statusLabels,
   reasonTooltipLabels,
@@ -197,6 +200,8 @@ function SubscriptionGroupSection({
                 key={row.feed.id}
                 row={row}
                 selected={selectedFeedId === row.feed.id}
+                kept={kept?.feedIds.has(row.feed.id) ?? false}
+                keptChipLabel={kept?.chipLabel ?? ""}
                 bulkSelection={bulkSelection}
                 statusLabels={statusLabels}
                 reasonTooltipLabels={reasonTooltipLabels}
@@ -235,6 +240,7 @@ export function SubscriptionsListPane({
   scrollReady = true,
   scrollResetKey = 0,
   loadState = READY_LOAD_STATE,
+  kept,
   bulkSelection,
   onSelectFeed,
   onListScrollTopChange,
@@ -409,6 +415,7 @@ export function SubscriptionsListPane({
                 expanded={isGroupExpanded(group.key)}
                 selecting={selecting}
                 selectedFeedId={selectedFeedId}
+                kept={kept}
                 bulkSelection={bulkSelection}
                 statusLabels={statusLabels}
                 reasonTooltipLabels={reasonTooltipLabels}
