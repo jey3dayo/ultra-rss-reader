@@ -19,16 +19,17 @@ import type {
   SubscriptionsWorkspaceExpandedGroupKey,
   SubscriptionsWorkspaceListScrollState,
 } from "@/schemas/subscriptions-workspace";
+import { useKeptFeedIds, useSubscriptionReviewStore } from "@/stores/subscription-review-store";
 
 function clearCheckedFeedIds(current: Set<string>): Set<string> {
   return current.size === 0 ? current : new Set();
 }
 
 type SubscriptionsIndexStateOptions = {
+  accountId?: string | null;
   initialSummaryFilter?: SubscriptionSummaryFilterKey;
   initialSelectedFeedId?: string | null;
   initialExpandedGroups?: Record<string, boolean>;
-  initialKeptFeedIds?: string[];
   initialSearchQuery?: string;
   noFolderLabel?: string;
   initialListScrollState?: SubscriptionsWorkspaceListScrollState;
@@ -41,7 +42,8 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   const viewportHeight = options?.viewportHeight ?? 0;
   const viewportWidth = options?.viewportWidth;
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
-  const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));
+  const accountId = options?.accountId ?? null;
+  const keptFeedIds = useKeptFeedIds(accountId);
   const [storedCheckedFeedIds, setStoredCheckedFeedIds] = useState<Set<string>>(() => new Set());
   const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState(options?.initialSearchQuery ?? "");
@@ -144,6 +146,12 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     },
     [resetListScrollState],
   );
+
+  const forgetKeptFeeds = (feedIds: Iterable<string>) => {
+    if (accountId !== null) {
+      useSubscriptionReviewStore.getState().forget(accountId, feedIds);
+    }
+  };
 
   const uncheckSelectedFeed = () => {
     if (selectedFeedId) {
@@ -248,12 +256,18 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       if (!selectedFeedId) {
         return;
       }
-      setKeptFeedIds((current) => addFeedIdToSet(current, selectedFeedId));
+      if (accountId !== null) {
+        useSubscriptionReviewStore.getState().keep(accountId, selectedFeedId);
+      }
       uncheckSelectedFeed();
     },
-    unkeepFeed: (feedId: string) => setKeptFeedIds((current) => removeFeedIdFromSet(current, feedId)),
+    unkeepFeed: (feedId: string) => {
+      if (accountId !== null) {
+        useSubscriptionReviewStore.getState().unkeep(accountId, feedId);
+      }
+    },
     purgeUnsubscribedFeed: (feedId: string) => {
-      setKeptFeedIds((current) => removeFeedIdFromSet(current, feedId));
+      forgetKeptFeeds([feedId]);
       setStoredCheckedFeedIds((current) => removeFeedIdFromSet(current, feedId));
     },
     startBulkSelection: () => setBulkSelectionMode(true),
@@ -284,7 +298,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       const succeeded = new Set(succeededFeedIds);
       const remainingCount = [...checkedFeedIds].filter((feedId) => !succeeded.has(feedId)).length;
       const withoutSucceeded = (current: ReadonlySet<string>) => removeFeedIdsFromSet(current, succeeded);
-      setKeptFeedIds(withoutSucceeded);
+      forgetKeptFeeds(succeededFeedIds);
       if (remainingCount === 0) {
         setStoredCheckedFeedIds(clearCheckedFeedIds);
         setBulkSelectionMode(false);

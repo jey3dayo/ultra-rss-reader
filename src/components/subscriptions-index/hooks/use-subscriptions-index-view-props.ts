@@ -130,7 +130,6 @@ export function useSubscriptionsIndexViewProps({
         folders,
         feedArticleSummaries,
         now: reviewClock,
-        hiddenFeedIds: new Set(),
       }),
     [feedArticleSummaries, feeds, folders, reviewClock],
   );
@@ -150,10 +149,10 @@ export function useSubscriptionsIndexViewProps({
   );
 
   const state = useSubscriptionsIndexState(rows, {
+    accountId: selectedAccountId,
     initialSummaryFilter: scopedIndexReturnState?.activeSummaryFilter,
     initialSelectedFeedId: scopedIndexReturnState?.selectedFeedId,
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
-    initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialSearchQuery: scopedIndexReturnState?.searchQuery,
     noFolderLabel: t("meta_folder_none"),
     initialListScrollState: scopedIndexReturnState?.listScrollTop,
@@ -179,7 +178,6 @@ export function useSubscriptionsIndexViewProps({
               state.listScrollState.scrollTop),
       ),
     },
-    keptFeedIds: [...state.keptFeedIds],
     searchQuery: state.searchQuery,
   });
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({

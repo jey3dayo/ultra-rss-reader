@@ -194,7 +194,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(
@@ -224,7 +223,6 @@ describe("subscriptions index helpers", () => {
         },
       ],
       now: new Date("2026-04-02T00:30:00+02:00"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidate).toMatchObject({
@@ -290,7 +288,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
     const candidateMap = buildSubscriptionReviewCandidateMap(candidates);
 
@@ -343,7 +340,6 @@ describe("subscriptions index helpers", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(resolveSubscriptionRowStatus({ candidate: attentionCandidate })).toEqual({ labelKey: "attention_30d" });
@@ -562,7 +558,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
@@ -799,7 +794,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
@@ -835,7 +829,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
@@ -930,7 +923,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
@@ -1162,7 +1154,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
@@ -1556,7 +1547,6 @@ describe("subscriptions index helpers", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
     const selectedCandidate = candidates.find((candidate) => candidate.feedId === "feed-stale") ?? null;
 

@@ -20,6 +20,7 @@ import type {
   SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useSubscriptionReviewStore } from "@/stores/subscription-review-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function getRequiredHTMLElement(element: Element | null, description: string) {
@@ -46,6 +47,7 @@ describe("SubscriptionsIndexPage", () => {
   beforeEach(async () => {
     vi.useRealTimers();
     await i18n.changeLanguage("ja");
+    useSubscriptionReviewStore.setState({ kept: new Map() });
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -889,7 +891,6 @@ describe("SubscriptionsIndexPage", () => {
             layoutGeneration: "feed-1",
             viewportHeight: window.innerHeight,
           },
-          keptFeedIds: [],
         },
       },
     });
@@ -937,7 +938,6 @@ describe("SubscriptionsIndexPage", () => {
             layoutGeneration: "feed-1",
             viewportHeight: window.innerHeight,
           },
-          keptFeedIds: [],
         },
       },
     });
@@ -991,7 +991,6 @@ describe("SubscriptionsIndexPage", () => {
             layoutGeneration: "feed-1",
             viewportHeight: originalInnerHeight,
           },
-          keptFeedIds: [],
         },
       },
     });
@@ -1042,10 +1041,10 @@ describe("SubscriptionsIndexPage", () => {
             layoutGeneration: "",
             viewportHeight: window.innerHeight,
           },
-          keptFeedIds: ["feed-1"],
         },
       },
     });
+    useSubscriptionReviewStore.getState().keep("acc-1", "feed-1");
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
@@ -1054,7 +1053,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
   });
 
-  it("ignores returned review decisions from a different account", async () => {
+  it("ignores a return state from a different account", async () => {
     useUiStore.setState({
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
@@ -1070,11 +1069,9 @@ describe("SubscriptionsIndexPage", () => {
             layoutGeneration: "feed-1",
             viewportHeight: window.innerHeight,
           },
-          keptFeedIds: ["feed-1"],
         },
       },
     });
-
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { name: "全購読" })).toBeInTheDocument();
@@ -1507,7 +1504,7 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(screen.getByRole("button", { name: "閉じる" }));
 
-    expect(useUiStore.getState().subscriptionsIndexReturnStates.get("acc-1")?.keptFeedIds).toEqual([]);
+    expect([...(useSubscriptionReviewStore.getState().kept.get("acc-1") ?? [])]).toEqual([]);
   });
 
   it("shows a failed unsubscribe in the dialog instead of a toast, and clears it when retrying", async () => {

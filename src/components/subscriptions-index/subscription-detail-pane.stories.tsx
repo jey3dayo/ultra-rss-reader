@@ -125,7 +125,6 @@ function buildStoryDetail({
       folders,
       feedArticleSummaries: [feedArticleSummary],
       now: storyNow,
-      hiddenFeedIds: new Set(),
     }),
   );
   const [row] = buildSubscriptionListRows({

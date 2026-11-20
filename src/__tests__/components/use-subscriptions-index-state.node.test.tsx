@@ -1,12 +1,27 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useSubscriptionsIndexState } from "@/components/subscriptions-index/use-subscriptions-index-state";
 import { buildSubscriptionListRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import { useSubscriptionReviewStore } from "@/stores/subscription-review-store";
 
 setupBrowserTestDom();
+
+const ACCOUNT_ID = "acc-1";
+
+function seedKept(accountId: string, ...feedIds: string[]) {
+  for (const feedId of feedIds) {
+    useSubscriptionReviewStore.getState().keep(accountId, feedId);
+  }
+}
+
+beforeEach(() => {
+  useSubscriptionReviewStore.setState({ kept: new Map() });
+});
+
+afterEach(cleanup);
 
 function makeRow(
   feedId: string,
@@ -182,11 +197,12 @@ describe("useSubscriptionsIndexState", () => {
       labelKey: "stale_90d",
     });
     const normalRow = makeRow("feed-normal");
+    seedKept(ACCOUNT_ID, "feed-review");
     const { result } = renderHook(() =>
       useSubscriptionsIndexState([reviewRow, normalRow], {
+        accountId: ACCOUNT_ID,
         initialSummaryFilter: "stale",
         initialSelectedFeedId: "feed-review",
-        initialKeptFeedIds: ["feed-review"],
       }),
     );
 
@@ -373,6 +389,7 @@ describe("useSubscriptionsIndexState", () => {
       const stale = { labelKey: "stale_90d" } as const;
       const { result } = renderHook(() =>
         useSubscriptionsIndexState([makeRow("alpha", stale), makeRow("beta", stale), makeRow("gamma", stale)], {
+          accountId: ACCOUNT_ID,
           initialSummaryFilter: "stale",
           initialSelectedFeedId: "beta",
         }),
@@ -408,9 +425,8 @@ describe("useSubscriptionsIndexState", () => {
     const gamma = makeRow("gamma");
 
     it("restores a kept feed without touching other kept or checked feeds", () => {
-      const { result } = renderHook(() =>
-        useSubscriptionsIndexState([alpha, beta, gamma], { initialKeptFeedIds: ["alpha", "beta"] }),
-      );
+      seedKept(ACCOUNT_ID, "alpha", "beta");
+      const { result } = renderHook(() => useSubscriptionsIndexState([alpha, beta, gamma], { accountId: ACCOUNT_ID }));
 
       act(() => {
         result.current.toggleFeedChecked("gamma");
@@ -424,9 +440,8 @@ describe("useSubscriptionsIndexState", () => {
     });
 
     it("purges an unsubscribed feed from kept and checked while staying in bulk mode", () => {
-      const { result } = renderHook(() =>
-        useSubscriptionsIndexState([alpha, beta, gamma], { initialKeptFeedIds: ["alpha", "beta"] }),
-      );
+      seedKept(ACCOUNT_ID, "alpha", "beta");
+      const { result } = renderHook(() => useSubscriptionsIndexState([alpha, beta, gamma], { accountId: ACCOUNT_ID }));
 
       act(() => {
         result.current.startBulkSelection();
@@ -447,6 +462,28 @@ describe("useSubscriptionsIndexState", () => {
 
       expect(result.current.checkedCount).toBe(0);
       expect(result.current.bulkSelectionMode).toBe(true);
+    });
+
+    it("keeps a kept feed across remounts and per-account switches", () => {
+      const first = renderHook(() =>
+        useSubscriptionsIndexState([alpha, beta], { accountId: ACCOUNT_ID, initialSelectedFeedId: "alpha" }),
+      );
+      act(() => {
+        first.result.current.markSelectedFeedKept();
+      });
+      first.unmount();
+
+      const { result, rerender } = renderHook(
+        ({ accountId }: { accountId: string }) => useSubscriptionsIndexState([alpha, beta], { accountId }),
+        { initialProps: { accountId: ACCOUNT_ID } },
+      );
+      expect([...result.current.keptFeedIds]).toEqual(["alpha"]);
+
+      rerender({ accountId: "acc-2" });
+      expect([...result.current.keptFeedIds]).toEqual([]);
+
+      rerender({ accountId: ACCOUNT_ID });
+      expect([...result.current.keptFeedIds]).toEqual(["alpha"]);
     });
   });
 
@@ -501,7 +538,8 @@ describe("useSubscriptionsIndexState", () => {
     });
 
     it("keeps kept rows out of select-all and reports them as skipped", () => {
-      const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialKeptFeedIds: ["beta"] }));
+      seedKept(ACCOUNT_ID, "beta");
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows, { accountId: ACCOUNT_ID }));
 
       act(() => {
         result.current.toggleAllVisibleChecked();
@@ -526,10 +564,11 @@ describe("useSubscriptionsIndexState", () => {
         },
       };
       const staleRow = makeRow("stale", { labelKey: "stale_90d" });
+      seedKept(ACCOUNT_ID, "failing");
       const { result } = renderHook(() =>
         useSubscriptionsIndexState([failingRow, staleRow], {
+          accountId: ACCOUNT_ID,
           initialSummaryFilter: "stale",
-          initialKeptFeedIds: ["failing"],
         }),
       );
 
@@ -589,7 +628,9 @@ describe("useSubscriptionsIndexState", () => {
     });
 
     it("unchecks the focused feed when it is marked kept and stays in selection mode", () => {
-      const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialSelectedFeedId: "alpha" }));
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState(rows, { accountId: ACCOUNT_ID, initialSelectedFeedId: "alpha" }),
+      );
 
       act(() => {
         result.current.startBulkSelection();
@@ -607,11 +648,8 @@ describe("useSubscriptionsIndexState", () => {
     });
 
     it("drops only succeeded feeds from checked and kept, and keeps failed and hidden selections", () => {
-      const { result } = renderHook(() =>
-        useSubscriptionsIndexState([alpha, beta, gamma], {
-          initialKeptFeedIds: ["alpha", "beta", "gamma"],
-        }),
-      );
+      seedKept(ACCOUNT_ID, "alpha", "beta", "gamma");
+      const { result } = renderHook(() => useSubscriptionsIndexState([alpha, beta, gamma], { accountId: ACCOUNT_ID }));
 
       act(() => {
         result.current.startBulkSelection();
