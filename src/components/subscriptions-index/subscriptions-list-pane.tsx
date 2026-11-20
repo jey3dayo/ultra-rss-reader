@@ -67,6 +67,7 @@ type SubscriptionsListPaneProps = {
   loadState?: SubscriptionsListLoadState;
   kept?: SubscriptionsKeptMarker;
   keptBanner?: SubscriptionsKeptBanner | null;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
   bulkSelection?: SubscriptionsBulkSelection;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
@@ -244,6 +245,7 @@ export function SubscriptionsListPane({
   loadState = READY_LOAD_STATE,
   kept,
   keptBanner,
+  headingRef,
   bulkSelection,
   onSelectFeed,
   onListScrollTopChange,
@@ -366,6 +368,8 @@ export function SubscriptionsListPane({
       <div className="mb-4 flex flex-col gap-3 border-b border-border/55 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2.5">
           <h2
+            ref={headingRef}
+            tabIndex={-1}
             id={headingId}
             className="min-w-[4rem] truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
           >

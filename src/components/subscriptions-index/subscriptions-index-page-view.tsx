@@ -72,6 +72,7 @@ type SubscriptionsIndexPageViewProps = {
   scrollReady: boolean;
   kept?: SubscriptionsKeptMarker;
   keptBanner?: SubscriptionsKeptBanner | null;
+  listHeadingRef?: RefObject<HTMLHeadingElement | null>;
   bulkSelection?: SubscriptionsBulkSelection;
   folderLabel: string;
   latestArticleLabel: string;
@@ -136,6 +137,7 @@ export function SubscriptionsIndexPageView({
   scrollReady,
   kept,
   keptBanner,
+  listHeadingRef,
   bulkSelection,
   folderLabel,
   latestArticleLabel,
@@ -208,6 +210,7 @@ export function SubscriptionsIndexPageView({
               scrollReady={scrollReady}
               kept={kept}
               keptBanner={keptBanner}
+              headingRef={listHeadingRef}
               bulkSelection={bulkSelection}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}

@@ -1566,6 +1566,9 @@ describe("SubscriptionsIndexPage", () => {
     });
     expect(screen.getByRole("button", { name: /Example Feed/ })).not.toHaveTextContent("見直し対象外");
     expect(screen.queryByTestId("subscriptions-kept-banner")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { level: 2, name: "90日以上未更新" })).toHaveFocus();
+    });
     const toastHost = screen.getByTestId("test-toast-host");
     expect(within(toastHost).getByText("見直し対象外を2件取り消しました")).toBeInTheDocument();
 

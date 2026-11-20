@@ -229,6 +229,8 @@ function SubscriptionsIndexPageForAccount({
   const [resetKeptDialog, setResetKeptDialog] = useState({ open: false, keptCount: 0 });
   const bulkToggleRef = useRef<HTMLButtonElement>(null);
   const focusBulkToggleAfterCloseRef = useRef(false);
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
+  const focusListHeadingAfterResetRef = useRef(false);
   const reviewClock = useSubscriptionsReviewClock();
   const viewportHeight = useSyncExternalStore(subscribeToViewport, getViewportHeight);
 
@@ -276,6 +278,7 @@ function SubscriptionsIndexPageForAccount({
     },
     onRequestResetKept: (keptCount) => setResetKeptDialog({ open: true, keptCount }),
     bulkToggleRef,
+    listHeadingRef,
   });
   const hasOpenDialog = editTargetFeed !== null || deleteTargetFeed !== null || bulkDialogOpen || resetKeptDialog.open;
 
@@ -285,6 +288,14 @@ function SubscriptionsIndexPageForAccount({
       bulkToggleRef.current?.focus();
     }
   }, [bulkDialogOpen]);
+
+  // The banner that opened the reset dialog is gone once the reset runs, so focus moves to the list heading.
+  useEffect(() => {
+    if (!resetKeptDialog.open && focusListHeadingAfterResetRef.current) {
+      focusListHeadingAfterResetRef.current = false;
+      listHeadingRef.current?.focus();
+    }
+  }, [resetKeptDialog.open]);
 
   useImperativeHandle(ref, () => ({
     captureState: viewProps.captureState,
@@ -334,7 +345,10 @@ function SubscriptionsIndexPageForAccount({
         accountName={accountName}
         keptCount={resetKeptDialog.keptCount}
         onOpenChange={(open) => setResetKeptDialog((current) => ({ ...current, open }))}
-        onReset={viewProps.collapseKept}
+        onReset={() => {
+          focusListHeadingAfterResetRef.current = true;
+          viewProps.collapseKept();
+        }}
       />
 
       {deleteTargetFeed ? (

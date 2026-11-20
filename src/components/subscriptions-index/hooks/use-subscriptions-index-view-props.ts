@@ -86,6 +86,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   onRequestBulkUnsubscribe: () => void;
   onRequestResetKept: (keptCount: number) => void;
   bulkToggleRef: RefObject<HTMLButtonElement | null>;
+  listHeadingRef: RefObject<HTMLHeadingElement | null>;
 };
 
 export function useSubscriptionsIndexViewProps({
@@ -116,6 +117,7 @@ export function useSubscriptionsIndexViewProps({
   onRequestBulkUnsubscribe,
   onRequestResetKept,
   bulkToggleRef,
+  listHeadingRef,
 }: UseSubscriptionsIndexViewPropsParams) {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
@@ -387,6 +389,7 @@ export function useSubscriptionsIndexViewProps({
     scrollReady: !rowsPending || (!feedLoad.pending && !feedLoad.error && feeds.length === 0),
     kept: { feedIds: state.keptFeedIds, chipLabel: t("kept_chip") },
     keptBanner,
+    listHeadingRef,
     bulkSelection: {
       mode: state.bulkSelectionMode,
       checkedFeedIds: state.checkedFeedIds,
