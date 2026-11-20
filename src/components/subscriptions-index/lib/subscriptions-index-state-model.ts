@@ -55,25 +55,6 @@ export function resolveSelectionAfterRowsChange(params: {
   return visibleFeedIds[0] ?? null;
 }
 
-export function applySelectedFeedDecision(params: {
-  selectedFeedId: string | null;
-  primaryFeedIds: ReadonlySet<string>;
-  secondaryFeedIds: ReadonlySet<string>;
-}): {
-  primaryFeedIds: Set<string>;
-  secondaryFeedIds: Set<string>;
-} | null {
-  const { selectedFeedId, primaryFeedIds, secondaryFeedIds } = params;
-  if (!selectedFeedId) {
-    return null;
-  }
-
-  return {
-    primaryFeedIds: addFeedIdToSet(primaryFeedIds, selectedFeedId),
-    secondaryFeedIds: removeFeedIdFromSet(secondaryFeedIds, selectedFeedId),
-  };
-}
-
 function namespaceExpandedGroupKey(groupKey: string): SubscriptionsWorkspaceExpandedGroupKey {
   return `${EXPANDED_GROUP_KEY_PREFIX}${groupKey}`;
 }

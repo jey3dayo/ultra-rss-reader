@@ -336,7 +336,6 @@ describe("fetch error toast navigation", () => {
             viewportHeight: window.innerHeight,
             viewportWidth: window.innerWidth,
           },
-          keptFeedIds: [],
           searchQuery: "",
         },
       },

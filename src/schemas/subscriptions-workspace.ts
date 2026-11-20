@@ -45,7 +45,6 @@ export const SubscriptionsWorkspaceReturnStateSchema = s.strictObject({
     ),
   ),
   listScrollTop: SubscriptionsWorkspaceListScrollStateSchema,
-  keptFeedIds: v.array(subscriptionsWorkspaceIdentitySchema),
   searchQuery: v.optional(v.string()),
 });
 

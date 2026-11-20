@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import {
-  applySelectedFeedDecision,
   buildListLayoutGeneration,
   findSelectedSubscriptionRow,
   resolveGroupExpansion,
@@ -71,18 +70,6 @@ describe("subscriptions index state model", () => {
     const toggled = toggleExpandedGroup(expandedGroups, "folder-work");
 
     expect(resolveGroupExpansion(toggled, "folder-work")).toBe(true);
-  });
-
-  it("keeps selected feed decisions mutually exclusive", () => {
-    const result = applySelectedFeedDecision({
-      selectedFeedId: "feed-first",
-      primaryFeedIds: new Set<string>(),
-      secondaryFeedIds: new Set(["feed-first", "feed-second"]),
-    });
-
-    expect(result?.primaryFeedIds.has("feed-first")).toBe(true);
-    expect(result?.secondaryFeedIds.has("feed-first")).toBe(false);
-    expect(result?.secondaryFeedIds.has("feed-second")).toBe(true);
   });
 
   it("normalizes returned list scroll state against layout and viewport changes", () => {

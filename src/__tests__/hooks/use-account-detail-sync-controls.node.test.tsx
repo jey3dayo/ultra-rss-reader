@@ -362,7 +362,6 @@ describe("useAccountDetailSyncControls", () => {
           selectedFeedId: "kept-feed",
           expandedGroups: { "group:news": false },
           listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },
-          keptFeedIds: ["kept-feed"],
         },
       },
     });
@@ -429,7 +428,6 @@ describe("useAccountDetailSyncControls", () => {
         selectedFeedId: "kept-feed",
         expandedGroups: { "group:news": false },
         listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },
-        keptFeedIds: ["kept-feed"],
       },
       navigationRequest: expect.objectContaining({
         accountId: account.id,
@@ -511,7 +509,6 @@ describe("useAccountDetailSyncControls", () => {
               selectedFeedId: null,
               expandedGroups: {},
               listScrollTop: { scrollTop: 0, layoutGeneration: "", viewportHeight: 0 },
-              keptFeedIds: [],
             },
             true,
           );

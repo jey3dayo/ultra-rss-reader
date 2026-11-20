@@ -119,7 +119,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(buildFolderNameByIdMap([...folders, { ...folders[0], name: "Work override", sort_order: 1 }])).toEqual(
@@ -144,7 +143,6 @@ describe("buildSubscriptionReviewCandidates", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates).toHaveLength(3);
@@ -179,7 +177,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates[0]).toMatchObject({
@@ -197,7 +194,6 @@ describe("buildSubscriptionReviewCandidates", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-stale", "feed-mid", "feed-active"]);
@@ -213,7 +209,6 @@ describe("buildSubscriptionReviewCandidates", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     const multiReasonCandidate = candidates.find((candidate) => candidate.feedId === "feed-mid");
@@ -255,7 +250,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates.find((candidate) => candidate.feedId === "feed-stale-boundary")).toMatchObject({
@@ -324,7 +318,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates.find((candidate) => candidate.feedId === "feed-quiet-boundary")).toMatchObject({
@@ -382,7 +375,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     const futureCandidate = candidates.find((candidate) => candidate.feedId === "feed-future");
@@ -429,7 +421,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-06T00:30:00+09:00"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates.find((candidate) => candidate.feedId === "feed-dst-boundary")).toMatchObject({
@@ -456,7 +447,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates[0]).toMatchObject({
@@ -464,76 +454,6 @@ describe("buildSubscriptionReviewCandidates", () => {
       staleDays: null,
       reasonKeys: [],
     });
-  });
-
-  it("excludes candidates removed by keep or later local state", () => {
-    const candidates = buildSubscriptionReviewCandidates({
-      feeds,
-      folders,
-      feedArticleSummaries,
-      now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(["feed-stale", "feed-mid"]),
-    });
-
-    expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-active"]);
-  });
-
-  it("excludes hidden feeds before summary and reason sorting", () => {
-    const candidates = buildSubscriptionReviewCandidates({
-      feeds: [
-        {
-          ...feeds[0],
-          id: "feed-hidden-critical",
-          title: "A Hidden Critical Feed",
-          unread_count: 0,
-        },
-        {
-          ...feeds[0],
-          id: "feed-visible-medium",
-          title: "B Visible Medium Feed",
-          unread_count: 4,
-        },
-        {
-          ...feeds[0],
-          id: "feed-visible-low",
-          title: "C Visible Low Feed",
-          unread_count: 4,
-        },
-      ],
-      folders,
-      feedArticleSummaries: [
-        {
-          feed_id: "feed-hidden-critical",
-          latest_article_at: "2025-01-01T00:00:00Z",
-          last_seen_article_at: null,
-          starred_count: 0,
-          recent_article_count: 0,
-        },
-        {
-          feed_id: "feed-visible-medium",
-          latest_article_at: "2026-01-01T00:00:00Z",
-          last_seen_article_at: null,
-          starred_count: 1,
-          recent_article_count: 0,
-        },
-        {
-          feed_id: "feed-visible-low",
-          latest_article_at: "2026-03-01T00:00:00Z",
-          last_seen_article_at: null,
-          starred_count: 1,
-          recent_article_count: 0,
-        },
-      ],
-      now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(["feed-hidden-critical"]),
-    });
-
-    expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-visible-medium", "feed-visible-low"]);
-    expect(candidates.map((candidate) => summarizeSubscriptionReviewCandidate(candidate).summaryKey)).toEqual([
-      "stale_but_supported",
-      "attention_low_activity",
-    ]);
-    expect(candidates.map((candidate) => buildSubscriptionReviewReasonFacts(candidate))).toEqual([[], []]);
   });
 
   it("does not mark feeds with no fetched articles as review candidates just because counts are zero", () => {
@@ -556,7 +476,6 @@ describe("buildSubscriptionReviewCandidates", () => {
       folders,
       feedArticleSummaries: [],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates[0]).toMatchObject({
@@ -591,7 +510,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates[0]).toMatchObject({
@@ -671,7 +589,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates.map((candidate) => candidate.feedId)).toEqual([
@@ -689,7 +606,6 @@ describe("buildSubscriptionReviewCandidates", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     const firstCandidate = candidates[0];
@@ -793,7 +709,6 @@ describe("buildSubscriptionReviewCandidates", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([{ key: "unread_count", value: 0 }]);
@@ -845,7 +760,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-11-18T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates[0]).toMatchObject({
@@ -888,7 +802,6 @@ describe("buildSubscriptionReviewCandidates", () => {
         },
       ],
       now: new Date("2026-11-18T00:00:00Z"),
-      hiddenFeedIds: new Set(),
     });
 
     expect(candidates[0]).toMatchObject({

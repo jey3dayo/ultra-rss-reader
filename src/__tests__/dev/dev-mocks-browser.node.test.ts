@@ -935,7 +935,6 @@ describe("setupDevMocks", () => {
       folders,
       feedArticleSummaries,
       now: new Date("2026-06-26T13:00:00+09:00"),
-      hiddenFeedIds: new Set(),
     });
     const summary = buildSubscriptionsIndexSummary({
       feeds,

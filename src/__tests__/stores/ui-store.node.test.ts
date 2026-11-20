@@ -1329,7 +1329,6 @@ describe("useUiStore", () => {
         layoutGeneration: "feed-1",
         viewportHeight: 720,
       },
-      keptFeedIds: [" feed-2 "],
     };
     const returnState = safeParse(SubscriptionsWorkspaceReturnStateSchema, legacyReturnState);
     expect(returnState.success).toBe(true);
@@ -1353,7 +1352,6 @@ describe("useUiStore", () => {
           layoutGeneration: "feed-1",
           viewportHeight: 720,
         },
-        keptFeedIds: ["feed-2"],
       },
     });
 
@@ -1367,7 +1365,6 @@ describe("useUiStore", () => {
         layoutGeneration: "feed-1",
         viewportHeight: 720,
       },
-      keptFeedIds: [],
     };
     expect(is(SubscriptionsWorkspaceReturnStateSchema, arrayExpandedGroupsReturnState)).toBe(false);
 
@@ -1384,7 +1381,6 @@ describe("useUiStore", () => {
           layoutGeneration: "feed-1",
           viewportHeight: 720,
         },
-        keptFeedIds: [],
       }).success,
     ).toBe(false);
 
@@ -1399,7 +1395,6 @@ describe("useUiStore", () => {
           layoutGeneration: "feed-1",
           viewportHeight: 720,
         },
-        keptFeedIds: [],
         searchQuery: "Example",
       }).success,
     ).toBe(true);
@@ -1416,7 +1411,6 @@ describe("useUiStore", () => {
           layoutGeneration: "feed-1",
           viewportHeight: 720,
         },
-        keptFeedIds: [],
       }),
     ).toThrow();
   });
@@ -1432,7 +1426,6 @@ describe("useUiStore", () => {
         layoutGeneration: "feed-1",
         viewportHeight: 720,
       },
-      keptFeedIds: [],
     } satisfies Parameters<UiStoreState["openSubscriptionsIndex"]>[0];
 
     expect(safeParse(SubscriptionsWorkspaceReturnStateSchema, returnState).success).toBe(true);

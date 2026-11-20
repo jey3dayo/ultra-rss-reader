@@ -56,7 +56,6 @@ export type BuildSubscriptionReviewCandidatesParams = {
   folders: FolderDto[];
   feedArticleSummaries: FeedArticleSummaryDto[];
   now: Date;
-  hiddenFeedIds: ReadonlySet<string>;
 };
 
 export function hasSubscriptionReviewReason(
@@ -253,17 +252,12 @@ export function buildSubscriptionReviewCandidates({
   folders,
   feedArticleSummaries,
   now,
-  hiddenFeedIds,
 }: BuildSubscriptionReviewCandidatesParams): SubscriptionReviewCandidate[] {
   const folderNameById = buildFolderNameByIdMap(folders);
   const summaryByFeedId = buildFeedArticleSummaryByFeedIdMap(feedArticleSummaries);
   const candidates: SubscriptionReviewCandidate[] = [];
 
   for (const feed of feeds) {
-    if (hiddenFeedIds.has(feed.id)) {
-      continue;
-    }
-
     const summary = summaryByFeedId.get(feed.id);
     const latestArticleAt = resolveLatestKnownArticleAt(summary);
 
