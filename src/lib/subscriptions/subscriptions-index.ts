@@ -30,7 +30,19 @@ export {
   resolveSelectedSubscriptionDisplayModeLabel,
 } from "./subscription-detail";
 
-type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
+export type SubscriptionSortKey = "title" | "updated_at" | "unread_count" | "stale_days" | "recent_count";
+
+export function resolveSubscriptionSortKey(filterKey: SubscriptionSummaryFilterKey): SubscriptionSortKey {
+  if (filterKey === "stale") {
+    return "stale_days";
+  }
+
+  if (filterKey === "frequent") {
+    return "recent_count";
+  }
+
+  return "title";
+}
 
 function rowMatchesSubscriptionSummaryFilter(
   row: SubscriptionListRow,
@@ -121,6 +133,53 @@ function compareSubscriptionRows(
   }
 
   if (sortKey === "unread_count") {
+    const unreadCountOrder =
+      normalizeSubscriptionCount(right.feed.unread_count) - normalizeSubscriptionCount(left.feed.unread_count);
+    return unreadCountOrder === 0 ? compareByTitleAndId() : unreadCountOrder;
+  }
+
+  if (sortKey === "stale_days") {
+    if (left.latestArticleDays === null && right.latestArticleDays !== null) {
+      return 1;
+    }
+
+    if (left.latestArticleDays !== null && right.latestArticleDays === null) {
+      return -1;
+    }
+
+    if (
+      left.latestArticleDays !== null &&
+      right.latestArticleDays !== null &&
+      left.latestArticleDays !== right.latestArticleDays
+    ) {
+      return right.latestArticleDays - left.latestArticleDays;
+    }
+
+    const leftTime = getDateInputTimeMs(left.latestArticleAt);
+    const rightTime = getDateInputTimeMs(right.latestArticleAt);
+
+    if (leftTime === null && rightTime !== null) {
+      return 1;
+    }
+
+    if (leftTime !== null && rightTime === null) {
+      return -1;
+    }
+
+    if (leftTime !== null && rightTime !== null && leftTime !== rightTime) {
+      return leftTime - rightTime;
+    }
+
+    return compareByTitleAndId();
+  }
+
+  if (sortKey === "recent_count") {
+    const recentCountOrder =
+      normalizeSubscriptionCount(right.recentArticleCount) - normalizeSubscriptionCount(left.recentArticleCount);
+    if (recentCountOrder !== 0) {
+      return recentCountOrder;
+    }
+
     const unreadCountOrder =
       normalizeSubscriptionCount(right.feed.unread_count) - normalizeSubscriptionCount(left.feed.unread_count);
     return unreadCountOrder === 0 ? compareByTitleAndId() : unreadCountOrder;

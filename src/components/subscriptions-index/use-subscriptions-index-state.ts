@@ -14,7 +14,11 @@ import {
 } from "@/components/subscriptions-index/lib/subscriptions-index-state-model";
 import { resolveBulkSelectableFeedIds, resolveBulkUnsubscribeTargets } from "@/lib/subscriptions/bulk-unsubscribe";
 import { resolveExistingKeptFeedIds, resolveHiddenKeptFeedIds } from "@/lib/subscriptions/subscription-kept-visibility";
-import { buildSubscriptionListGroups, buildVisibleSubscriptionRows } from "@/lib/subscriptions/subscriptions-index";
+import {
+  buildSubscriptionListGroups,
+  buildVisibleSubscriptionRows,
+  resolveSubscriptionSortKey,
+} from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type {
   SubscriptionsWorkspaceExpandedGroupKey,
@@ -62,7 +66,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       keptFeedIds,
       showKept,
       searchQuery,
-      sortKey: "title",
+      sortKey: resolveSubscriptionSortKey(activeSummaryFilter),
     });
   }, [activeSummaryFilter, keptFeedIds, rows, searchQuery, showKept]);
   const hiddenKeptFeedIds = useMemo(

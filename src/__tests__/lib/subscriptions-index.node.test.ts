@@ -24,6 +24,7 @@ import {
   resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionRowReasonTooltipKey,
   resolveSubscriptionRowStatus,
+  resolveSubscriptionSortKey,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionFilterOption } from "@/lib/subscriptions/subscriptions-index.types";
@@ -1338,6 +1339,79 @@ describe("subscriptions index helpers", () => {
       "feed-negative-z",
       "feed-zero",
     ]);
+  });
+
+  it("resolves the sort key from the summary filter", () => {
+    expect(resolveSubscriptionSortKey("all")).toBe("title");
+    expect(resolveSubscriptionSortKey("stale")).toBe("stale_days");
+    expect(resolveSubscriptionSortKey("frequent")).toBe("recent_count");
+    expect(resolveSubscriptionSortKey("fetch_errors")).toBe("title");
+  });
+
+  it("sorts by stale days descending, then by oldest article time, with missing values last", () => {
+    const sortFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-a", title: "Alpha" },
+      { ...feeds[1], id: "feed-b", title: "Bravo" },
+      { ...feeds[2], id: "feed-c", title: "Charlie" },
+      { ...feeds[3], id: "feed-d", title: "Delta" },
+      { ...feeds[0], id: "feed-e", title: "Echo" },
+    ];
+    const staleFacts: Record<string, { latestArticleDays: number | null; latestArticleAt: string | null }> = {
+      "feed-a": { latestArticleDays: 200, latestArticleAt: "2025-09-01T00:00:00Z" },
+      "feed-b": { latestArticleDays: 200, latestArticleAt: "2025-08-01T00:00:00Z" },
+      "feed-c": { latestArticleDays: 120, latestArticleAt: "2025-12-01T00:00:00Z" },
+      "feed-d": { latestArticleDays: null, latestArticleAt: null },
+      "feed-e": { latestArticleDays: null, latestArticleAt: "2025-01-01T00:00:00Z" },
+    };
+    const rows = buildSubscriptionListRows({
+      feeds: sortFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map(),
+    }).map((row) => ({ ...row, ...staleFacts[row.feed.id] }));
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      showKept: false,
+      searchQuery: "",
+      sortKey: "stale_days",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-b", "feed-a", "feed-c", "feed-e", "feed-d"]);
+  });
+
+  it("sorts by recent article count descending, then by unread count descending", () => {
+    const sortFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-a", title: "Alpha", unread_count: 1 },
+      { ...feeds[1], id: "feed-b", title: "Bravo", unread_count: 9 },
+      { ...feeds[2], id: "feed-c", title: "Charlie", unread_count: 0 },
+      { ...feeds[3], id: "feed-d", title: "Delta", unread_count: 99 },
+    ];
+    const recentCounts: Record<string, number> = {
+      "feed-a": 50,
+      "feed-b": 50,
+      "feed-c": 80,
+      "feed-d": 10,
+    };
+    const rows = buildSubscriptionListRows({
+      feeds: sortFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map(),
+    }).map((row) => ({ ...row, recentArticleCount: recentCounts[row.feed.id] ?? 0 }));
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      showKept: false,
+      searchQuery: "",
+      sortKey: "recent_count",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-c", "feed-b", "feed-a", "feed-d"]);
   });
 
   it("groups subscription rows by folder label", () => {
