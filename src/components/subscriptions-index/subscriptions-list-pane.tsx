@@ -14,6 +14,7 @@ import { Button } from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { resolveListPaneDisplay } from "./hooks/subscriptions-index-load-state";
+import type { SubscriptionsBulkRunStatus } from "./subscriptions-bulk-run-status";
 import {
   SubscriptionsBulkActionBar,
   SubscriptionsBulkSelectAllRow,
@@ -78,6 +79,7 @@ type SubscriptionsListPaneProps = {
   headingRef?: RefObject<HTMLHeadingElement | null>;
   filterBar?: SubscriptionsFilterBarProps;
   bulkSelection?: SubscriptionsBulkSelection;
+  bulkRunStatus?: SubscriptionsBulkRunStatus | null;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange?: (scrollTop: number) => void;
   onSearchQueryChange: (query: string) => void;
@@ -268,6 +270,7 @@ export function SubscriptionsListPane({
   headingRef,
   filterBar,
   bulkSelection,
+  bulkRunStatus,
   onSelectFeed,
   onListScrollTopChange,
   onSearchQueryChange,
@@ -378,6 +381,7 @@ export function SubscriptionsListPane({
         searchPlaceholder={searchPlaceholder}
         filterBar={filterBar}
         bulkSelection={bulkSelection}
+        bulkRunStatus={bulkRunStatus}
         bulkToggleDisabled={loading || listUnavailable}
         onSearchQueryChange={onSearchQueryChange}
       />

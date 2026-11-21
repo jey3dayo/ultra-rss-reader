@@ -13,6 +13,7 @@ import { useRemoteFeedSyncStatuses } from "@/hooks/use-remote-feed-sync-statuses
 import { copyValueToClipboard } from "@/lib/runtime/clipboard";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
+import { useBulkUnsubscribeStore } from "@/stores/bulk-unsubscribe-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BulkUnsubscribeDialog } from "./bulk-unsubscribe-dialog";
 import type { QueryLoadState } from "./hooks/subscriptions-index-load-state";
@@ -304,10 +305,34 @@ function SubscriptionsIndexPageForAccount({
       setBulkDialogSession((session) => session + 1);
       setBulkDialogOpen(true);
     },
+    onShowBulkUnsubscribeRun: () => {
+      setBulkDialogOpen(true);
+    },
     onRequestResetKept: (keptCount) => setResetKeptDialog({ open: true, keptCount }),
     bulkToggleRef,
     listHeadingRef,
   });
+  // A finished bulk unsubscribe run publishes its result through the store, so the
+  // selection cleanup lands here even when the dialog was closed or unmounted mid-run.
+  const applyBulkResultRef = useRef(viewProps.bulk.applyResult);
+  useEffect(() => {
+    applyBulkResultRef.current = viewProps.bulk.applyResult;
+  });
+  useEffect(() => {
+    let lastAppliedRunId = useBulkUnsubscribeStore.getState().lastSettled?.runId ?? 0;
+    return useBulkUnsubscribeStore.subscribe((state) => {
+      const settled = state.lastSettled;
+      if (settled === null || settled.runId <= lastAppliedRunId) {
+        return;
+      }
+      lastAppliedRunId = settled.runId;
+      if (settled.accountId !== selectedAccountId) {
+        return;
+      }
+      applyBulkResultRef.current(settled.succeededFeedIds);
+    });
+  }, [selectedAccountId]);
+
   const hasOpenDialog = editTargetFeed !== null || deleteTargetFeed !== null || bulkDialogOpen || resetKeptDialog.open;
 
   useEffect(() => {
@@ -360,7 +385,6 @@ function SubscriptionsIndexPageForAccount({
         open={bulkDialogOpen}
         accountId={selectedAccountId}
         targets={viewProps.bulk.targets}
-        onSettled={viewProps.bulk.applyResult}
         onClose={({ allSucceeded }) => {
           focusBulkToggleAfterCloseRef.current = allSucceeded;
           setBulkDialogOpen(false);

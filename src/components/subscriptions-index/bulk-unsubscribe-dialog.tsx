@@ -28,12 +28,12 @@ import {
 } from "@/design-system";
 import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 import { readMatchMedia } from "@/lib/runtime/match-media-listener";
+import { useBulkUnsubscribeStore } from "@/stores/bulk-unsubscribe-store";
 
 export type BulkUnsubscribeDialogProps = {
   open: boolean;
   accountId: string | null;
   targets: ReadonlyArray<BulkUnsubscribeTarget>;
-  onSettled: (succeededFeedIds: readonly string[]) => void;
   onClose: (outcome: { allSucceeded: boolean }) => void;
 };
 
@@ -210,12 +210,16 @@ function ConfirmActions({ open, run, targets, feedCount, confirmButtonRef, onClo
   );
 }
 
-function RunningActions({ run }: { run: BulkRun }) {
+function RunningActions({ run, onClose }: { run: BulkRun; onClose: BulkUnsubscribeDialogProps["onClose"] }) {
   const { t } = useTranslation("subscriptions");
+  const { t: tc } = useTranslation("common");
 
   return (
     <div className={ACTION_ROW_CLASS_NAME}>
-      <Button variant="outline" className="min-h-11" autoFocus disabled={run.stopRequested} onClick={run.stop}>
+      <Button variant="outline" className="min-h-11" autoFocus onClick={() => onClose({ allSucceeded: false })}>
+        {tc("close")}
+      </Button>
+      <Button variant="outline" className="min-h-11" disabled={run.stopRequested} onClick={run.stop}>
         {run.stopRequested ? t("bulk_dialog_stopping") : t("bulk_dialog_stop")}
       </Button>
     </div>
@@ -254,18 +258,19 @@ function BulkUnsubscribeFooter(props: BulkUnsubscribeFooterProps) {
   return (
     <DialogFooter className="flex-col sm:flex-col">
       {run.phase === "confirm" ? <ConfirmActions {...props} /> : null}
-      {run.phase === "running" ? <RunningActions run={run} /> : null}
+      {run.phase === "running" ? <RunningActions run={run} onClose={props.onClose} /> : null}
       {run.phase === "result" ? <ResultActions run={run} onClose={props.onClose} /> : null}
     </DialogFooter>
   );
 }
 
-export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onClose }: BulkUnsubscribeDialogProps) {
+export function BulkUnsubscribeDialog({ open, accountId, targets, onClose }: BulkUnsubscribeDialogProps) {
   const { t } = useTranslation("subscriptions");
-  const run = useBulkUnsubscribeFeeds({ open, accountId, onSettled, onClose });
+  const run = useBulkUnsubscribeFeeds({ open, accountId });
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusElementRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
+  const wasOpenWhileRunningRef = useRef(false);
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -276,6 +281,21 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
     }
     wasOpenRef.current = open;
   }, [open]);
+
+  useEffect(() => {
+    if (open && run.phase === "running") {
+      wasOpenWhileRunningRef.current = true;
+    }
+  }, [open, run.phase]);
+
+  // A run that completes in front of the user closes the dialog (the runner toasts instead).
+  // A run that completed while the dialog was closed keeps its result step for review.
+  useEffect(() => {
+    if (open && run.phase === "result" && run.outcome === "completed" && wasOpenWhileRunningRef.current) {
+      wasOpenWhileRunningRef.current = false;
+      onClose({ allSucceeded: true });
+    }
+  }, [open, run.phase, run.outcome, onClose]);
 
   const running = run.phase === "running";
   const displayedTargets = run.phase === "confirm" ? orderBulkUnsubscribeTargets(targets) : run.snapshot;
@@ -292,11 +312,13 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
   const succeededCount = entries.filter((entry) => entry.status === "done").length;
   const skippedCount = entries.filter((entry) => entry.status === "skipped").length;
 
+  // Closing never touches the run: it keeps going in the background and reports back
+  // through the subscriptions toolbar and a toast.
   const handleOpenChange = (nextOpen: boolean) => {
-    if (nextOpen || running || run.outcome === "completed") {
+    if (nextOpen) {
       return;
     }
-    onClose({ allSucceeded: false });
+    onClose({ allSucceeded: run.outcome === "completed" });
   };
 
   const renderRow = (entry: (typeof entries)[number]) => (
@@ -314,7 +336,7 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
       open={open}
       onOpenChange={handleOpenChange}
       onOpenChangeComplete={(nextOpen) => {
-        if (!nextOpen) {
+        if (!nextOpen && useBulkUnsubscribeStore.getState().run.phase !== "running") {
           run.reset();
         }
       }}

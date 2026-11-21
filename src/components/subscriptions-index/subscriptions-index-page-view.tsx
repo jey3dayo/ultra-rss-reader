@@ -13,6 +13,7 @@ import type {
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
+import type { SubscriptionsBulkRunStatus } from "./subscriptions-bulk-run-status";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import type { SubscriptionsFilterBarModel } from "./subscriptions-filter-bar";
 import type { SubscriptionsKeptBanner } from "./subscriptions-kept-banner";
@@ -80,6 +81,7 @@ type SubscriptionsIndexPageViewProps = {
   keptBanner?: SubscriptionsKeptBanner | null;
   listHeadingRef?: RefObject<HTMLHeadingElement | null>;
   bulkSelection?: SubscriptionsBulkSelection;
+  bulkRunStatus?: SubscriptionsBulkRunStatus | null;
   folderLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel: string;
@@ -146,6 +148,7 @@ export function SubscriptionsIndexPageView({
   keptBanner,
   listHeadingRef,
   bulkSelection,
+  bulkRunStatus,
   folderLabel,
   latestArticleLabel,
   latestArticleEmptyLabel,
@@ -214,6 +217,7 @@ export function SubscriptionsIndexPageView({
               headingRef={listHeadingRef}
               filterBar={{ model: filterBar, loadFailure: summaryLoadFailure, onSelect: onSelectSummaryFilter }}
               bulkSelection={bulkSelection}
+              bulkRunStatus={bulkRunStatus}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}
               onSearchQueryChange={onSearchQueryChange}

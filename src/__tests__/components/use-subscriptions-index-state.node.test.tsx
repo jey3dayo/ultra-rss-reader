@@ -684,6 +684,26 @@ describe("useSubscriptionsIndexState", () => {
       expect(result.current.bulkSelectionMode).toBe(false);
     });
 
+    it("keeps feeds checked after the run started when applying the run result", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.startBulkSelection();
+        result.current.toggleFeedChecked("alpha");
+        result.current.toggleFeedChecked("beta");
+      });
+      // The run works from the alpha/beta snapshot; gamma is checked while it runs.
+      act(() => {
+        result.current.toggleFeedChecked("gamma");
+      });
+      act(() => {
+        result.current.applyBulkUnsubscribeResult(["alpha", "beta"]);
+      });
+
+      expect([...result.current.checkedFeedIds]).toEqual(["gamma"]);
+      expect(result.current.bulkSelectionMode).toBe(true);
+    });
+
     it("drops feeds that disappeared from rows out of the checked count", () => {
       const { result, rerender } = renderHook(
         ({ currentRows }: { currentRows: SubscriptionListRow[] }) => useSubscriptionsIndexState(currentRows),

@@ -14,10 +14,18 @@ type RunState = {
   outcome: BulkUnsubscribeOutcome | null;
   stopRequested: boolean;
   waitingForSync: boolean;
+  // The account that requested the run. A retained run belongs to this account only:
+  // dialogs of another account must neither display it nor act on it.
+  accountId: string | null;
 };
 
 type RunAction =
-  | { type: "begin"; snapshot: ReadonlyArray<BulkUnsubscribeTarget>; queue: ReadonlyArray<number> }
+  | {
+      type: "begin";
+      snapshot: ReadonlyArray<BulkUnsubscribeTarget>;
+      queue: ReadonlyArray<number>;
+      accountId: string | null;
+    }
   | { type: "rowRunning"; index: number }
   | { type: "syncWaiting"; index: number }
   | { type: "rowDone"; index: number }
@@ -33,6 +41,7 @@ const INITIAL_STATE: RunState = {
   outcome: null,
   stopRequested: false,
   waitingForSync: false,
+  accountId: null,
 };
 
 function setRowState(
@@ -58,6 +67,7 @@ function reduceRunState(state: RunState, action: RunAction): RunState {
         outcome: null,
         stopRequested: false,
         waitingForSync: false,
+        accountId: action.accountId,
       };
     }
     case "rowRunning":
@@ -103,29 +113,41 @@ export function orderBulkUnsubscribeTargets(
   return [...targets.filter((target) => target.wasKept), ...targets.filter((target) => !target.wasKept)];
 }
 
-// onSettled / onClose are delivered to the dialog that requested the run, and only while it is still mounted.
+// A run is owned by the store, not by the dialog that requested it: closing or unmounting
+// the dialog never cancels it. When a run finishes, its result is published as
+// `lastSettled` and the page (selection cleanup) and the runner (toasts) react to it.
 type BulkUnsubscribeRunInput = {
   snapshot: ReadonlyArray<BulkUnsubscribeTarget>;
   queue: ReadonlyArray<number>;
   accountId: string | null;
-  onSettled: (succeededFeedIds: readonly string[]) => void;
-  onClose: (outcome: { allSucceeded: boolean }) => void;
 };
 
 export type BulkUnsubscribeRunRequest = BulkUnsubscribeRunInput & { runId: number };
+
+type BulkUnsubscribeSettledRun = {
+  runId: number;
+  accountId: string | null;
+  outcome: BulkUnsubscribeOutcome;
+  succeededFeedIds: ReadonlyArray<string>;
+};
 
 type BulkUnsubscribeState = {
   run: RunState;
   runId: number;
   runActive: boolean;
   runnerMounted: boolean;
+  dialogOpen: boolean;
+  dialogAccountId: string | null;
   syncCompletedSeq: number;
   request: BulkUnsubscribeRunRequest | null;
+  lastSettled: BulkUnsubscribeSettledRun | null;
 };
 
 type BulkUnsubscribeActions = {
   setRunnerMounted: (mounted: boolean) => void;
+  setDialogOpen: (open: boolean, accountId: string | null) => void;
   requestRun: (input: BulkUnsubscribeRunInput) => void;
+  settle: (settled: BulkUnsubscribeSettledRun) => void;
   rowRunning: (index: number) => void;
   syncWaiting: (index: number) => void;
   rowDone: (index: number) => void;
@@ -133,7 +155,6 @@ type BulkUnsubscribeActions = {
   requestStop: () => void;
   notifySyncCompleted: () => void;
   finish: (outcome: BulkUnsubscribeOutcome, skipped: ReadonlyArray<number>) => void;
-  invalidateRun: () => void;
   reset: () => void;
 };
 
@@ -142,10 +163,17 @@ export const useBulkUnsubscribeStore = create<BulkUnsubscribeState & BulkUnsubsc
   runId: 0,
   runActive: false,
   runnerMounted: false,
+  dialogOpen: false,
+  dialogAccountId: null,
   syncCompletedSeq: 0,
   request: null,
+  lastSettled: null,
 
   setRunnerMounted: (mounted) => set({ runnerMounted: mounted }),
+
+  setDialogOpen: (open, accountId) => set({ dialogOpen: open, dialogAccountId: open ? accountId : null }),
+
+  settle: (settled) => set({ lastSettled: settled }),
 
   requestRun: (input) => {
     const state = get();
@@ -160,7 +188,12 @@ export const useBulkUnsubscribeStore = create<BulkUnsubscribeState & BulkUnsubsc
     set({
       runId,
       runActive: true,
-      run: reduceRunState(state.run, { type: "begin", snapshot: input.snapshot, queue: input.queue }),
+      run: reduceRunState(state.run, {
+        type: "begin",
+        snapshot: input.snapshot,
+        queue: input.queue,
+        accountId: input.accountId,
+      }),
       request: { ...input, runId },
     });
   },
@@ -178,8 +211,6 @@ export const useBulkUnsubscribeStore = create<BulkUnsubscribeState & BulkUnsubsc
 
   finish: (outcome, skipped) =>
     set((state) => ({ runActive: false, run: reduceRunState(state.run, { type: "finish", outcome, skipped }) })),
-
-  invalidateRun: () => set((state) => ({ runId: state.runId + 1, runActive: false })),
 
   reset: () =>
     set((state) => ({

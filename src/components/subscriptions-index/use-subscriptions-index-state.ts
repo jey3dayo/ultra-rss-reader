@@ -310,17 +310,18 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
         return next;
       });
     },
-    // Decides from the checked set of this render, so callers must not change the selection while the run is in flight.
+    // The run works from the snapshot taken when it started, so the live selection may have
+    // changed while it ran. Only the succeeded feeds are removed from whatever is checked
+    // now; selection mode ends only when nothing remains checked.
     applyBulkUnsubscribeResult: (succeededFeedIds: readonly string[]) => {
       const succeeded = new Set(succeededFeedIds);
-      const remainingCount = [...checkedFeedIds].filter((feedId) => !succeeded.has(feedId)).length;
-      const withoutSucceeded = (current: ReadonlySet<string>) => removeFeedIdsFromSet(current, succeeded);
       forgetKeptFeeds(succeededFeedIds);
+      const remainingCount = [...checkedFeedIds].filter((feedId) => !succeeded.has(feedId)).length;
       if (remainingCount === 0) {
         setStoredCheckedFeedIds(clearCheckedFeedIds);
         setBulkSelectionMode(false);
       } else {
-        setStoredCheckedFeedIds(withoutSucceeded);
+        setStoredCheckedFeedIds((current) => removeFeedIdsFromSet(current, succeeded));
       }
     },
     navigateToSummaryFilter,

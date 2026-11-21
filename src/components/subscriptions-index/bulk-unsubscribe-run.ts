@@ -17,7 +17,6 @@ import { nextBusyRetryDelayMs, waitForBusyRetry } from "./bulk-unsubscribe-wait"
 
 type RunDeps = {
   queryClient: QueryClient;
-  notifyCompleted: (count: number) => void;
 };
 
 async function unsubscribeFeed(feedId: string): Promise<string | null> {
@@ -25,7 +24,7 @@ async function unsubscribeFeed(feedId: string): Promise<string | null> {
   return Result.isFailure(result) ? result.error.message : null;
 }
 
-export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClient, notifyCompleted }: RunDeps) {
+export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClient }: RunDeps) {
   const { snapshot, queue, accountId, runId } = request;
   const store = useBulkUnsubscribeStore.getState();
   const isCurrent = () => useBulkUnsubscribeStore.getState().runId === runId;
@@ -37,6 +36,13 @@ export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClie
   let inFlightIndex: number | null = null;
   let busyDelayMs: number | null = null;
   let firstAttempt = true;
+  let invalidatedSucceededCount = 0;
+  const refreshSucceededFeeds = () => {
+    if (succeededFeedIds.length > invalidatedSucceededCount) {
+      invalidatedSucceededCount = succeededFeedIds.length;
+      invalidateDeleteFeedQueries(queryClient, { accountId });
+    }
+  };
   try {
     while (position < queue.length && isCurrent()) {
       const stoppedByUser = useBulkUnsubscribeStore.getState().run.stopRequested;
@@ -61,6 +67,8 @@ export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClie
         if (isCurrent()) {
           store.syncWaiting(index);
         }
+        // The wait can stretch for a while, so feeds already unsubscribed stop lingering in the list behind.
+        refreshSucceededFeeds();
         busyDelayMs = nextBusyRetryDelayMs(busyDelayMs);
         await waitForBusyRetry({ delayMs: busyDelayMs, runId, accountId, syncCompletedSeqAtAttempt });
         continue;
@@ -98,13 +106,9 @@ export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClie
       outcome = cancelled ? "cancelled" : failureCount > 0 ? "partial" : "completed";
       store.finish(outcome, queue.slice(position));
     }
-    if (succeededFeedIds.length > 0) {
-      invalidateDeleteFeedQueries(queryClient, { accountId });
-    }
-    request.onSettled(succeededFeedIds);
-    if (outcome === "completed") {
-      notifyCompleted(snapshot.length);
-      request.onClose({ allSucceeded: true });
+    refreshSucceededFeeds();
+    if (outcome !== null) {
+      store.settle({ runId, accountId, outcome, succeededFeedIds: [...succeededFeedIds] });
     }
   }
 }
