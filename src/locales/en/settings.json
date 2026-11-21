@@ -232,7 +232,7 @@
     "cloudflare_access_secret_show": "Show new Secret",
     "cloudflare_access_secret_hide": "Hide new Secret",
     "cloudflare_access_loading": "Checking Cloudflare Access settings…",
-    "cloudflare_access_authorization_required": "Run Check connection to allow access to saved credentials in Keychain.",
+    "cloudflare_access_authorization_required": "Cloudflare Access settings appear after you run Check connection. If you don't use Cloudflare Access, there is nothing to do.",
     "cloudflare_access_unavailable": "Cloudflare Access settings can only be managed in the desktop app.",
     "cloudflare_access_metadata_required_for_origin_change": "Cloudflare Access settings could not be read. Reload this account before changing its server origin.",
     "cloudflare_access_save_failed": "Cloudflare Access credentials could not be saved. Check your connection and access permissions, then try again.",
@@ -377,7 +377,7 @@
       "auth": "Authentication error: {{message}}",
       "validation": "Invalid sync input: {{message}}",
       "keychain": "Credential storage error: {{message}}",
-      "keychain_needs_auth": "Credential access needs attention. Open account settings and choose Save and test connection to allow access for this app session (up to 8 hours). Automatic sync will not open Keychain dialogs.",
+      "keychain_needs_auth": "Automatic sync is paused because credential access has not been allowed. Run Check connection and allow the macOS prompt if it appears. Automatic sync then resumes for this app session (up to 8 hours). You do not need to save anything.",
       "migration": "Database migration error: {{message}}"
     },
     "sync_failed": "Sync failed: {{message}}",
@@ -565,7 +565,7 @@
     "startup_repair_marker_failed": "Startup repair marker could not be saved: {{message}}",
     "scheduler_load_failed": "Scheduled sync could not load accounts: {{message}}",
     "backoff_persist_failed": "Could not save retry state for '{{accountName}}': {{message}}",
-    "credential_access_required": "'{{accountName}}' needs credential access. Open account settings and run the connection test. Automatic authorization retries are paused.",
+    "credential_access_required": "'{{accountName}}' needs credential access. Open account settings, run Check connection, and allow the macOS prompt if it appears. Automatic retries stay paused until access is allowed.",
     "background_sync_retry_scheduled": "'{{accountName}}' will retry automatically",
     "mutation_labels": {
       "mark_read": "mark as read",

@@ -232,7 +232,7 @@
     "cloudflare_access_secret_show": "新しく入力したSecretを表示",
     "cloudflare_access_secret_hide": "新しく入力したSecretを隠す",
     "cloudflare_access_loading": "Cloudflare Access の設定を確認しています…",
-    "cloudflare_access_authorization_required": "保存済みの認証情報を使うには、接続確認でキーチェーンへのアクセスを許可してください。",
+    "cloudflare_access_authorization_required": "Cloudflare Access の設定は、接続確認を実行すると表示されます。使っていない場合は操作不要です。",
     "cloudflare_access_unavailable": "Cloudflare Access の設定はデスクトップアプリで管理できます。",
     "cloudflare_access_metadata_required_for_origin_change": "Cloudflare Access の設定を読み込めません。サーバーの接続先を変更する前に、このアカウントを開き直してください。",
     "cloudflare_access_save_failed": "Cloudflare Access の認証情報を保存できませんでした。接続とアクセス許可を確認して、もう一度お試しください。",
@@ -377,7 +377,7 @@
       "auth": "認証エラー: {{message}}",
       "validation": "同期の入力内容が無効です: {{message}}",
       "keychain": "認証情報ストレージエラー: {{message}}",
-      "keychain_needs_auth": "認証情報へのアクセス確認が必要です。アカウント設定で「保存して接続テスト」を実行すると、このセッションの間（最大8時間）アクセスが許可されます。自動同期ではキーチェーンのダイアログは開きません。",
+      "keychain_needs_auth": "認証情報へのアクセスが許可されていないため、自動同期が止まっています。「接続確認」を実行し、macOS の確認が出たら許可してください。許可すると、この起動中（最大8時間）は自動同期が再開します。保存は不要です。",
       "migration": "データベースの移行エラー: {{message}}"
     },
     "sync_failed": "同期に失敗しました: {{message}}",
@@ -565,7 +565,7 @@
     "startup_repair_marker_failed": "起動時の修復完了マーカーを保存できませんでした: {{message}}",
     "scheduler_load_failed": "スケジュール同期でアカウントを読み込めませんでした: {{message}}",
     "backoff_persist_failed": "「{{accountName}}」の再試行状態を保存できませんでした: {{message}}",
-    "credential_access_required": "「{{accountName}}」の認証情報へのアクセスが必要です。アカウント設定で接続確認を実行してください。許可要求の自動再試行は停止しています。",
+    "credential_access_required": "「{{accountName}}」の認証情報へのアクセスが必要です。アカウント設定で「接続確認」を実行し、macOS の確認が出たら許可してください。許可されるまで自動再試行は停止します。",
     "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます",
     "mutation_labels": {
       "mark_read": "記事の既読化",

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { sampleAccounts, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
@@ -2523,28 +2524,100 @@ describe("Sidebar", () => {
     });
   });
 
-  it("opens settings for an account waiting for credential access without changing the selected account", async () => {
-    const user = userEvent.setup();
-    setupTauriMocks((cmd, args) => {
-      if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
-        return {
-          last_success_at: null,
-          last_error: null,
-          error_count: 1,
-          next_retry_at: null,
-          waiting_for_credential_access: true,
-        };
-      }
-      return undefined;
+  describe("account waiting for credential access", () => {
+    const waitingStatus = {
+      last_success_at: null,
+      last_error: null,
+      error_count: 1,
+      next_retry_at: null,
+      waiting_for_credential_access: true,
+    };
+    const attentionName = /FreshRSS: sync paused, waiting for credential access.*Select to check the connection/;
+    let credentialAccessAllowed: boolean;
+    let connectionChecks: string[];
+
+    function setupWaitingAccount(testConnection: () => unknown) {
+      credentialAccessAllowed = false;
+      connectionChecks = [];
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
+          return credentialAccessAllowed
+            ? { ...waitingStatus, error_count: 0, waiting_for_credential_access: false }
+            : waitingStatus;
+        }
+        if (cmd === "test_account_connection") {
+          connectionChecks.push(String(args.accountId));
+          return testConnection();
+        }
+        return undefined;
+      });
+    }
+
+    it("checks the connection in place and drops the row once access is granted", async () => {
+      const user = userEvent.setup();
+      setupWaitingAccount(() => {
+        credentialAccessAllowed = true;
+        return sampleAccounts.find((account) => account.id === "acc-2");
+      });
+      render(<Sidebar />, { wrapper: createWrapper() });
+      const attention = await screen.findByRole("button", { name: attentionName });
+      const selectedBefore = usePreferencesStore.getState().prefs.selected_account_id;
+      const settingsAccountBefore = useUiStore.getState().settingsAccountId;
+
+      await user.click(attention);
+
+      await waitFor(() => {
+        expect(connectionChecks).toEqual(["acc-2"]);
+      });
+      await waitFor(() => {
+        expect(screen.queryByRole("button", { name: attentionName })).not.toBeInTheDocument();
+      });
+      expect(useUiStore.getState().settingsAccountId).toBe(settingsAccountBefore);
+      expect(usePreferencesStore.getState().prefs.selected_account_id).toBe(selectedBefore);
     });
-    render(<Sidebar />, { wrapper: createWrapper() });
-    const attention = await screen.findByRole("button", {
-      name: /FreshRSS needs a connection check.*Open account settings/,
+
+    it("opens account settings and shows the failure when the connection check fails", async () => {
+      const user = userEvent.setup();
+      setupWaitingAccount(() => {
+        throw { type: "UserVisible", message: "Keychain access denied" };
+      });
+      render(<Sidebar />, { wrapper: createWrapper() });
+      const attention = await screen.findByRole("button", { name: attentionName });
+      const selectedBefore = usePreferencesStore.getState().prefs.selected_account_id;
+
+      await user.click(attention);
+
+      await waitFor(() => {
+        expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+      });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Connection check failed for 'FreshRSS': Keychain access denied",
+        severity: "error",
+      });
+      expect(usePreferencesStore.getState().prefs.selected_account_id).toBe(selectedBefore);
+      expect(screen.getByRole("button", { name: attentionName })).toBeInTheDocument();
     });
-    const selectedBefore = usePreferencesStore.getState().prefs.selected_account_id;
-    await user.click(attention);
-    expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
-    expect(usePreferencesStore.getState().prefs.selected_account_id).toBe(selectedBefore);
+
+    it("ignores presses while the connection check is running and shows the checking state", async () => {
+      const user = userEvent.setup();
+      const check = createDeferred<unknown>();
+      setupWaitingAccount(() => check.promise);
+      render(<Sidebar />, { wrapper: createWrapper() });
+      const attention = await screen.findByRole("button", { name: attentionName });
+
+      await user.click(attention);
+      const checking = await screen.findByRole("button", { name: /FreshRSS.*Checking connection…/ });
+      expect(checking).toBeDisabled();
+      await user.click(checking);
+
+      expect(connectionChecks).toEqual(["acc-2"]);
+
+      credentialAccessAllowed = true;
+      check.resolve(sampleAccounts.find((account) => account.id === "acc-2"));
+      await waitFor(() => {
+        expect(screen.queryByRole("button", { name: /FreshRSS.*Checking connection…/ })).not.toBeInTheDocument();
+      });
+    });
   });
 
   it("spins the sync button for manual account sync progress", async () => {
