@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 import { Copy, Globe, Pencil, RefreshCw, Rss } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { Button, FeedDetailPanel, FeedFavicon, LabelChip, SurfaceCard } from "@/design-system";
@@ -16,7 +16,7 @@ import type {
   SubscriptionDetailMetrics,
   SubscriptionListRow,
 } from "@/lib/subscriptions/subscriptions-index.types";
-import { SubscriptionActionRail } from "./subscription-action-rail";
+import { SubscriptionActionRail, type SubscriptionRailFocusHandoff } from "./subscription-action-rail";
 
 type FetchErrorLabels = {
   heading: string;
@@ -424,6 +424,9 @@ export function SubscriptionDetailPane({
   isRetryingFeed = () => false,
   onCopyDiagnosticId = () => undefined,
 }: SubscriptionDetailPaneProps) {
+  // Lives in the pane, which survives selection changes, so a decision click
+  // in one row's rail can hand focus to the rail mounted for the next row.
+  const railFocusHandoffRef = useRef<SubscriptionRailFocusHandoff | null>(null);
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const hasFetchError = Boolean(fetchError?.error_kind);
@@ -510,7 +513,14 @@ export function SubscriptionDetailPane({
             </div>
           </div>
 
-          {actionRail ? <SubscriptionActionRail key={`${row.feed.id}-action-rail`} actionRail={actionRail} /> : null}
+          {actionRail ? (
+            <SubscriptionActionRail
+              key={`${row.feed.id}-action-rail`}
+              actionRail={actionRail}
+              feedId={row.feed.id}
+              focusHandoffRef={railFocusHandoffRef}
+            />
+          ) : null}
         </>
       )}
     </section>

@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 import { Check, Pencil, Trash2, Undo2 } from "lucide-react";
-import { useRef } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { DecisionButton, LabelChip, SurfaceCard, WorkspaceManagementActionButton } from "@/design-system";
 import type { SubscriptionActionRail as SubscriptionActionRailModel } from "@/lib/subscriptions/subscriptions-index";
@@ -33,16 +33,83 @@ function KeptStatusRow({ chipLabel, effectLabel }: { chipLabel: string; effectLa
   );
 }
 
+/**
+ * A decision click arms this handoff so the rail mounted for the repaired
+ * selection can take over focus. It is armed on every decision click and
+ * consumed by the next rail mount; when the row stays put, the decision
+ * change below disarms it instead.
+ */
+export type SubscriptionRailFocusHandoff = {
+  fromFeedId: string;
+  focusWasInRail: boolean;
+};
+
+export type SubscriptionActionRailProps = {
+  actionRail: SubscriptionActionRailModel;
+  feedId: string;
+  focusHandoffRef: RefObject<SubscriptionRailFocusHandoff | null>;
+};
+
 // Every child keeps a fixed key and component type across states, so the edit button keeps its DOM node and focus.
-export function SubscriptionActionRail({ actionRail }: { actionRail: SubscriptionActionRailModel }) {
+export function SubscriptionActionRail({ actionRail, feedId, focusHandoffRef }: SubscriptionActionRailProps) {
   const { decision } = actionRail;
+  const decisionRef = useRef<HTMLButtonElement>(null);
   const editRef = useRef<HTMLButtonElement>(null);
+  const deleteRef = useRef<HTMLButtonElement>(null);
   const presentation = decision ? DECISION_PRESENTATION[decision.kind] : null;
+  const decisionKind = decision?.kind ?? null;
+  const previousDecisionKindRef = useRef(decisionKind);
+
+  // When a decision removes the selected row, selection repair mounts a rail
+  // for the next row. Take focus over only when the click came from a focused
+  // rail and nothing else has claimed focus since (a live focus target means
+  // the user has already moved on, e.g. to the filter bar after emptying the
+  // list). The target is the same role: the decision button when the new row
+  // has one, otherwise the edit button.
+  useLayoutEffect(() => {
+    const handoff = focusHandoffRef.current;
+    if (!handoff) {
+      return;
+    }
+    focusHandoffRef.current = null;
+    if (!handoff.focusWasInRail || handoff.fromFeedId === feedId) {
+      return;
+    }
+    const activeElement = document.activeElement;
+    if (activeElement !== null && activeElement !== document.body) {
+      return;
+    }
+    (decisionRef.current ?? editRef.current)?.focus();
+  }, [feedId, focusHandoffRef]);
+
+  // A decision that keeps the row selected flips the decision in place
+  // (keep <-> unkeep, or the decision disappears). That settles the click, so
+  // the armed handoff must not leak into a later, unrelated rail mount.
+  useEffect(() => {
+    if (previousDecisionKindRef.current === decisionKind) {
+      return;
+    }
+    previousDecisionKindRef.current = decisionKind;
+    if (focusHandoffRef.current?.fromFeedId === feedId) {
+      focusHandoffRef.current = null;
+    }
+  }, [decisionKind, feedId, focusHandoffRef]);
 
   const handleDecisionClick = () => {
     if (!decision) {
       return;
     }
+    // Record focus before the evacuation below moves it: the handoff only
+    // applies when the decision was driven from a focused rail.
+    const activeElement = document.activeElement;
+    focusHandoffRef.current = {
+      fromFeedId: feedId,
+      focusWasInRail:
+        activeElement !== null &&
+        (activeElement === decisionRef.current ||
+          activeElement === editRef.current ||
+          activeElement === deleteRef.current),
+    };
     if (!decision.remainsAfterClick) {
       editRef.current?.focus();
     }
@@ -64,6 +131,7 @@ export function SubscriptionActionRail({ actionRail }: { actionRail: Subscriptio
       {decision && presentation ? (
         <DecisionButton
           key="decision"
+          ref={decisionRef}
           intent={presentation.intent}
           size="lg"
           aria-label={decision.label}
@@ -87,6 +155,7 @@ export function SubscriptionActionRail({ actionRail }: { actionRail: Subscriptio
       </WorkspaceManagementActionButton>
       <WorkspaceManagementActionButton
         key="delete"
+        ref={deleteRef}
         intent="delete"
         label={actionRail.deleteLabel}
         className={railButtonVariants({ fullWidth: false })}
