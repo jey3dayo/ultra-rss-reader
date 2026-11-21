@@ -146,13 +146,6 @@ function ResultNotice({ outcome, succeededCount, failedRows, skippedCount }: Res
       </SurfaceCard>
     );
   }
-  if (outcome === "busy") {
-    return (
-      <SurfaceCard variant="info" tone="warning" padding="compact" role="alert">
-        <p className="text-sm">{t("bulk_result_busy", { count: skippedCount })}</p>
-      </SurfaceCard>
-    );
-  }
   if (outcome === "cancelled") {
     return (
       <SurfaceCard variant="info" tone="subtle" padding="compact" role="status">
@@ -232,7 +225,7 @@ function RunningActions({ run }: { run: BulkRun }) {
 function ResultActions({ run, onClose }: { run: BulkRun; onClose: BulkUnsubscribeDialogProps["onClose"] }) {
   const { t } = useTranslation("subscriptions");
   const { t: tc } = useTranslation("common");
-  const canRetry = run.outcome === "partial" || run.outcome === "busy";
+  const canRetry = run.outcome === "partial";
 
   return (
     <div className={ACTION_ROW_CLASS_NAME}>
@@ -340,6 +333,11 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
               {t("bulk_dialog_progress", { done: run.settledCount, total: entries.length })}
             </p>
           )}
+          {running && run.waitingForSync ? (
+            <p role="status" className="text-xs text-foreground-soft">
+              {t("bulk_dialog_waiting_for_sync")}
+            </p>
+          ) : null}
         </DialogHeader>
         <ScrollArea className="h-64 rounded-md border border-border/60" keyboardScrollable>
           {keptEntries.length > 0 ? (

@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import i18n from "@/lib/i18n";
+import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import { useBulkUnsubscribeStore } from "@/stores/bulk-unsubscribe-store";
 import { useUiStore } from "@/stores/ui-store";
 import { executeRun } from "./bulk-unsubscribe-run";
@@ -20,8 +21,12 @@ export function BulkUnsubscribeRunner() {
         });
       }
     });
+    const disposeListeners = attachTauriListeners([
+      listenTauriEvent("sync-completed", () => useBulkUnsubscribeStore.getState().notifySyncCompleted()),
+    ]);
     return () => {
       unsubscribe();
+      disposeListeners();
       setRunnerMounted(false);
     };
   }, [queryClient, showToast]);

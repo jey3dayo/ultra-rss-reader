@@ -91,6 +91,7 @@ export function useBulkUnsubscribeFeeds({ open, accountId, onSettled, onClose }:
     rows: state.rows,
     outcome: state.outcome,
     stopRequested: state.stopRequested,
+    waitingForSync: state.waitingForSync,
     settledCount,
     retryCount: retryQueue.length,
     start,

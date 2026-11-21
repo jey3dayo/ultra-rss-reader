@@ -123,6 +123,7 @@
   "bulk_dialog_confirm_aria_one": "Unsubscribe from 1 feed. This cannot be undone.",
   "bulk_dialog_confirm_aria_other": "Unsubscribe from {{count, count}} feeds. This cannot be undone.",
   "bulk_dialog_progress": "{{done, count}} / {{total, count}}",
+  "bulk_dialog_waiting_for_sync": "Waiting for a sync or other maintenance to finish. This will continue automatically afterward.",
   "bulk_dialog_stop": "Stop",
   "bulk_dialog_stopping": "Stopping…",
   "bulk_dialog_retry": "Retry ({{count, count}})",
@@ -132,7 +133,6 @@
   "bulk_row_failed": "Failed",
   "bulk_row_skipped": "Not run",
   "bulk_result_partial": "Unsubscribed from {{succeeded, count}}. {{failed, count}} could not be unsubscribed.",
-  "bulk_result_busy": "Stopped because a sync is running. {{count, count}} not run. Retry after the sync finishes.",
   "bulk_result_cancelled": "Stopped. Unsubscribed from {{succeeded, count}}; {{skipped, count}} not run.",
   "bulk_toast_done_one": "Unsubscribed from 1 feed",
   "bulk_toast_done_other": "Unsubscribed from {{count, count}} feeds"
