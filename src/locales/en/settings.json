@@ -364,7 +364,7 @@
     "sync_local_feed_failures": "Sync completed. Some feeds could not be updated ({{count}}).",
     "next_automatic_retry": "Next automatic retry",
     "automatic_sync_status": "Automatic sync",
-    "automatic_sync_paused_needs_connection_test": "Paused - connection test required",
+    "automatic_sync_paused_needs_connection_test": "Paused - run Check connection",
     "consecutive_sync_failures": "Consecutive sync failures",
     "consecutive_sync_failures_value": "{{count}} failures",
     "last_sync_success": "Last synced",

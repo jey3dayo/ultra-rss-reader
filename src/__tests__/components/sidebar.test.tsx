@@ -2532,7 +2532,7 @@ describe("Sidebar", () => {
       next_retry_at: null,
       waiting_for_credential_access: true,
     };
-    const attentionName = /FreshRSS: sync paused, waiting for credential access.*Select to check the connection/;
+    const attentionName = /FreshRSS: sync paused.*Select to check the connection/;
     let credentialAccessAllowed: boolean;
     let connectionChecks: string[];
 

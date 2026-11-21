@@ -39,15 +39,40 @@ describe("useAccountCredentialAccessCheck", () => {
     cleanup();
   });
 
-  it("keeps account settings closed and reports no toast when the check succeeds", async () => {
+  it("keeps account settings closed and confirms with a toast when the check succeeds", async () => {
     testAccountConnection.mockResolvedValue(Result.succeed(verifiedAccount));
     const { result } = renderHook(() => useAccountCredentialAccessCheck(), { wrapper: createWrapper() });
 
     await act(() => result.current.checkConnection(account));
 
     expect(useUiStore.getState().settingsAccountId).toBeNull();
-    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "Connection to 'FreshRSS' confirmed. Automatic sync resumes.",
+    );
     expect(result.current.isChecking(account.id)).toBe(false);
+  });
+
+  it.each([
+    { cause: "canceled", guidance: "Access was canceled. Select the row again and allow it." },
+    { cause: "not_allowed", guidance: "Access was not allowed. Select the row again and allow it." },
+    { cause: "read_failed", guidance: "Credentials could not be read. Check the account settings." },
+  ] as const)("explains a $cause credential failure without the raw backend message", async ({ cause, guidance }) => {
+    testAccountConnection.mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "Keychain error: User canceled the operation.",
+        credential_failure: { target: "password", cause },
+      }),
+    );
+    const { result } = renderHook(() => useAccountCredentialAccessCheck(), { wrapper: createWrapper() });
+
+    await act(() => result.current.checkConnection(account));
+
+    expect(useUiStore.getState().settingsAccountId).toBe(account.id);
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: `Connection check failed for 'FreshRSS'. ${guidance}`,
+      severity: "error",
+    });
   });
 
   it("opens account settings with a toast when the command rejects", async () => {
@@ -105,7 +130,8 @@ describe("useAccountCredentialAccessCheck", () => {
     );
   });
 
-  it("allows another check after the failure feedback itself throws", async () => {
+  it("logs and allows another check when the failure feedback itself throws", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
     testAccountConnection.mockResolvedValue(Result.fail({ type: "UserVisible", message: "Keychain access denied" }));
     useUiStore.setState({
       showToast: () => {
@@ -114,10 +140,12 @@ describe("useAccountCredentialAccessCheck", () => {
     });
     const { result } = renderHook(() => useAccountCredentialAccessCheck(), { wrapper: createWrapper() });
 
-    await act(() => result.current.checkConnection(account).catch(() => undefined));
+    await act(() => result.current.checkConnection(account));
+    expect(logged).toHaveBeenCalledWith("Failed to finish the credential access check:", expect.any(Error));
     expect(result.current.isChecking(account.id)).toBe(false);
 
-    await act(() => result.current.checkConnection(account).catch(() => undefined));
+    await act(() => result.current.checkConnection(account));
     expect(testAccountConnection).toHaveBeenCalledTimes(2);
+    logged.mockRestore();
   });
 });
