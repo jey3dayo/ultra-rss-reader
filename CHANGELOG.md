@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.34] - 2026-11-21
+
 ### Features
 
 - FreshRSS 経由の bridge フィードについて、FreshRSS 側で取得できなくなったものを購読一覧で「取得に失敗」と表示するようにしました。詳細には FreshRSS が最後に取得できた日時（最終成功）を表示します。これまで連載側の都合で止まったフィードが「長期未更新」とだけ表示され、購読をやめる判断材料になっていました。失敗の種別は FreshRSS が保持しないため表示しません。 (#766)
