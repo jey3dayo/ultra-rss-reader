@@ -3,8 +3,8 @@ import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { NavRowButton } from "@/design-system";
 import { useAccountSyncStatuses } from "@/hooks/use-account-sync-statuses";
-import { useUiStore } from "@/stores/ui-store";
 import { type AccountSwitcherProps, AccountSwitcherView } from "./account-switcher-view";
+import { useAccountCredentialAccessCheck } from "./hooks/sidebar/use-account-credential-access-check";
 
 export type SidebarAccountSectionProps = AccountSwitcherProps & {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -33,6 +33,7 @@ export function SidebarAccountSection({
 }: SidebarAccountSectionProps) {
   const { t } = useTranslation("sidebar");
   const statuses = useAccountSyncStatuses(accounts);
+  const { checkConnection, isChecking } = useAccountCredentialAccessCheck();
   return (
     <div ref={containerRef}>
       <AccountSwitcherView
@@ -53,19 +54,26 @@ export function SidebarAccountSection({
       />
       {accounts
         .filter((account) => statuses[account.id]?.waiting_for_credential_access)
-        .map((account) => (
-          <div className="px-3 pb-2" key={account.id}>
-            <NavRowButton
-              tone="sidebar"
-              title={t("account_connection_attention", { account: account.name })}
-              description={t("open_account_settings")}
-              leading={<AlertCircle aria-hidden="true" className="size-4" />}
-              onClick={() => useUiStore.getState().openSettingsAccount(account.id)}
-              aria-label={`${t("account_connection_attention", { account: account.name })} — ${t("open_account_settings")}`}
-              className="min-h-11 items-center gap-2 text-sm"
-            />
-          </div>
-        ))}
+        .map((account) => {
+          const checking = isChecking(account.id);
+          const title = t("account_connection_attention", { account: account.name });
+          const description = t(checking ? "account_connection_checking" : "account_connection_check_prompt");
+          return (
+            <div className="px-3 pb-2" key={account.id}>
+              <NavRowButton
+                tone="sidebar"
+                title={title}
+                description={description}
+                leading={<AlertCircle aria-hidden="true" className="size-4" />}
+                onClick={() => void checkConnection(account)}
+                disabled={checking}
+                aria-busy={checking}
+                aria-label={`${title} — ${description}`}
+                className="min-h-11 items-center gap-2 text-sm"
+              />
+            </div>
+          );
+        })}
       <div className="px-3 pb-3">
         <NavRowButton
           tone="sidebar"

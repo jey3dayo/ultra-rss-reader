@@ -20,8 +20,17 @@
   "settings": "設定",
   "theme_toggle": "テーマを切り替え",
   "account_settings": "アカウント設定",
-  "account_connection_attention": "{{account}} の接続確認が必要",
-  "open_account_settings": "アカウント設定を開く",
+  "account_connection_attention": "{{account}}: 同期停止中",
+  "account_connection_check_prompt": "認証情報へのアクセスが未許可です。押すと接続を確認します。macOS の確認が出たら許可してください",
+  "account_connection_checking": "接続を確認しています…",
+  "account_connection_check_failed": "「{{account}}」の接続確認に失敗しました: {{message}}",
+  "account_connection_check_failed_reason": "「{{account}}」の接続確認に失敗しました。{{reason}}",
+  "account_connection_check_succeeded": "「{{account}}」の接続を確認しました。自動同期を再開します",
+  "account_credential_failure": {
+    "canceled": "アクセスの許可がキャンセルされました。もう一度押して、許可してください。",
+    "not_allowed": "アクセスが許可されませんでした。もう一度押して、許可してください。",
+    "other": "認証情報を読み取れませんでした。アカウント設定で状態を確認してください。"
+  },
   "checking_sync_status": "同期履歴を確認中…",
   "not_synced_yet": "未同期",
   "today_at": "今日 {{time}}",
@@ -77,7 +86,7 @@
     "startup_repair_marker_failed": "起動時の修復完了マーカーを保存できませんでした: {{message}}",
     "scheduler_load_failed": "スケジュール同期でアカウントを読み込めませんでした: {{message}}",
     "backoff_persist_failed": "「{{accountName}}」の再試行状態を保存できませんでした: {{message}}",
-    "credential_access_required": "「{{accountName}}」の認証情報へのアクセスが必要です。アカウント設定で接続確認を実行してください。許可要求の自動再試行は停止しています。",
+    "credential_access_required": "「{{accountName}}」の認証情報へのアクセスが必要です。アカウント設定で「接続確認」を実行し、macOS の確認が出たら許可してください。許可されるまで自動再試行は停止します。",
     "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます",
     "mutation_labels": {
       "mark_read": "記事の既読化",
