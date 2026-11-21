@@ -183,6 +183,7 @@ export type UiActions = {
     returnState: SubscriptionsWorkspaceReturnState,
     preserveRequest?: boolean,
   ) => void;
+  retainSubscriptionsIndexState: (returnState: SubscriptionsWorkspaceReturnState) => void;
   consumeSubscriptionsNavigationRequest: (request: SubscriptionsIndexNavigationRequest) => void;
   applySyncProgress: (event: SyncProgressEventDto) => void;
   clearSyncProgress: () => void;
@@ -332,6 +333,7 @@ export type UiStoreReaderActions = Pick<
   | "openSubscriptionsIndex"
   | "closeSubscriptionsWorkspace"
   | "switchSubscriptionsAccount"
+  | "retainSubscriptionsIndexState"
   | "consumeSubscriptionsNavigationRequest"
   | "addRecentlyRead"
   | "removeRecentlyRead"
