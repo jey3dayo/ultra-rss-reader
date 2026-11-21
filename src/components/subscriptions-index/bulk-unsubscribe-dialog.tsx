@@ -329,7 +329,7 @@ export function BulkUnsubscribeDialog({ open, accountId, targets, onSettled, onC
       <DialogContent
         showCloseButton={false}
         initialFocus={run.phase === "confirm" ? confirmButtonRef : undefined}
-        className="sm:max-w-lg"
+        className="grid-cols-[minmax(0,1fr)] sm:max-w-lg"
         aria-busy={running}
       >
         <DialogHeader>
