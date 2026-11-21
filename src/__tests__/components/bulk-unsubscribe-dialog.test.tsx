@@ -141,6 +141,15 @@ describe("BulkUnsubscribeDialog", () => {
     });
   });
 
+  it("pins the dialog to a single shrinkable column so a long feed title cannot widen the list past the dialog", async () => {
+    setupDeleteFeed();
+    renderDialog([makeTarget("a")]);
+
+    const dialog = await screen.findByRole("dialog");
+
+    expect(dialog).toHaveClass("grid-cols-[minmax(0,1fr)]");
+  });
+
   it("unsubscribes one feed at a time, then toasts once and closes when every feed succeeds", async () => {
     const user = userEvent.setup();
     const { calls, maxActive } = setupDeleteFeed({
