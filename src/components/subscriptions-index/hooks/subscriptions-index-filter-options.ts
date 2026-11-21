@@ -7,6 +7,35 @@ import type {
 import type { SubscriptionsFilterBarModel } from "../subscriptions-filter-bar";
 import { areQueriesReady, type QueryLoadState } from "./subscriptions-index-load-state";
 
+export type SubscriptionsFetchStatuses = {
+  applicable: boolean;
+  hasData: boolean;
+  pending: boolean;
+  error: boolean;
+};
+
+type FetchStatusSource = { hasData: boolean; pending: boolean; error: boolean };
+
+/**
+ * Local accounts report fetch errors from the local sync statuses and
+ * FreshRSS accounts from the remote (Fever) ones; the filter bar only needs
+ * the combined readiness of whichever source applies.
+ */
+export function resolveSubscriptionsFetchStatuses(params: {
+  isLocalAccount: boolean;
+  local: FetchStatusSource;
+  isFreshRssAccount: boolean;
+  remote: FetchStatusSource;
+}): SubscriptionsFetchStatuses {
+  const { isLocalAccount, local, isFreshRssAccount, remote } = params;
+  return {
+    applicable: isLocalAccount || isFreshRssAccount,
+    hasData: (isLocalAccount && local.hasData) || (isFreshRssAccount && remote.hasData),
+    pending: (isLocalAccount && local.pending) || (isFreshRssAccount && remote.pending),
+    error: (isLocalAccount && local.error) || (isFreshRssAccount && remote.error),
+  };
+}
+
 export function buildSubscriptionsFilterBarModel(params: {
   rows: SubscriptionListRow[];
   keptFeedIds: ReadonlySet<string>;
@@ -14,7 +43,7 @@ export function buildSubscriptionsFilterBarModel(params: {
   accountSelected: boolean;
   feeds: QueryLoadState;
   summaries: QueryLoadState;
-  fetchStatuses: { applicable: boolean; hasData: boolean; pending: boolean; error: boolean };
+  fetchStatuses: SubscriptionsFetchStatuses;
   labels: {
     group: string;
     all: string;

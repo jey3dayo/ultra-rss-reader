@@ -4,7 +4,7 @@ import { getRemoteFeedSyncStatuses } from "@/api/tauri-commands";
 import { useAccounts } from "@/hooks/use-accounts";
 import { queryKeys } from "@/lib/query/query-invalidation";
 
-export const remoteFeedSyncStatusesQueryKey = (accountId: string | null) =>
+const remoteFeedSyncStatusesQueryKey = (accountId: string | null) =>
   queryKeys.remoteFeedSyncStatuses.byAccount(accountId);
 
 export function useRemoteFeedSyncStatuses(accountId: string | null) {

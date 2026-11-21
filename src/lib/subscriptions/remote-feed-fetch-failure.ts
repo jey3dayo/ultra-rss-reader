@@ -12,7 +12,7 @@ export type RemoteFeedFetchFailure = {
  * consecutive missed refreshes, while a FreshRSS-wide outage stops every
  * feed together and produces no lag (and therefore no failure flags).
  */
-export const REMOTE_FEED_FETCH_FAILURE_LAG_MS = 48 * 60 * 60 * 1000;
+const REMOTE_FEED_FETCH_FAILURE_LAG_MS = 48 * 60 * 60 * 1000;
 
 const BRIDGE_SERVICE_NAME = "manga-feeds";
 const CLUSTER_SERVICE_SUFFIX = ".svc.cluster.local";

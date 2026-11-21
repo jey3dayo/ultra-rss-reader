@@ -56,6 +56,24 @@ function toQueryLoadState(query: {
   };
 }
 
+function resolveSubscriptionsRowsPending(params: {
+  feedsPending: boolean;
+  summariesPending: boolean;
+  accountsPending: boolean;
+  localStatusesApplicable: boolean;
+  localStatusesPending: boolean;
+  remoteStatusesApplicable: boolean;
+  remoteStatusesPending: boolean;
+}): boolean {
+  return (
+    params.feedsPending ||
+    params.summariesPending ||
+    params.accountsPending ||
+    (params.localStatusesApplicable && params.localStatusesPending) ||
+    (params.remoteStatusesApplicable && params.remoteStatusesPending)
+  );
+}
+
 type IndexHandle = {
   captureState: () => SubscriptionsWorkspaceReturnState;
   navigate: (filter: SubscriptionSummaryFilterKey) => void;
@@ -257,13 +275,15 @@ function SubscriptionsIndexPageForAccount({
     remoteFeedSyncStatusesError: remoteFeedSync.statusQuery.isError,
     feedLoad: toQueryLoadState(feedQuery),
     summaryLoad: toQueryLoadState(summaryQuery),
-    rowsPending:
-      feedQuery.isPending ||
-      summaryQuery.isPending ||
-      localFeedSync.accountsPending ||
-      remoteFeedSync.accountsPending ||
-      (localFeedSync.isLocalAccount && localFeedSync.statusQuery.isPending) ||
-      (remoteFeedSync.isFreshRssAccount && remoteFeedSync.statusQuery.isPending),
+    rowsPending: resolveSubscriptionsRowsPending({
+      feedsPending: feedQuery.isPending,
+      summariesPending: summaryQuery.isPending,
+      accountsPending: localFeedSync.accountsPending || remoteFeedSync.accountsPending,
+      localStatusesApplicable: localFeedSync.isLocalAccount,
+      localStatusesPending: localFeedSync.statusQuery.isPending,
+      remoteStatusesApplicable: remoteFeedSync.isFreshRssAccount,
+      remoteStatusesPending: remoteFeedSync.statusQuery.isPending,
+    }),
     onRetryFeed: localFeedSync.retryFeed,
     retryOutcomeFor: localFeedSync.retryOutcomeFor,
     onEditFeed: (feedId) => {

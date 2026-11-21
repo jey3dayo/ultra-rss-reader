@@ -42,7 +42,10 @@ import {
   attachRemoteFeedFetchFailures,
   resolveSubscriptionsEmptyLabel,
 } from "./subscriptions-index-fetch-error-summary";
-import { buildSubscriptionsFilterBarModel } from "./subscriptions-index-filter-options";
+import {
+  buildSubscriptionsFilterBarModel,
+  resolveSubscriptionsFetchStatuses,
+} from "./subscriptions-index-filter-options";
 import { isQueryUnavailable, type QueryLoadState, resolveListLoadState } from "./subscriptions-index-load-state";
 import { useSubscriptionActionRail } from "./use-subscription-action-rail";
 import { useSubscriptionsKeptBanner } from "./use-subscriptions-kept-banner";
@@ -234,14 +237,20 @@ export function useSubscriptionsIndexViewProps({
     accountSelected: selectedAccountId !== null,
     feeds: feedLoad,
     summaries: summaryLoad,
-    fetchStatuses: {
-      applicable: isLocalAccount || isFreshRssAccount,
-      hasData:
-        (isLocalAccount && feedSyncStatuses !== undefined) ||
-        (isFreshRssAccount && remoteFeedSyncStatuses !== undefined),
-      pending: (isLocalAccount && feedSyncStatusesPending) || (isFreshRssAccount && remoteFeedSyncStatusesPending),
-      error: (isLocalAccount && feedSyncStatusesError) || (isFreshRssAccount && remoteFeedSyncStatusesError),
-    },
+    fetchStatuses: resolveSubscriptionsFetchStatuses({
+      isLocalAccount,
+      local: {
+        hasData: feedSyncStatuses !== undefined,
+        pending: feedSyncStatusesPending,
+        error: feedSyncStatusesError,
+      },
+      isFreshRssAccount,
+      remote: {
+        hasData: remoteFeedSyncStatuses !== undefined,
+        pending: remoteFeedSyncStatusesPending,
+        error: remoteFeedSyncStatusesError,
+      },
+    }),
     labels: {
       group: t("summary_region_label"),
       all: t("summary_total"),

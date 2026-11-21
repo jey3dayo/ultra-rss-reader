@@ -323,6 +323,62 @@ function RemoteFetchFailureDetailCard({ labels, formattedLastSuccess }: RemoteFe
   );
 }
 
+type SubscriptionFetchStatusCardProps = {
+  fetchError: LocalFeedSyncStatusDto | null | undefined;
+  fetchErrorLabels: FetchErrorLabels;
+  remoteFetchFailure: { lastSuccessAt: string } | null;
+  remoteFetchFailureLabels: NonNullable<SubscriptionDetailPaneProps["remoteFetchFailureLabels"]>;
+  retryOutcome: FeedRetryOutcomeKind | null | undefined;
+  formattedLastAttempt: string | null;
+  dateLocale: string;
+  feedId: string;
+  onRetryFeed: (feedId: string) => void;
+  onEditFeed: () => void;
+  isRetryingFeed: (feedId: string) => boolean;
+  onCopyDiagnosticId: (diagnosticId: string) => void;
+};
+
+function SubscriptionFetchStatusCard({
+  fetchError,
+  fetchErrorLabels,
+  remoteFetchFailure,
+  remoteFetchFailureLabels,
+  retryOutcome,
+  formattedLastAttempt,
+  dateLocale,
+  feedId,
+  onRetryFeed,
+  onEditFeed,
+  isRetryingFeed,
+  onCopyDiagnosticId,
+}: SubscriptionFetchStatusCardProps) {
+  if (fetchError?.error_kind) {
+    return (
+      <FetchErrorDetailCard
+        errorKind={fetchError.error_kind}
+        labels={fetchErrorLabels}
+        retryOutcome={retryOutcome ?? null}
+        formattedLastAttempt={formattedLastAttempt}
+        diagnosticId={fetchError.diagnostic_id}
+        feedId={feedId}
+        onRetryFeed={onRetryFeed}
+        onEditFeed={onEditFeed}
+        isRetryingFeed={isRetryingFeed}
+        onCopyDiagnosticId={onCopyDiagnosticId}
+      />
+    );
+  }
+  if (remoteFetchFailure) {
+    return (
+      <RemoteFetchFailureDetailCard
+        labels={remoteFetchFailureLabels}
+        formattedLastSuccess={formatShortDateTime(remoteFetchFailure.lastSuccessAt, dateLocale)}
+      />
+    );
+  }
+  return null;
+}
+
 export function SubscriptionDetailPane({
   heading,
   emptyLabel,
@@ -398,25 +454,20 @@ export function SubscriptionDetailPane({
             className={`${MOTION_CONTENT_SWAP_CLASS_NAME} lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
           >
             <div className="flex w-full flex-col gap-3.5 pb-4 pt-0.5 lg:min-h-full">
-              {fetchError?.error_kind ? (
-                <FetchErrorDetailCard
-                  errorKind={fetchError.error_kind}
-                  labels={fetchErrorLabels}
-                  retryOutcome={retryOutcome}
-                  formattedLastAttempt={formattedLastAttempt}
-                  diagnosticId={fetchError.diagnostic_id}
-                  feedId={row.feed.id}
-                  onRetryFeed={onRetryFeed}
-                  onEditFeed={onEditFeed}
-                  isRetryingFeed={isRetryingFeed}
-                  onCopyDiagnosticId={onCopyDiagnosticId}
-                />
-              ) : hasRemoteFetchFailure ? (
-                <RemoteFetchFailureDetailCard
-                  labels={remoteFetchFailureLabels}
-                  formattedLastSuccess={formatShortDateTime(remoteFetchFailure.lastSuccessAt, dateLocale)}
-                />
-              ) : null}
+              <SubscriptionFetchStatusCard
+                fetchError={fetchError}
+                fetchErrorLabels={fetchErrorLabels}
+                remoteFetchFailure={remoteFetchFailure}
+                remoteFetchFailureLabels={remoteFetchFailureLabels}
+                retryOutcome={retryOutcome}
+                formattedLastAttempt={formattedLastAttempt}
+                dateLocale={dateLocale}
+                feedId={row.feed.id}
+                onRetryFeed={onRetryFeed}
+                onEditFeed={onEditFeed}
+                isRetryingFeed={isRetryingFeed}
+                onCopyDiagnosticId={onCopyDiagnosticId}
+              />
               <FeedDetailPanel
                 surface="low-wire"
                 title={row.feed.title}
