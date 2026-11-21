@@ -107,7 +107,7 @@ export function BulkUnsubscribeRunner() {
       if (state.request !== null && state.request !== previous.request) {
         void executeRun(state.request, {
           queryClient,
-          notifyCompleted: (count) => showToast(i18n.t("bulk_toast_done", { ns: "subscriptions", count })),
+          notifyCompleted: (count) => showToast(i18n.t("subscriptions:bulk_toast_done", { count })),
         });
       }
     });
