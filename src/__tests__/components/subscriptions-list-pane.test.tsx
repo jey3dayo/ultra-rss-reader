@@ -1024,3 +1024,63 @@ describe("SubscriptionsListPane load state", () => {
     expect(screen.getByRole("button", { name: "再試行" })).toHaveAttribute("aria-busy", "true");
   });
 });
+
+describe("SubscriptionsListPane keyboard navigation", () => {
+  function buildKeyboardRows(): SubscriptionListRow[] {
+    return ["alpha", "beta", "gamma"].map((id) => ({
+      feed: buildFeed({ id, title: `${id} feed` }),
+      folderId: null,
+      folderName: null,
+      latestArticleAt: null,
+      latestArticleDays: null,
+      recentArticleCount: 0,
+      status: { labelKey: "normal" },
+      reasonTooltipKey: null,
+    }));
+  }
+
+  it("moves selection and focus with the arrow keys and stops at both ends", () => {
+    const onSelectFeed = vi.fn();
+    renderListPane(buildKeyboardRows(), { onSelectFeed });
+
+    const alpha = screen.getByRole("button", { name: /alpha feed/ });
+    const beta = screen.getByRole("button", { name: /beta feed/ });
+    const gamma = screen.getByRole("button", { name: /gamma feed/ });
+
+    alpha.focus();
+    fireEvent.keyDown(alpha, { key: "ArrowUp" });
+    expect(onSelectFeed).not.toHaveBeenCalled();
+    expect(alpha).toHaveFocus();
+
+    fireEvent.keyDown(alpha, { key: "ArrowDown" });
+    expect(onSelectFeed).toHaveBeenCalledWith("beta");
+    expect(beta).toHaveFocus();
+
+    fireEvent.keyDown(beta, { key: "ArrowDown" });
+    expect(onSelectFeed).toHaveBeenCalledWith("gamma");
+    expect(gamma).toHaveFocus();
+
+    onSelectFeed.mockClear();
+    fireEvent.keyDown(gamma, { key: "ArrowDown" });
+    expect(onSelectFeed).not.toHaveBeenCalled();
+    expect(gamma).toHaveFocus();
+  });
+
+  it("skips rows inside collapsed groups when moving", () => {
+    const onSelectFeed = vi.fn();
+    const rows = buildKeyboardRows();
+    const groups: SubscriptionListGroup[] = [
+      { key: "g1", label: "Group 1", folderId: "folder-1", rows: [rows[0] as SubscriptionListRow] },
+      { key: "g2", label: "Group 2", folderId: "folder-2", rows: [rows[1] as SubscriptionListRow] },
+      { key: "g3", label: "Group 3", folderId: "folder-3", rows: [rows[2] as SubscriptionListRow] },
+    ];
+    renderListPane(rows, { groups, isGroupExpanded: (groupKey) => groupKey !== "g2", onSelectFeed });
+
+    const alpha = screen.getByRole("button", { name: /alpha feed/ });
+    alpha.focus();
+    fireEvent.keyDown(alpha, { key: "ArrowDown" });
+
+    expect(onSelectFeed).toHaveBeenCalledWith("gamma");
+    expect(screen.getByRole("button", { name: /gamma feed/ })).toHaveFocus();
+  });
+});

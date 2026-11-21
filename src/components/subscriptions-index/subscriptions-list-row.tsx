@@ -167,6 +167,7 @@ export function SubscriptionsListRow({
   const rowButton = (
     <button
       type="button"
+      data-feed-id={row.feed.id}
       aria-pressed={selected}
       aria-current={selected ? "page" : undefined}
       onClick={() => onSelectFeed(row.feed.id)}

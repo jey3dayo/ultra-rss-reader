@@ -1,7 +1,15 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import { ChevronDown, Folder } from "lucide-react";
-import { type RefObject, useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
@@ -11,6 +19,8 @@ import {
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
 import { Button } from "@/design-system";
+import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
+import { resolveAdjacentSubscriptionFeedId } from "@/lib/subscriptions/subscription-list-navigation";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { resolveListPaneDisplay } from "./hooks/subscriptions-index-load-state";
@@ -387,6 +397,46 @@ export function SubscriptionsListPane({
     [clearPendingScrollTopCommit, commitPendingScrollTop],
   );
 
+  // Arrow keys move within the visible rows only: collapsed groups keep their
+  // rows in the DOM as inert, so the order comes from the expanded groups
+  // rather than from DOM enumeration. Movement selects as it goes and stops
+  // at both ends (see docs/reader-keyboard-navigation.md). The handler sits on
+  // the pane section, mirroring the sidebar pane, and only acts on events
+  // that start on a row button.
+  const handlePaneKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.defaultPrevented || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) {
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || isImeCommitKeyEvent(event.nativeEvent)) {
+      return;
+    }
+    const target = event.target instanceof Element ? event.target : null;
+    const rowButton = target?.closest<HTMLButtonElement>("[data-feed-id]");
+    if (!rowButton || !event.currentTarget.contains(rowButton)) {
+      return;
+    }
+    const navigableFeedIds = groups
+      .filter((group) => isGroupExpanded(group.key))
+      .flatMap((group) => group.rows.map((row) => row.feed.id));
+    const nextFeedId = resolveAdjacentSubscriptionFeedId(
+      navigableFeedIds,
+      rowButton.dataset.feedId ?? null,
+      event.key === "ArrowDown" ? 1 : -1,
+    );
+    if (nextFeedId === null) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onSelectFeed(nextFeedId);
+    const nextButton = Array.from(
+      scrollRegionRef.current?.querySelectorAll<HTMLButtonElement>("[data-feed-id]") ?? [],
+    ).find((button) => button.dataset.feedId === nextFeedId);
+    nextButton?.focus();
+    nextButton?.scrollIntoView?.({ block: "nearest" });
+  };
+
   return (
     <section
       aria-labelledby={headingId}
@@ -394,6 +444,7 @@ export function SubscriptionsListPane({
       style={{
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
+      onKeyDown={handlePaneKeyDown}
     >
       <SubscriptionsListPaneHeader
         heading={heading}

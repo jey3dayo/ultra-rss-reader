@@ -39,6 +39,9 @@ Keep pane-local behavior close to the pane component. Use the global keyboard ho
 - Article list local handler: `src/components/reader/hooks/article-list/use-article-list-keydown-handler.ts`
 - Article content fallback handling: `src/hooks/use-keyboard.ts`
 - Focus target helpers: `src/lib/reader-focus.ts`
+- Subscriptions list local handler: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
+- Subscriptions adjacent-row resolution: `src/lib/subscriptions/subscription-list-navigation.ts`
+- Subscriptions workspace `Escape` handling: `src/components/subscriptions-index/hooks/use-subscriptions-index-escape.ts`
 
 ## Account Pane
 
@@ -95,6 +98,29 @@ Article content is not a row list. It should prioritize content reading, scrolli
 | `Shift+Space` (customizable `scroll_article_up`) | Scrolls the article content viewport up ~85% of its height, focus-independent, with the same native-activation and browser-overlay guards. No special behavior at the top.                                                                            |
 
 When `ArrowLeft` originates from an article-list row while the app state still says content is focused, route back to the sidebar. This preserves the leftward chain from article content to article list to sidebar.
+
+## Subscriptions Workspace
+
+The subscriptions workspace is a separate surface from the reader panes. Its list pane owns row navigation, following the sidebar pattern of pane-local handling.
+
+| Key         | Behavior                                                                                                                    |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ArrowUp`   | Move focus to the previous visible subscription row and select it. Stop at the top.                                         |
+| `ArrowDown` | Move focus to the next visible subscription row and select it. Stop at the bottom.                                          |
+| `Escape`    | Staged: clear the search query first, then end bulk selection, then close the workspace. Open dialogs and selects go first. |
+
+Rules for the subscription list:
+
+- Only row buttons are on the arrow-key path. Folder disclosure buttons are reached with `Tab` and are never expanded or collapsed by passing through them.
+- Collapsed groups keep their rows in the DOM as inert. The movement order is the displayed order with collapsed groups excluded, resolved from the group data rather than from DOM enumeration.
+- Modified arrow keys (`Meta` / `Ctrl` / `Alt` / `Shift`), IME-owned keystrokes, and events that do not start on a row button (search input, bulk-selection checkboxes) are not handled.
+- Movement does not wrap at either end.
+
+Decision focus rule for the detail pane action rail:
+
+- When a decision (such as marking a feed as excluded from review) removes the selected row and selection repair moves to another row, focus follows to the repaired row's action rail: its decision button when it has one, otherwise its edit button.
+- The handoff applies only when focus was inside the action rail when the decision was clicked, and only when nothing else has claimed focus in the meantime. Focus outside the detail pane is never taken.
+- When the row stays selected, the rail keeps its buttons mounted and focus stays where the existing in-rail behavior puts it. Unsubscribing is out of scope for this rule: its dialog owns focus while open and returns it on close.
 
 ## Reader Focus Return Contract
 

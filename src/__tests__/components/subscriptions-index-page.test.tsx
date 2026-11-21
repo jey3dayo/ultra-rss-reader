@@ -806,6 +806,112 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
   });
 
+  it("hands focus to the repaired row's decision button after a decision removes the selected stale row", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    feedRows = [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Stale One",
+        url: "https://example.com/stale-one.xml",
+        site_url: "https://example.com/stale-one",
+        icon_url: null,
+        unread_count: 0,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+      {
+        id: "feed-3",
+        account_id: "acc-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Stale Two",
+        url: "https://example.com/stale-two.xml",
+        site_url: "https://example.com/stale-two",
+        icon_url: null,
+        unread_count: 0,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ];
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "list_folders") return [];
+      if (cmd === "list_account_articles") {
+        return [
+          {
+            id: "art-1",
+            feed_id: "feed-1",
+            title: "Old article one",
+            content_sanitized: "<p>old</p>",
+            summary: null,
+            url: "https://example.com/stale-one/1",
+            author: null,
+            published_at: "2024-01-01T10:00:00Z",
+            thumbnail: null,
+            is_read: true,
+            is_starred: false,
+          },
+          {
+            id: "art-3",
+            feed_id: "feed-3",
+            title: "Old article two",
+            content_sanitized: "<p>old</p>",
+            summary: null,
+            url: "https://example.com/stale-two/1",
+            author: null,
+            published_at: "2024-06-01T10:00:00Z",
+            thumbnail: null,
+            is_read: true,
+            is_starred: false,
+          },
+        ];
+      }
+      if (cmd === "list_feed_article_summaries") {
+        return [
+          {
+            feed_id: "feed-1",
+            latest_article_at: "2024-01-01T10:00:00Z",
+            last_seen_article_at: null,
+            starred_count: 0,
+            recent_article_count: 0,
+          },
+          {
+            feed_id: "feed-3",
+            latest_article_at: "2024-06-01T10:00:00Z",
+            last_seen_article_at: null,
+            starred_count: 0,
+            recent_article_count: 0,
+          },
+        ];
+      }
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
+
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    expect(await within(detailPane).findByText("Stale One")).toBeInTheDocument();
+    const keepButton = within(detailPane).getByRole("button", { name: "見直し対象外にする" });
+    keepButton.focus();
+    expect(keepButton).toHaveFocus();
+
+    await user.click(keepButton);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Stale One/ })).not.toBeInTheDocument();
+    });
+    expect(within(detailPane).getByText("Stale Two")).toBeInTheDocument();
+    expect(within(detailPane).getByRole("button", { name: "見直し対象外にする" })).toHaveFocus();
+  });
+
   it("shows scoped no-error copy after retry clears the last failure while its filter stays active", async () => {
     const user = userEvent.setup();
     let statusReads = 0;
