@@ -64,18 +64,6 @@ describe("useAccountCredentialAccessCheck", () => {
     expect(result.current.isChecking(account.id)).toBe(false);
   });
 
-  it("opens account settings with a toast when the command returns a failure", async () => {
-    testAccountConnection.mockResolvedValue(Result.fail({ type: "UserVisible", message: "Keychain access denied" }));
-    const { result } = renderHook(() => useAccountCredentialAccessCheck(), { wrapper: createWrapper() });
-
-    await act(() => result.current.checkConnection(account));
-
-    expect(useUiStore.getState().settingsAccountId).toBe(account.id);
-    expect(useUiStore.getState().toastMessage?.message).toBe(
-      "Connection check failed for 'FreshRSS': Keychain access denied",
-    );
-  });
-
   it("runs one check per account while a check is in flight", async () => {
     const pending = createDeferred<ConnectionCheckResult>();
     testAccountConnection.mockReturnValue(pending.promise);

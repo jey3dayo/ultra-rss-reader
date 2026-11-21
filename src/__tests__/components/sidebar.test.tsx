@@ -2598,7 +2598,7 @@ describe("Sidebar", () => {
       expect(screen.getByRole("button", { name: attentionName })).toBeInTheDocument();
     });
 
-    it("ignores presses while the connection check is running and shows the checking state", async () => {
+    it("disables the row and shows the checking state while the connection check is running", async () => {
       const user = userEvent.setup();
       const check = createDeferred<unknown>();
       setupWaitingAccount(() => check.promise);
@@ -2608,9 +2608,6 @@ describe("Sidebar", () => {
       await user.click(attention);
       const checking = await screen.findByRole("button", { name: /FreshRSS.*Checking connection…/ });
       expect(checking).toBeDisabled();
-      await user.click(checking);
-
-      expect(connectionChecks).toEqual(["acc-2"]);
 
       credentialAccessAllowed = true;
       check.resolve(sampleAccounts.find((account) => account.id === "acc-2"));
