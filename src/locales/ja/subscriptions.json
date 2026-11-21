@@ -123,6 +123,7 @@
   "bulk_dialog_confirm_aria_one": "1件のフィードの購読を解除します。元に戻せません。",
   "bulk_dialog_confirm_aria_other": "{{count, count}}件のフィードの購読を解除します。元に戻せません。",
   "bulk_dialog_progress": "{{done, count}} / {{total, count}}件",
+  "bulk_dialog_waiting_for_sync": "同期などの処理が終わるのを待っています。終わり次第、自動で続けます。",
   "bulk_dialog_stop": "中止",
   "bulk_dialog_stopping": "中止しています…",
   "bulk_dialog_retry": "再試行（{{count, count}}件）",
@@ -132,7 +133,6 @@
   "bulk_row_failed": "失敗",
   "bulk_row_skipped": "未実行",
   "bulk_result_partial": "{{succeeded, count}}件の購読を解除しました。{{failed, count}}件は解除できませんでした。",
-  "bulk_result_busy": "同期中のため中断しました。残り{{count, count}}件は実行していません。同期が終わってから再試行してください。",
   "bulk_result_cancelled": "中止しました。{{succeeded, count}}件を解除し、{{skipped, count}}件は実行していません。",
   "bulk_toast_done_one": "1件の購読を解除しました",
   "bulk_toast_done_other": "{{count, count}}件の購読を解除しました"

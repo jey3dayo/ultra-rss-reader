@@ -13,6 +13,7 @@ import {
   useBulkUnsubscribeStore,
 } from "@/stores/bulk-unsubscribe-store";
 import { useUiStore } from "@/stores/ui-store";
+import { nextBusyRetryDelayMs, waitForBusyRetry } from "./bulk-unsubscribe-wait";
 
 type RunDeps = {
   queryClient: QueryClient;
@@ -31,25 +32,43 @@ export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClie
 
   const succeededFeedIds: string[] = [];
   let failureCount = 0;
-  let halt: "busy" | "cancelled" | null = null;
+  let cancelled = false;
   let position = 0;
   let inFlightIndex: number | null = null;
+  let busyDelayMs: number | null = null;
+  let firstAttempt = true;
   try {
     while (position < queue.length && isCurrent()) {
       const stoppedByUser = useBulkUnsubscribeStore.getState().run.stopRequested;
       const accountChanged = useUiStore.getState().subscriptionsWorkspace?.accountId !== accountId;
       if (stoppedByUser || accountChanged) {
-        halt = "cancelled";
+        cancelled = true;
         break;
       }
 
       const index = queue[position];
       const feedId = snapshot[index].row.feed.id;
       inFlightIndex = index;
-      store.rowRunning(index);
+      if (firstAttempt) {
+        store.rowRunning(index);
+        firstAttempt = false;
+      }
+      const syncCompletedSeqAtAttempt = useBulkUnsubscribeStore.getState().syncCompletedSeq;
       const failureMessage = await unsubscribeFeed(feedId);
-      position += 1;
       inFlightIndex = null;
+
+      if (failureMessage !== null && isDatabaseMaintenanceBusyMessage(failureMessage)) {
+        if (isCurrent()) {
+          store.syncWaiting(index);
+        }
+        busyDelayMs = nextBusyRetryDelayMs(busyDelayMs);
+        await waitForBusyRetry({ delayMs: busyDelayMs, runId, accountId, syncCompletedSeqAtAttempt });
+        continue;
+      }
+
+      position += 1;
+      busyDelayMs = null;
+      firstAttempt = true;
 
       if (failureMessage === null) {
         succeededFeedIds.push(feedId);
@@ -62,10 +81,6 @@ export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClie
       failureCount += 1;
       if (isCurrent()) {
         store.rowFailed(index, localizeUserVisibleAppErrorMessage(failureMessage));
-      }
-      if (isDatabaseMaintenanceBusyMessage(failureMessage)) {
-        halt = "busy";
-        break;
       }
     }
   } catch (error) {
@@ -80,7 +95,7 @@ export async function executeRun(request: BulkUnsubscribeRunRequest, { queryClie
   } finally {
     let outcome: BulkUnsubscribeOutcome | null = null;
     if (isCurrent()) {
-      outcome = halt ?? (failureCount > 0 ? "partial" : "completed");
+      outcome = cancelled ? "cancelled" : failureCount > 0 ? "partial" : "completed";
       store.finish(outcome, queue.slice(position));
     }
     if (succeededFeedIds.length > 0) {
