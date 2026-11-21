@@ -1,7 +1,10 @@
+import { cva } from "class-variance-authority";
 import { cn } from "cn";
-import { AppTooltip, Checkbox, FeedFavicon, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
+import type { ReactElement } from "react";
+import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME, MOTION_INTERACTIVE_SURFACE_CLASS_NAME } from "@/constants";
+import { AppTooltip, Checkbox, FeedFavicon, LabelChip, TooltipProvider } from "@/design-system";
 import { resolveSubscriptionStatusTone } from "@/lib/subscriptions/subscription-status-tone";
-import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import type { SubscriptionListRow, SubscriptionStatusTone } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 
 export type SubscriptionsKeptMarker = {
@@ -9,38 +12,133 @@ export type SubscriptionsKeptMarker = {
   chipLabel: string;
 };
 
+export type SubscriptionsLatestArticleLabels = {
+  srPrefix: string;
+  none: string;
+  formatDaysAgo: (days: number) => string;
+};
+
+export type SubscriptionsActionableStatusLabels = Record<
+  Exclude<SubscriptionListRow["status"]["labelKey"], "normal">,
+  string
+>;
+
 type SubscriptionsListRowProps = {
   row: SubscriptionListRow;
   selected: boolean;
   kept: boolean;
   keptChipLabel: string;
   bulkSelection?: SubscriptionsBulkSelection;
-  statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
+  statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel: string;
   formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string) => string;
+  latestArticleLabels: SubscriptionsLatestArticleLabels;
   onSelectFeed: (feedId: string) => void;
 };
 
-function LatestArticleMeta({
-  latestArticleAt,
-  formatLabel,
+// The container query lives on the button, and the grid inside it switches columns, because an element cannot query its own container.
+const rowButtonVariants = cva(
+  [
+    MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
+    MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
+    "motion-list-item-enter motion-static-hover-surface @container block min-h-11 w-full rounded-md border px-3.5 py-2 text-left text-foreground select-none",
+    "focus-visible:border-border-strong focus-visible:bg-surface-2/90 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+  ],
+  {
+    variants: {
+      selected: {
+        true: "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]",
+        false:
+          "border-transparent bg-surface-1/36 shadow-none hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
+      },
+    },
+  },
+);
+
+const META_CELL_CLASS_NAME =
+  "min-w-0 truncate text-(length:--font-size-2xs) text-foreground-soft tabular-nums @[28rem]:text-right";
+
+function resolveStatusChip(
+  row: SubscriptionListRow,
+  statusLabels: SubscriptionsActionableStatusLabels,
+  fetchErrorLabel: string,
+): { tone: SubscriptionStatusTone; label: string } | null {
+  if (row.fetchError) {
+    return { tone: "danger", label: fetchErrorLabel };
+  }
+  const statusKey = row.status.labelKey;
+  if (statusKey === "normal") {
+    return null;
+  }
+  return { tone: resolveSubscriptionStatusTone(statusKey), label: statusLabels[statusKey] };
+}
+
+function SubscriptionRowChips({
+  statusChip,
+  keptChipLabel,
 }: {
-  latestArticleAt: string | null;
-  formatLabel: (value: string) => string;
+  statusChip: ReturnType<typeof resolveStatusChip>;
+  keptChipLabel: string | null;
 }) {
-  if (!latestArticleAt) {
+  if (!statusChip && keptChipLabel === null) {
     return null;
   }
 
   return (
-    <>
-      <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
-        •
-      </span>
-      <span>{formatLabel(latestArticleAt)}</span>
-    </>
+    <div className="flex flex-wrap items-center gap-1.5">
+      {statusChip ? (
+        <LabelChip tone={statusChip.tone} size="compact">
+          {statusChip.label}
+        </LabelChip>
+      ) : null}
+      {keptChipLabel === null ? null : (
+        <LabelChip tone="neutral" size="compact">
+          {keptChipLabel}
+        </LabelChip>
+      )}
+    </div>
+  );
+}
+
+function LatestArticleCell({ row, labels }: { row: SubscriptionListRow; labels: SubscriptionsLatestArticleLabels }) {
+  if (row.latestArticleAt === null) {
+    return <span className={META_CELL_CLASS_NAME}>{labels.none}</span>;
+  }
+  if (row.latestArticleDays === null) {
+    return <span className={META_CELL_CLASS_NAME} />;
+  }
+
+  return (
+    <span className={META_CELL_CLASS_NAME}>
+      <span className="sr-only">{labels.srPrefix} </span>
+      {labels.formatDaysAgo(row.latestArticleDays)}
+    </span>
+  );
+}
+
+function resolveReasonTooltipLabel(
+  row: SubscriptionListRow,
+  reasonTooltipLabels: SubscriptionsListRowProps["reasonTooltipLabels"],
+  fetchErrorLabel: string,
+): string | null {
+  if (!row.reasonTooltipKey) {
+    return null;
+  }
+  return reasonTooltipLabels[row.reasonTooltipKey] ?? (row.fetchError ? fetchErrorLabel : null);
+}
+
+function RowTooltip({ label, children }: { label: string | null; children: ReactElement }) {
+  if (label === null) {
+    return children;
+  }
+
+  return (
+    <TooltipProvider>
+      <AppTooltip label={label} side="top" align="start">
+        {children}
+      </AppTooltip>
+    </TooltipProvider>
   );
 }
 
@@ -55,25 +153,23 @@ export function SubscriptionsListRow({
   reasonTooltipLabels,
   fetchErrorLabel,
   formatUnreadCountLabel,
-  formatLatestArticleLabel,
+  latestArticleLabels,
   onSelectFeed,
 }: SubscriptionsListRowProps) {
   const selecting = bulkSelection?.mode === true;
+  const statusChip = resolveStatusChip(row, statusLabels, fetchErrorLabel);
   const rowButton = (
-    <NavRowButton
-      selected={selected}
+    <button
+      type="button"
       aria-pressed={selected}
+      aria-current={selected ? "page" : undefined}
       onClick={() => onSelectFeed(row.feed.id)}
-      className={cn(
-        "motion-list-item-enter motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
-        selected
-          ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
-          : "bg-surface-1/36 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
-      )}
-      leading={
+      className={rowButtonVariants({ selected })}
+    >
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 @[28rem]:grid-cols-[auto_minmax(0,1fr)_8.5rem_5.5rem]">
         <span
           className={cn(
-            "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-[background-color,border-color] duration-200 ease-standard motion-reduce:transition-none",
+            "row-span-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-[background-color,border-color] duration-200 ease-standard motion-reduce:transition-none @[28rem]:row-span-1",
             selected ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
           )}
           style={{
@@ -91,42 +187,20 @@ export function SubscriptionsListRow({
             size="md"
           />
         </span>
-      }
-      title={
-        <div className="flex items-center gap-2">
-          <span className="text-[0.95rem] font-semibold tracking-[-0.02em] text-foreground">{row.feed.title}</span>
-        </div>
-      }
-      description={
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-(length:--font-size-2xs) text-foreground-soft">
-          <LabelChip
-            tone={row.fetchError ? "danger" : resolveSubscriptionStatusTone(row.status.labelKey)}
-            size="compact"
-          >
-            {row.fetchError ? fetchErrorLabel : statusLabels[row.status.labelKey]}
-          </LabelChip>
-          {kept ? (
-            <LabelChip tone="neutral" size="compact">
-              {keptChipLabel}
-            </LabelChip>
-          ) : null}
-          <span
-            aria-hidden="true"
-            style={{
-              color: "var(--subscriptions-list-meta-divider)",
-            }}
-          >
-            •
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <span className="min-w-0 max-w-full truncate text-[0.95rem] font-semibold tracking-[-0.02em] text-foreground">
+            {row.feed.title}
           </span>
-          <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-          <LatestArticleMeta latestArticleAt={row.latestArticleAt} formatLabel={formatLatestArticleLabel} />
+          <SubscriptionRowChips statusChip={statusChip} keptChipLabel={kept ? keptChipLabel : null} />
         </div>
-      }
-    />
+        <div className="flex items-baseline gap-3 @[28rem]:contents">
+          <LatestArticleCell row={row} labels={latestArticleLabels} />
+          <span className={META_CELL_CLASS_NAME}>{formatUnreadCountLabel(row.feed.unread_count)}</span>
+        </div>
+      </div>
+    </button>
   );
-  const reasonTooltipLabel = row.reasonTooltipKey
-    ? (reasonTooltipLabels[row.reasonTooltipKey] ?? (row.fetchError ? fetchErrorLabel : null))
-    : null;
+  const reasonTooltipLabel = resolveReasonTooltipLabel(row, reasonTooltipLabels, fetchErrorLabel);
 
   return (
     <>
@@ -137,15 +211,7 @@ export function SubscriptionsListRow({
           onCheckedChange={() => bulkSelection.onToggleFeed(row.feed.id)}
         />
       ) : null}
-      {reasonTooltipLabel ? (
-        <TooltipProvider>
-          <AppTooltip label={reasonTooltipLabel} side="top" align="start">
-            {rowButton}
-          </AppTooltip>
-        </TooltipProvider>
-      ) : (
-        rowButton
-      )}
+      <RowTooltip label={reasonTooltipLabel}>{rowButton}</RowTooltip>
     </>
   );
 }

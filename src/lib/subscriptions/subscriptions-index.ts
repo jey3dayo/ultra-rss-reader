@@ -285,6 +285,7 @@ export function buildSubscriptionListRows({
       folderId: folderName === null ? null : feed.folder_id,
       folderName,
       latestArticleAt,
+      latestArticleDays: candidateMap.get(feed.id)?.staleDays ?? null,
       recentArticleCount,
       status,
       reasonTooltipKey: resolveSubscriptionRowReasonTooltipKey({

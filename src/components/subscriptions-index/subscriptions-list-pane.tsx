@@ -22,7 +22,12 @@ import {
 import type { SubscriptionsFilterBarProps } from "./subscriptions-filter-bar";
 import { type SubscriptionsKeptBanner, SubscriptionsKeptBannerView } from "./subscriptions-kept-banner";
 import { SubscriptionsListPaneHeader } from "./subscriptions-list-pane-header";
-import { type SubscriptionsKeptMarker, SubscriptionsListRow } from "./subscriptions-list-row";
+import {
+  type SubscriptionsActionableStatusLabels,
+  type SubscriptionsKeptMarker,
+  type SubscriptionsLatestArticleLabels,
+  SubscriptionsListRow,
+} from "./subscriptions-list-row";
 import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
@@ -54,11 +59,11 @@ type SubscriptionsListPaneProps = {
   searchLabel: string;
   searchPlaceholder: string;
   searchClearLabel: string;
-  statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
+  statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel?: string;
   formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string) => string;
+  latestArticleLabels: SubscriptionsLatestArticleLabels;
   isGroupExpanded: (groupKey: string) => boolean;
   initialScrollTop?: number;
   scrollRegionRef?: RefObject<HTMLDivElement | null>;
@@ -159,7 +164,7 @@ type SubscriptionGroupSectionProps = Pick<
   | "statusLabels"
   | "reasonTooltipLabels"
   | "formatUnreadCountLabel"
-  | "formatLatestArticleLabel"
+  | "latestArticleLabels"
   | "onSelectFeed"
   | "onToggleGroup"
 > & {
@@ -180,7 +185,7 @@ function SubscriptionGroupSection({
   reasonTooltipLabels,
   fetchErrorLabel,
   formatUnreadCountLabel,
-  formatLatestArticleLabel,
+  latestArticleLabels,
   onSelectFeed,
   onToggleGroup,
 }: SubscriptionGroupSectionProps) {
@@ -220,7 +225,7 @@ function SubscriptionGroupSection({
                 reasonTooltipLabels={reasonTooltipLabels}
                 fetchErrorLabel={fetchErrorLabel}
                 formatUnreadCountLabel={formatUnreadCountLabel}
-                formatLatestArticleLabel={formatLatestArticleLabel}
+                latestArticleLabels={latestArticleLabels}
                 onSelectFeed={onSelectFeed}
               />
             ))}
@@ -244,7 +249,7 @@ export function SubscriptionsListPane({
   reasonTooltipLabels,
   fetchErrorLabel = "Fetch error",
   formatUnreadCountLabel,
-  formatLatestArticleLabel,
+  latestArticleLabels,
   isGroupExpanded,
   initialScrollTop = 0,
   scrollRegionRef: providedScrollRegionRef,
@@ -405,7 +410,7 @@ export function SubscriptionsListPane({
                 reasonTooltipLabels={reasonTooltipLabels}
                 fetchErrorLabel={fetchErrorLabel}
                 formatUnreadCountLabel={formatUnreadCountLabel}
-                formatLatestArticleLabel={formatLatestArticleLabel}
+                latestArticleLabels={latestArticleLabels}
                 onSelectFeed={onSelectFeed}
                 onToggleGroup={onToggleGroup}
               />

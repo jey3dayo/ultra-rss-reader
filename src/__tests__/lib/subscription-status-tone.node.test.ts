@@ -47,6 +47,7 @@ function buildDetailToneFor(candidate: SubscriptionReviewCandidate) {
     folderId: null,
     folderName: null,
     latestArticleAt: candidate.latestArticleAt,
+    latestArticleDays: candidate.staleDays,
     recentArticleCount: 0,
     status,
     reasonTooltipKey: status.labelKey,

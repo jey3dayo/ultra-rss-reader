@@ -162,20 +162,22 @@ export function SubscriptionGroupDisclosureSpecimen() {
           searchPlaceholder="検索"
           searchClearLabel="検索をクリア"
           statusLabels={{
-            normal: "確認済み",
             attention_30d: "注意",
             stale_90d: "長期未更新",
             quiet_no_unread: "静か",
           }}
           reasonTooltipLabels={{
             no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
-            normal: "最近も動きがあります",
             attention_30d: "RSS上の最終記事から30日以上たっているため注意表示です",
             stale_90d: "RSS上の最終記事から90日以上経過しています",
             quiet_no_unread: "RSS上の最終記事から60日以上なく、未読もありません",
           }}
           formatUnreadCountLabel={(count) => `${count} unread`}
-          formatLatestArticleLabel={() => "最終更新あり"}
+          latestArticleLabels={{
+            srPrefix: "RSS上の最終更新",
+            none: "取得記事なし",
+            formatDaysAgo: (days) => (days === 0 ? "今日" : `${days}日前`),
+          }}
           isGroupExpanded={(groupKey) => expandedGroups.has(groupKey)}
           onSelectFeed={setSelectedFeedId}
           onSearchQueryChange={() => undefined}
