@@ -144,7 +144,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     (filterKey: SubscriptionSummaryFilterKey) => {
       setActiveSummaryFilter(filterKey);
       setStoredCheckedFeedIds(clearCheckedFeedIds);
-      setSearchQuery("");
       setSelectedFeedId(null);
       resetListScrollState();
     },

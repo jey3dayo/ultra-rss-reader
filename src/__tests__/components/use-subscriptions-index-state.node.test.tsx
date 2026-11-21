@@ -520,6 +520,25 @@ describe("useSubscriptionsIndexState", () => {
       expect(result.current.bulkSelectionMode).toBe(true);
     });
 
+    it("keeps the search query on external navigation while clearing the selection", () => {
+      const { result } = renderHook(() => useSubscriptionsIndexState(rows));
+
+      act(() => {
+        result.current.setSearchQuery("alpha");
+        result.current.setSelectedFeedId("alpha");
+      });
+      expect(result.current.searchQuery).toBe("alpha");
+      expect(result.current.selectedFeedId).toBe("alpha");
+
+      act(() => {
+        result.current.navigateToSummaryFilter("stale");
+      });
+
+      expect(result.current.activeSummaryFilter).toBe("stale");
+      expect(result.current.searchQuery).toBe("alpha");
+      expect(result.current.selectedFeedId).toBe(null);
+    });
+
     it("keeps the checked feeds and list scroll when the active summary filter is selected again", () => {
       const { result } = renderHook(() => useSubscriptionsIndexState(rows));
 

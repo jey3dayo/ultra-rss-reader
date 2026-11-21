@@ -199,15 +199,16 @@ describe("fetch error toast navigation", () => {
     await clickFetchErrorsAction(user);
     expect(await screen.findByRole("heading", { name: "取得エラー", level: 2 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /A Error Feed/ })).toBeInTheDocument();
-    expect(screen.queryByRole("searchbox", { name: "購読を検索" })).toHaveValue("");
+    expect(screen.queryByRole("searchbox", { name: "購読を検索" })).toHaveValue("A Error");
 
     await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
-    await user.type(screen.getByRole("searchbox", { name: "購読を検索" }), "A Error");
+    expect(screen.getByRole("searchbox", { name: "購読を検索" })).toHaveValue("A Error");
     showFetchErrorsAction("acc-a");
     await clickFetchErrorsAction(user);
     expect(await screen.findByRole("heading", { name: "取得エラー", level: 2 })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /90日以上未更新/ }));
+    await user.clear(screen.getByRole("searchbox", { name: "購読を検索" }));
     const nextFeeds = [...feedsByAccount["acc-a"], makeFeed("a-new", "acc-a", "A New Feed")];
     feedsByAccount["acc-a"] = nextFeeds;
     pageQueryClient.setQueryData(queryKeys.feeds.byAccount("acc-a"), nextFeeds);

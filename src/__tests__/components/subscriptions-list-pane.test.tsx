@@ -12,6 +12,7 @@ import type {
   SubscriptionsLatestArticleLabels,
 } from "@/components/subscriptions-index/subscriptions-list-row";
 import type { SubscriptionsListLoadState } from "@/components/subscriptions-index/subscriptions-load-status";
+import type { SubscriptionsSearchCondition } from "@/components/subscriptions-index/subscriptions-search-condition";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto>): FeedDto {
@@ -65,6 +66,10 @@ function renderListPane(
     bulkRunStatus?: SubscriptionsBulkRunStatus | null;
     loadState?: SubscriptionsListLoadState;
     filterBar?: SubscriptionsFilterBarProps;
+    searchQuery?: string;
+    searchCondition?: SubscriptionsSearchCondition | null;
+    emptyShowAllLabel?: string;
+    onSearchQueryChange?: (query: string) => void;
   },
 ) {
   const groups: SubscriptionListGroup[] = options?.groups ?? [
@@ -77,7 +82,7 @@ function renderListPane(
       groups={groups}
       selectedFeedId={rows[0]?.feed.id ?? null}
       emptyLabel="一致する購読はありません。"
-      searchQuery=""
+      searchQuery={options?.searchQuery ?? ""}
       searchLabel="購読を検索"
       searchPlaceholder="検索"
       searchClearLabel="検索をクリア"
@@ -93,9 +98,11 @@ function renderListPane(
       bulkRunStatus={options?.bulkRunStatus}
       loadState={options?.loadState}
       filterBar={options?.filterBar}
+      searchCondition={options?.searchCondition}
+      emptyShowAllLabel={options?.emptyShowAllLabel}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
       onListScrollTopChange={options?.onListScrollTopChange}
-      onSearchQueryChange={vi.fn()}
+      onSearchQueryChange={options?.onSearchQueryChange ?? vi.fn()}
       onToggleGroup={vi.fn()}
     />,
   );
@@ -412,6 +419,63 @@ describe("SubscriptionsListPane", () => {
 
     await user.click(screen.getByRole("button", { name: "検索をクリア" }));
 
+    expect(onSearchQueryChange).toHaveBeenCalledWith("");
+  });
+
+  it("shows the active search in a condition row with a clear action while rows are visible", async () => {
+    const user = userEvent.setup();
+    const onClear = vi.fn();
+    const row = {
+      feed: buildFeed({ title: "Searchable Feed" }),
+      folderId: null,
+      folderName: null,
+      latestArticleAt: null,
+      latestArticleDays: null,
+      recentArticleCount: 0,
+      status: { labelKey: "normal" },
+      reasonTooltipKey: null,
+    } satisfies SubscriptionListRow;
+
+    renderListPane([row], {
+      searchQuery: "Search",
+      searchCondition: { label: "検索「Search」で絞り込んでいます", clearLabel: "検索をクリア", onClear },
+    });
+
+    const condition = screen.getByTestId("subscriptions-search-condition");
+    expect(condition).toHaveTextContent("検索「Search」で絞り込んでいます");
+
+    await user.click(within(condition).getByRole("button", { name: "検索をクリア" }));
+
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers both recovery actions in the empty state when a search and a filter are active", async () => {
+    const user = userEvent.setup();
+    const onSearchQueryChange = vi.fn();
+    const onSelectFilter = vi.fn();
+
+    renderListPane([], {
+      groups: [],
+      searchQuery: "Missing",
+      emptyShowAllLabel: "すべての購読を表示",
+      onSearchQueryChange,
+      filterBar: {
+        model: {
+          ariaLabel: "購読の絞り込み",
+          options: [
+            { filterKey: "all", label: "総購読数", count: 16, isActive: false },
+            { filterKey: "stale", label: "90日以上未更新", count: 0, isActive: true },
+          ],
+          activeDescription: null,
+        },
+        onSelect: onSelectFilter,
+      },
+    });
+
+    await user.click(screen.getByRole("button", { name: "すべての購読を表示" }));
+    expect(onSelectFilter).toHaveBeenCalledWith("all");
+
+    await user.click(screen.getByRole("button", { name: "検索をクリア" }));
     expect(onSearchQueryChange).toHaveBeenCalledWith("");
   });
 

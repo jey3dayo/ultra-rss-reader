@@ -24,6 +24,7 @@ import type {
   SubscriptionsLatestArticleLabels,
 } from "./subscriptions-list-row";
 import type { SubscriptionsListLoadState, SubscriptionsLoadFailure } from "./subscriptions-load-status";
+import type { SubscriptionsSearchCondition } from "./subscriptions-search-condition";
 
 type SubscriptionsIndexPageViewProps = {
   filterBar: SubscriptionsFilterBarModel;
@@ -79,6 +80,8 @@ type SubscriptionsIndexPageViewProps = {
   scrollReady: boolean;
   kept?: SubscriptionsKeptMarker;
   keptBanner?: SubscriptionsKeptBanner | null;
+  searchCondition?: SubscriptionsSearchCondition | null;
+  emptyShowAllLabel?: string;
   listHeadingRef?: RefObject<HTMLHeadingElement | null>;
   bulkSelection?: SubscriptionsBulkSelection;
   bulkRunStatus?: SubscriptionsBulkRunStatus | null;
@@ -146,6 +149,8 @@ export function SubscriptionsIndexPageView({
   scrollReady,
   kept,
   keptBanner,
+  searchCondition,
+  emptyShowAllLabel,
   listHeadingRef,
   bulkSelection,
   bulkRunStatus,
@@ -214,6 +219,8 @@ export function SubscriptionsIndexPageView({
               scrollReady={scrollReady}
               kept={kept}
               keptBanner={keptBanner}
+              searchCondition={searchCondition}
+              emptyShowAllLabel={emptyShowAllLabel}
               headingRef={listHeadingRef}
               filterBar={{ model: filterBar, loadFailure: summaryLoadFailure, onSelect: onSelectSummaryFilter }}
               bulkSelection={bulkSelection}

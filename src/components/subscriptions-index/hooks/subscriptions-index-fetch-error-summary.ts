@@ -36,17 +36,51 @@ export function attachRemoteFeedFetchFailures(
   });
 }
 
+export function resolveSubscriptionsEmptyExceptionLabel(
+  activeSummaryFilter: SubscriptionSummaryFilterKey,
+  failedFeedCount: number | null,
+  summariesUnavailable: boolean,
+  labels: { fetchErrorsUnknown: string; fetchErrorsEmpty: string; summariesUnavailable: string },
+): string | null {
+  if (summariesUnavailable && (activeSummaryFilter === "stale" || activeSummaryFilter === "frequent")) {
+    return labels.summariesUnavailable;
+  }
+  if (activeSummaryFilter !== "fetch_errors") return null;
+  if (failedFeedCount === null) return labels.fetchErrorsUnknown;
+  if (failedFeedCount === 0) return labels.fetchErrorsEmpty;
+  return null;
+}
+
 export function resolveSubscriptionsEmptyLabel(
   activeSummaryFilter: SubscriptionSummaryFilterKey,
   failedFeedCount: number | null,
   summariesUnavailable: boolean,
   labels: { default: string; fetchErrorsUnknown: string; fetchErrorsEmpty: string; summariesUnavailable: string },
 ): string {
-  if (summariesUnavailable && (activeSummaryFilter === "stale" || activeSummaryFilter === "frequent")) {
-    return labels.summariesUnavailable;
-  }
-  if (activeSummaryFilter !== "fetch_errors") return labels.default;
-  if (failedFeedCount === null) return labels.fetchErrorsUnknown;
-  if (failedFeedCount === 0) return labels.fetchErrorsEmpty;
+  return (
+    resolveSubscriptionsEmptyExceptionLabel(activeSummaryFilter, failedFeedCount, summariesUnavailable, labels) ??
+    labels.default
+  );
+}
+
+export function buildSubscriptionsEmptyLabel(params: {
+  exceptionLabel: string | null;
+  activeSummaryFilter: SubscriptionSummaryFilterKey;
+  filterLabel: string;
+  searchQuery: string;
+  labels: {
+    default: string;
+    filterAndSearch: (filter: string, query: string) => string;
+    searchOnly: (query: string) => string;
+    filterOnly: (filter: string) => string;
+  };
+}): string {
+  const { exceptionLabel, activeSummaryFilter, filterLabel, searchQuery, labels } = params;
+  if (exceptionLabel !== null) return exceptionLabel;
+  const hasSearch = searchQuery.length > 0;
+  const hasFilter = activeSummaryFilter !== "all";
+  if (hasSearch && hasFilter) return labels.filterAndSearch(filterLabel, searchQuery);
+  if (hasSearch) return labels.searchOnly(searchQuery);
+  if (hasFilter) return labels.filterOnly(filterLabel);
   return labels.default;
 }
