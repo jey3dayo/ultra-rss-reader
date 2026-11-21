@@ -31,7 +31,7 @@ export function BulkUnsubscribeRunner() {
         showToast(i18n.t("subscriptions:bulk_toast_done", { count: doneCount }));
         return;
       }
-      if (state.dialogOpen) {
+      if (state.dialogOpen && state.dialogAccountId === settled.accountId) {
         return;
       }
       if (settled.outcome === "partial") {

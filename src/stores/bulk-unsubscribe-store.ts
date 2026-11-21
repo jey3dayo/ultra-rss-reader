@@ -14,10 +14,18 @@ type RunState = {
   outcome: BulkUnsubscribeOutcome | null;
   stopRequested: boolean;
   waitingForSync: boolean;
+  // The account that requested the run. A retained run belongs to this account only:
+  // dialogs of another account must neither display it nor act on it.
+  accountId: string | null;
 };
 
 type RunAction =
-  | { type: "begin"; snapshot: ReadonlyArray<BulkUnsubscribeTarget>; queue: ReadonlyArray<number> }
+  | {
+      type: "begin";
+      snapshot: ReadonlyArray<BulkUnsubscribeTarget>;
+      queue: ReadonlyArray<number>;
+      accountId: string | null;
+    }
   | { type: "rowRunning"; index: number }
   | { type: "syncWaiting"; index: number }
   | { type: "rowDone"; index: number }
@@ -33,6 +41,7 @@ const INITIAL_STATE: RunState = {
   outcome: null,
   stopRequested: false,
   waitingForSync: false,
+  accountId: null,
 };
 
 function setRowState(
@@ -58,6 +67,7 @@ function reduceRunState(state: RunState, action: RunAction): RunState {
         outcome: null,
         stopRequested: false,
         waitingForSync: false,
+        accountId: action.accountId,
       };
     }
     case "rowRunning":
@@ -127,6 +137,7 @@ type BulkUnsubscribeState = {
   runActive: boolean;
   runnerMounted: boolean;
   dialogOpen: boolean;
+  dialogAccountId: string | null;
   syncCompletedSeq: number;
   request: BulkUnsubscribeRunRequest | null;
   lastSettled: BulkUnsubscribeSettledRun | null;
@@ -134,7 +145,7 @@ type BulkUnsubscribeState = {
 
 type BulkUnsubscribeActions = {
   setRunnerMounted: (mounted: boolean) => void;
-  setDialogOpen: (open: boolean) => void;
+  setDialogOpen: (open: boolean, accountId: string | null) => void;
   requestRun: (input: BulkUnsubscribeRunInput) => void;
   settle: (settled: BulkUnsubscribeSettledRun) => void;
   rowRunning: (index: number) => void;
@@ -153,13 +164,14 @@ export const useBulkUnsubscribeStore = create<BulkUnsubscribeState & BulkUnsubsc
   runActive: false,
   runnerMounted: false,
   dialogOpen: false,
+  dialogAccountId: null,
   syncCompletedSeq: 0,
   request: null,
   lastSettled: null,
 
   setRunnerMounted: (mounted) => set({ runnerMounted: mounted }),
 
-  setDialogOpen: (open) => set({ dialogOpen: open }),
+  setDialogOpen: (open, accountId) => set({ dialogOpen: open, dialogAccountId: open ? accountId : null }),
 
   settle: (settled) => set({ lastSettled: settled }),
 
@@ -176,7 +188,12 @@ export const useBulkUnsubscribeStore = create<BulkUnsubscribeState & BulkUnsubsc
     set({
       runId,
       runActive: true,
-      run: reduceRunState(state.run, { type: "begin", snapshot: input.snapshot, queue: input.queue }),
+      run: reduceRunState(state.run, {
+        type: "begin",
+        snapshot: input.snapshot,
+        queue: input.queue,
+        accountId: input.accountId,
+      }),
       request: { ...input, runId },
     });
   },

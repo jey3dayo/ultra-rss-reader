@@ -13,7 +13,13 @@ import { setupTauriMocks } from "./tauri-mocks";
 
 // Mirrors the subscriptions page: a finished run publishes its result through the store,
 // and the page applies the succeeded feeds to the selection.
-function BulkSettleProbe({ onSettled }: { onSettled: (succeededFeedIds: readonly string[]) => void }) {
+function BulkSettleProbe({
+  accountId,
+  onSettled,
+}: {
+  accountId: string;
+  onSettled: (succeededFeedIds: readonly string[]) => void;
+}) {
   useEffect(() => {
     let lastAppliedRunId = useBulkUnsubscribeStore.getState().lastSettled?.runId ?? 0;
     return useBulkUnsubscribeStore.subscribe((state) => {
@@ -22,12 +28,12 @@ function BulkSettleProbe({ onSettled }: { onSettled: (succeededFeedIds: readonly
         return;
       }
       lastAppliedRunId = settled.runId;
-      if (settled.accountId !== "acc-1") {
+      if (settled.accountId !== accountId) {
         return;
       }
       onSettled(settled.succeededFeedIds);
     });
-  }, [onSettled]);
+  }, [accountId, onSettled]);
   return null;
 }
 
@@ -82,7 +88,10 @@ export function setupDeleteFeed(behaviors: Record<string, DeleteFeedBehavior> = 
   return { calls, maxActive: () => maxActive };
 }
 
-export function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>, { withRunner = true } = {}) {
+export function renderDialog(
+  targets: ReadonlyArray<BulkUnsubscribeTarget>,
+  { withRunner = true, accountId = "acc-1" }: { withRunner?: boolean; accountId?: string } = {},
+) {
   const onSettled = vi.fn();
   const onClose = vi.fn();
   const { queryClient, wrapper } = createQueryWrapper();
@@ -94,12 +103,12 @@ export function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>, { wi
     return (
       <>
         {withRunner ? <BulkUnsubscribeRunner /> : null}
-        <BulkSettleProbe onSettled={onSettled} />
+        <BulkSettleProbe accountId={accountId} onSettled={onSettled} />
         {dialogMounted ? (
           <BulkUnsubscribeDialog
             key={session}
             open={open}
-            accountId="acc-1"
+            accountId={accountId}
             targets={targets}
             onClose={(outcome) => {
               onClose(outcome);
