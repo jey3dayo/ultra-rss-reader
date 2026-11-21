@@ -64,4 +64,21 @@ describe("useSubscriptionReviewStore", () => {
     forget("acc-other", ["feed-b"]);
     expect(useSubscriptionReviewStore.getState().kept).toBe(before);
   });
+
+  it("forgets every decision for an account and leaves the state untouched for unknown accounts", () => {
+    const { keep, forgetAccount } = useSubscriptionReviewStore.getState();
+    keep("acc-1", "feed-a");
+    keep("acc-1", "feed-b");
+    keep("acc-2", "feed-c");
+
+    forgetAccount("acc-1");
+
+    expect(keptOf("acc-1")).toEqual([]);
+    expect(keptOf("acc-2")).toEqual(["feed-c"]);
+
+    const before = useSubscriptionReviewStore.getState().kept;
+    forgetAccount("acc-1");
+    forgetAccount("acc-missing");
+    expect(useSubscriptionReviewStore.getState().kept).toBe(before);
+  });
 });
