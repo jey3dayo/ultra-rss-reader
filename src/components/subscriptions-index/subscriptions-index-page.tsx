@@ -312,6 +312,22 @@ function SubscriptionsIndexPageForAccount({
     bulkToggleRef,
     listHeadingRef,
   });
+  // A layout-mode switch swaps the AppLayout variant and remounts this page, so the
+  // live index state is captured into the workspace return state synchronously when
+  // the mode changes, before React rebuilds the tree.
+  const captureStateRef = useRef(viewProps.captureState);
+  useEffect(() => {
+    captureStateRef.current = viewProps.captureState;
+  });
+  useEffect(
+    () =>
+      useUiStore.subscribe((state, previousState) => {
+        if (state.layoutMode !== previousState.layoutMode) {
+          useUiStore.getState().retainSubscriptionsIndexState(captureStateRef.current());
+        }
+      }),
+    [],
+  );
   // A finished bulk unsubscribe run publishes its result through the store, so the
   // selection cleanup lands here even when the dialog was closed or unmounted mid-run.
   const applyBulkResultRef = useRef(viewProps.bulk.applyResult);

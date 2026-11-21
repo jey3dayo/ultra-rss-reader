@@ -36,6 +36,7 @@ type ExpectedUiStoreReaderActions = UiStoreReaderSelectionActions &
     | "openSubscriptionsIndex"
     | "closeSubscriptionsWorkspace"
     | "switchSubscriptionsAccount"
+    | "retainSubscriptionsIndexState"
     | "consumeSubscriptionsNavigationRequest"
   >;
 

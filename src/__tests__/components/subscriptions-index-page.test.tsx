@@ -1436,6 +1436,42 @@ describe("SubscriptionsIndexPage", () => {
     await waitFor(() => expect(reopenedScrollRegion.scrollTop).toBe(73));
   });
 
+  it("keeps the filter, search, selection, and collapsed group across a layout-mode rebuild", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: /Example Feed/ });
+    const filterGroup = screen.getByRole("group", { name: "購読の絞り込み" });
+    await user.click(within(filterGroup).getByRole("button", { name: "90日以上未更新1" }));
+    await user.type(screen.getByRole("searchbox"), "Example");
+    const groupButton = screen.getByTestId("subscriptions-folder-row-folder-1");
+    await user.click(groupButton);
+    expect(groupButton).toHaveAttribute("aria-expanded", "false");
+
+    act(() => useUiStore.getState().setLayoutMode("compact"));
+
+    expect(useUiStore.getState().subscriptionsWorkspace?.returnState).toMatchObject({
+      accountId: "acc-1",
+      activeSummaryFilter: "stale",
+      searchQuery: "Example",
+      selectedFeedId: "feed-1",
+      expandedGroups: { "group:subscription-list:1-folder:folder-1": false },
+    });
+
+    unmount();
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("searchbox")).toHaveValue("Example");
+    const rebuiltFilterGroup = screen.getByRole("group", { name: "購読の絞り込み" });
+    expect(await within(rebuiltFilterGroup).findByRole("button", { name: "90日以上未更新1" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(await screen.findByTestId("subscriptions-folder-row-folder-1")).toHaveAttribute("aria-expanded", "false");
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
+  });
+
   it("opens a fresh subscriptions list for a different account", async () => {
     const user = userEvent.setup();
     const { unmount } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });

@@ -464,6 +464,22 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
           },
         };
       }),
+    retainSubscriptionsIndexState: (returnState) =>
+      set((state) => {
+        if (
+          state.subscriptionsWorkspace?.kind !== "index" ||
+          state.subscriptionsWorkspace.accountId !== returnState.accountId
+        ) {
+          return state;
+        }
+        const parsed = runtime.parseSubscriptionsWorkspaceReturnState(returnState);
+        const states = new Map(state.subscriptionsIndexReturnStates);
+        states.set(returnState.accountId, parsed);
+        return {
+          subscriptionsIndexReturnStates: states,
+          subscriptionsWorkspace: { ...state.subscriptionsWorkspace, returnState: parsed },
+        };
+      }),
     consumeSubscriptionsNavigationRequest: (request) =>
       set((state) => {
         if (!state.subscriptionsWorkspace || state.subscriptionsWorkspace.navigationRequest !== request) return state;
