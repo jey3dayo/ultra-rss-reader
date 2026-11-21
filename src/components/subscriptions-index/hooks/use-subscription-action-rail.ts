@@ -1,11 +1,10 @@
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { buildSubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
+import { buildSubscriptionActionRail } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { useUiStore } from "@/stores/ui-store";
-import type { SubscriptionManagementActions } from "../subscription-decision-bar";
 
-type UseSubscriptionDecisionActionsParams = {
+type UseSubscriptionActionRailParams = {
   selectedRow: SubscriptionListRow | null;
   keptFeedIds: ReadonlySet<string>;
   markSelectedFeedKept: () => void;
@@ -14,14 +13,14 @@ type UseSubscriptionDecisionActionsParams = {
   setEditTargetFeed: (feed: FeedDto | null) => void;
 };
 
-export function useSubscriptionDecisionActions({
+export function useSubscriptionActionRail({
   selectedRow,
   keptFeedIds,
   markSelectedFeedKept,
   unkeepFeed,
   setDeleteTargetFeed,
   setEditTargetFeed,
-}: UseSubscriptionDecisionActionsParams) {
+}: UseSubscriptionActionRailParams) {
   const { t } = useTranslation("subscriptions");
   const { t: tc } = useTranslation("common");
   const showToast = useUiStore((state) => state.showToast);
@@ -38,7 +37,7 @@ export function useSubscriptionDecisionActions({
     }
   };
 
-  const decisionActions = buildSubscriptionDecisionActions({
+  return buildSubscriptionActionRail({
     selectedRow,
     isKept: selectedRow ? keptFeedIds.has(selectedRow.feed.id) : false,
     labels: {
@@ -69,16 +68,4 @@ export function useSubscriptionDecisionActions({
     onEdit: editSelectedFeed,
     onDelete: deleteSelectedFeed,
   });
-
-  const managementActions: SubscriptionManagementActions | null =
-    selectedRow && !decisionActions
-      ? {
-          editLabel: tc("edit"),
-          deleteLabel: t("unsubscribe_action"),
-          onEdit: editSelectedFeed,
-          onDelete: deleteSelectedFeed,
-        }
-      : null;
-
-  return { decisionActions, managementActions };
 }

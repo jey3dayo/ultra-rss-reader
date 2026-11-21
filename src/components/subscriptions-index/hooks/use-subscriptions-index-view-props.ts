@@ -39,7 +39,7 @@ import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
 import { attachLocalFeedFetchErrors, resolveSubscriptionsEmptyLabel } from "./subscriptions-index-fetch-error-summary";
 import { buildSubscriptionsFilterBarModel } from "./subscriptions-index-filter-options";
 import { isQueryUnavailable, type QueryLoadState, resolveListLoadState } from "./subscriptions-index-load-state";
-import { useSubscriptionDecisionActions } from "./use-subscription-decision-actions";
+import { useSubscriptionActionRail } from "./use-subscription-action-rail";
 import { useSubscriptionsKeptBanner } from "./use-subscriptions-kept-banner";
 
 type SubscriptionsIndexPageViewProps = ComponentProps<typeof SubscriptionsIndexPageView>;
@@ -232,7 +232,7 @@ export function useSubscriptionsIndexViewProps({
     defaultHeading: t("inventory_heading"),
   });
 
-  const { decisionActions, managementActions } = useSubscriptionDecisionActions({
+  const actionRail = useSubscriptionActionRail({
     selectedRow: state.selectedRow,
     keptFeedIds: state.keptFeedIds,
     markSelectedFeedKept: state.markSelectedFeedKept,
@@ -399,8 +399,7 @@ export function useSubscriptionsIndexViewProps({
     contentUrlLabel: t("detail_content_url"),
     displayModeLabel: tr("display_mode"),
     displayModeValue: selectedDisplayModeLabel,
-    decisionActions,
-    managementActions,
+    actionRail,
     isGroupExpanded: state.isGroupExpanded,
     onSelectSummaryFilter: state.setActiveSummaryFilter,
     onSelectFeed: state.setSelectedFeedId,

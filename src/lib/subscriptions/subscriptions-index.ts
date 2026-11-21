@@ -16,11 +16,11 @@ import type {
   SubscriptionSummaryFilterKey,
 } from "@/lib/subscriptions/subscriptions-index.types";
 
-export type { SubscriptionDecisionActions } from "./subscription-detail";
+export type { SubscriptionActionRail, SubscriptionRailDecision } from "./subscription-detail";
 
 export {
   buildFeedArticleSummaryMap,
-  buildSubscriptionDecisionActions,
+  buildSubscriptionActionRail,
   buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
   buildSubscriptionReviewCandidateMap,

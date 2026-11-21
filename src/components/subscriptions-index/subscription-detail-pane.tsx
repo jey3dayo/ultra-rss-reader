@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 import { Copy, Globe, Pencil, RefreshCw, Rss } from "lucide-react";
-import { type ReactNode, useRef } from "react";
+import type { ReactNode } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { Button, FeedDetailPanel, FeedFavicon, LabelChip, SurfaceCard } from "@/design-system";
@@ -9,14 +9,14 @@ import { formatShortDateTime } from "@/lib/datetime";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
 import { resolveFeedDetailTone } from "@/lib/subscriptions/subscription-status-tone";
 import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
-import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
+import type { SubscriptionActionRail as SubscriptionActionRailModel } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
 } from "@/lib/subscriptions/subscriptions-index.types";
-import { DecisionBar, ManagementBar, type SubscriptionManagementActions } from "./subscription-decision-bar";
+import { SubscriptionActionRail } from "./subscription-action-rail";
 
 type FetchErrorLabels = {
   heading: string;
@@ -68,8 +68,7 @@ type SubscriptionDetailPaneProps = {
   displayModeLabel: string;
   displayModeValue: string;
   dateLocale: string;
-  decisionActions: SubscriptionDecisionActions | null;
-  managementActions: SubscriptionManagementActions | null;
+  actionRail: SubscriptionActionRailModel | null;
   fetchError?: LocalFeedSyncStatusDto | null;
   fetchErrorLabels?: FetchErrorLabels;
   retryOutcome?: FeedRetryOutcomeKind | null;
@@ -312,8 +311,7 @@ export function SubscriptionDetailPane({
   displayModeLabel,
   displayModeValue,
   dateLocale,
-  decisionActions,
-  managementActions,
+  actionRail,
   fetchError,
   fetchErrorLabels = {
     heading: "Fetch error",
@@ -334,30 +332,6 @@ export function SubscriptionDetailPane({
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const hasFetchError = Boolean(fetchError?.error_kind);
-  // Unexcluding a row that is no longer flagged swaps the decision bar for the management bar, so focus moves to its edit button.
-  const focusEditAfterUnkeepRef = useRef(false);
-  const focusEditButtonOnMount = (button: HTMLButtonElement | null) => {
-    if (button && focusEditAfterUnkeepRef.current) {
-      focusEditAfterUnkeepRef.current = false;
-      button.focus();
-    }
-  };
-  const armEditFocus = () => {
-    focusEditAfterUnkeepRef.current = true;
-    setTimeout(() => {
-      focusEditAfterUnkeepRef.current = false;
-    }, 0);
-  };
-  const barDecisionActions =
-    decisionActions?.kind === "kept"
-      ? {
-          ...decisionActions,
-          onUnkeep: () => {
-            armEditFocus();
-            decisionActions.onUnkeep();
-          },
-        }
-      : decisionActions;
   const showReviewContext = !hasFetchError || (row !== null && row.status.labelKey !== "normal");
   const formattedLastAttempt = fetchError?.last_attempt_at
     ? formatShortDateTime(fetchError.last_attempt_at, dateLocale)
@@ -435,15 +409,7 @@ export function SubscriptionDetailPane({
             </div>
           </div>
 
-          {barDecisionActions ? (
-            <DecisionBar key={`${row.feed.id}-decision-bar`} decisionActions={barDecisionActions} />
-          ) : managementActions ? (
-            <ManagementBar
-              key={`${row.feed.id}-management-bar`}
-              managementActions={managementActions}
-              editButtonRef={focusEditButtonOnMount}
-            />
-          ) : null}
+          {actionRail ? <SubscriptionActionRail key={`${row.feed.id}-action-rail`} actionRail={actionRail} /> : null}
         </>
       )}
     </section>

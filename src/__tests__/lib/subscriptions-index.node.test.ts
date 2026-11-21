@@ -10,7 +10,7 @@ import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscripti
 import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   buildFeedArticleSummaryMap,
-  buildSubscriptionDecisionActions,
+  buildSubscriptionActionRail,
   buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
   buildSubscriptionListGroups,
@@ -691,7 +691,7 @@ describe("subscriptions index helpers", () => {
     ).toBeNull();
   });
 
-  describe("buildSubscriptionDecisionActions", () => {
+  describe("buildSubscriptionActionRail", () => {
     const labels = {
       keep: "Exclude from review",
       unkeep: "Remove review exclusion",
@@ -701,7 +701,7 @@ describe("subscriptions index helpers", () => {
       keptEffect: "Left out of lists",
     };
 
-    function buildRowsWithFlaggedFirst() {
+    function buildRowsWithFlaggedFirst(reasonKey: "stale_90d" | "attention_30d" = "stale_90d") {
       return buildSubscriptionListRows({
         feeds,
         candidateMap: new Map([
@@ -716,7 +716,7 @@ describe("subscriptions index helpers", () => {
               unreadCount: 0,
               starredCount: 1,
               staleDays: 155,
-              reasonKeys: ["stale_90d"],
+              reasonKeys: [reasonKey],
             },
           ],
         ]),
@@ -729,61 +729,66 @@ describe("subscriptions index helpers", () => {
       return { onKeep: vi.fn(), onUnkeep: vi.fn(), onEdit: vi.fn(), onDelete: vi.fn() };
     }
 
-    it("builds the undecided actions for a flagged row that is not kept", () => {
-      const rows = buildRowsWithFlaggedFirst();
-      const callbacks = buildCallbacks();
-
-      const actions = buildSubscriptionDecisionActions({ selectedRow: rows[0], isKept: false, labels, ...callbacks });
-
-      expect(actions).toMatchObject({ kind: "undecided", keepLabel: "Exclude from review", deleteLabel: "Delete" });
-      if (actions?.kind !== "undecided") {
-        throw new Error("expected undecided actions");
-      }
-      actions.onKeep();
-      actions.onDelete();
-      expect(callbacks.onKeep).toHaveBeenCalledWith(rows[0]);
-      expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
+    it("builds no rail without a selected row", () => {
+      expect(buildSubscriptionActionRail({ selectedRow: null, isKept: false, labels, ...buildCallbacks() })).toBeNull();
+      expect(buildSubscriptionActionRail({ selectedRow: null, isKept: true, labels, ...buildCallbacks() })).toBeNull();
     });
 
-    it("builds the kept actions for a kept row whether or not it is flagged", () => {
-      const rows = buildRowsWithFlaggedFirst();
-
-      for (const selectedRow of [rows[0], rows[1]]) {
+    it("offers keep for flagged rows, including attention rows, and always keeps edit and delete reachable", () => {
+      for (const reasonKey of ["stale_90d", "attention_30d"] as const) {
+        const rows = buildRowsWithFlaggedFirst(reasonKey);
         const callbacks = buildCallbacks();
-        const actions = buildSubscriptionDecisionActions({ selectedRow, isKept: true, labels, ...callbacks });
 
-        expect(actions).toMatchObject({
-          kind: "kept",
-          keptChipLabel: "Excluded from review",
-          keptEffectLabel: "Left out of lists",
-          unkeepLabel: "Remove review exclusion",
+        const rail = buildSubscriptionActionRail({ selectedRow: rows[0], isKept: false, labels, ...callbacks });
+
+        expect(rail).toMatchObject({
+          decision: { kind: "keep", label: "Exclude from review" },
           editLabel: "Edit",
           deleteLabel: "Delete",
         });
-        if (actions?.kind !== "kept") {
-          throw new Error("expected kept actions");
-        }
-        actions.onUnkeep();
-        actions.onEdit();
-        actions.onDelete();
-        expect(callbacks.onUnkeep).toHaveBeenCalledWith(selectedRow);
+        rail?.decision?.onClick();
+        rail?.onEdit();
+        rail?.onDelete();
+        expect(callbacks.onKeep).toHaveBeenCalledWith(rows[0]);
         expect(callbacks.onEdit).toHaveBeenCalledTimes(1);
         expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
       }
     });
 
-    it("builds no actions without a selected row or for an unflagged row that is not kept", () => {
+    it("offers no decision for an unflagged row that is not kept", () => {
       const rows = buildRowsWithFlaggedFirst();
+      const callbacks = buildCallbacks();
 
-      expect(
-        buildSubscriptionDecisionActions({ selectedRow: null, isKept: false, labels, ...buildCallbacks() }),
-      ).toBeNull();
-      expect(
-        buildSubscriptionDecisionActions({ selectedRow: null, isKept: true, labels, ...buildCallbacks() }),
-      ).toBeNull();
-      expect(
-        buildSubscriptionDecisionActions({ selectedRow: rows[1], isKept: false, labels, ...buildCallbacks() }),
-      ).toBeNull();
+      const rail = buildSubscriptionActionRail({ selectedRow: rows[1], isKept: false, labels, ...callbacks });
+
+      expect(rail?.decision).toBeNull();
+      rail?.onEdit();
+      rail?.onDelete();
+      expect(callbacks.onEdit).toHaveBeenCalledTimes(1);
+      expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it("offers unkeep for a kept row and reports whether the decision stays after the click", () => {
+      const rows = buildRowsWithFlaggedFirst();
+      const cases = [
+        { selectedRow: rows[0], remainsAfterClick: true },
+        { selectedRow: rows[1], remainsAfterClick: false },
+      ];
+
+      for (const { selectedRow, remainsAfterClick } of cases) {
+        const callbacks = buildCallbacks();
+        const rail = buildSubscriptionActionRail({ selectedRow, isKept: true, labels, ...callbacks });
+
+        expect(rail?.decision).toMatchObject({
+          kind: "unkeep",
+          label: "Remove review exclusion",
+          keptChipLabel: "Excluded from review",
+          keptEffectLabel: "Left out of lists",
+          remainsAfterClick,
+        });
+        rail?.decision?.onClick();
+        expect(callbacks.onUnkeep).toHaveBeenCalledWith(selectedRow);
+      }
     });
   });
 

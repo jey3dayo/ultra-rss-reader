@@ -11,7 +11,7 @@ import type { SubscriptionsIndexPageView } from "@/components/subscriptions-inde
 import { __resetFeedRetryStateForTests } from "@/hooks/use-local-feed-sync-statuses";
 import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
-import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
+import type { SubscriptionActionRail } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -237,7 +237,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
     expect(detailPane.querySelector(".motion-content-swap")).toHaveAttribute("data-motion-phase", "entering");
     expect(await within(detailPane).findByText(/RSS上で[\d,]+日、新しい記事がありません/)).toBeInTheDocument();
-    expect(await within(detailPane).findByTestId("subscriptions-detail-decision-bar")).toHaveClass(
+    expect(await within(detailPane).findByTestId("subscriptions-detail-action-rail")).toHaveClass(
       "motion-content-swap",
       "rounded-md",
     );
@@ -470,7 +470,7 @@ describe("SubscriptionsIndexPage", () => {
     expectTypeOf<PageViewProps["selectedRow"]>().toEqualTypeOf<SubscriptionListRow | null>();
     expectTypeOf<PageViewProps["selectedMetrics"]>().toEqualTypeOf<SubscriptionDetailMetrics | null>();
     expectTypeOf<PageViewProps["selectedDetailCandidate"]>().toEqualTypeOf<SubscriptionDetailCandidate | null>();
-    expectTypeOf<NonNullable<PageViewProps["decisionActions"]>>().toEqualTypeOf<SubscriptionDecisionActions>();
+    expectTypeOf<NonNullable<PageViewProps["actionRail"]>>().toEqualTypeOf<SubscriptionActionRail>();
   });
 
   it("renders lightweight feed rows and only highlights the selected feed", async () => {
@@ -705,8 +705,8 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = await screen.findByTestId("subscriptions-detail-pane");
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
 
-    const decisionBar = await within(detailPane).findByTestId("subscriptions-detail-decision-bar");
-    expect(decisionBar).toBeVisible();
+    const actionRail = await within(detailPane).findByTestId("subscriptions-detail-action-rail");
+    expect(actionRail).toBeVisible();
     const keepButton = within(detailPane).getByRole("button", {
       name: /^(見直し対象外にする|decision_keep)$/,
     });
@@ -734,8 +734,8 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
 
-    expect(within(detailPane).queryByTestId("subscriptions-detail-decision-bar")).toBeNull();
-    expect(within(detailPane).getByTestId("subscriptions-detail-management-bar")).toBeInTheDocument();
+    expect(within(detailPane).getByTestId("subscriptions-detail-action-rail")).toBeInTheDocument();
+    expect(within(detailPane).queryByRole("button", { name: /^(見直し対象外にする|decision_keep)$/ })).toBeNull();
     await user.click(within(detailPane).getByRole("button", { name: /^(編集|edit)$/ }));
     const editDialog = await screen.findByRole("dialog", {
       name: /^(フィードを編集|edit_feed)$/,
@@ -753,37 +753,37 @@ describe("SubscriptionsIndexPage", () => {
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
-    const decisionBar = await within(detailPane).findByTestId("subscriptions-detail-decision-bar");
-    const keepButton = within(decisionBar).getByRole("button", { name: "見直し対象外にする" });
+    const actionRail = await within(detailPane).findByTestId("subscriptions-detail-action-rail");
+    const keepButton = within(actionRail).getByRole("button", { name: "見直し対象外にする" });
     await user.click(keepButton);
 
-    expect(within(detailPane).getByTestId("subscriptions-detail-decision-bar")).toBe(decisionBar);
-    const unkeepButton = within(decisionBar).getByRole("button", { name: "見直し対象外を解除" });
+    expect(within(detailPane).getByTestId("subscriptions-detail-action-rail")).toBe(actionRail);
+    const unkeepButton = within(actionRail).getByRole("button", { name: "見直し対象外を解除" });
     expect(unkeepButton).toBe(keepButton);
     expect(unkeepButton).toHaveFocus();
     expect(unkeepButton.className).not.toContain("state-success");
-    expect(within(decisionBar).getByRole("button", { name: "編集" })).toBeInTheDocument();
+    expect(within(actionRail).getByRole("button", { name: "編集" })).toBeInTheDocument();
     expect(within(screen.getByRole("button", { name: /Example Feed/ })).getByText("見直し対象外")).toBeInTheDocument();
 
     useUiStore.getState().clearToast();
     await user.click(unkeepButton);
 
-    expect(within(detailPane).getByTestId("subscriptions-detail-decision-bar")).toBe(decisionBar);
-    expect(within(decisionBar).getByRole("button", { name: "見直し対象外にする" })).toBe(keepButton);
-    expect(within(decisionBar).queryByRole("button", { name: "編集" })).toBeNull();
+    expect(within(detailPane).getByTestId("subscriptions-detail-action-rail")).toBe(actionRail);
+    expect(within(actionRail).getByRole("button", { name: "見直し対象外にする" })).toBe(keepButton);
+    expect(within(actionRail).getByRole("button", { name: "編集" })).toBeInTheDocument();
     expect(keepButton.className).toContain("state-success");
     expect(within(screen.getByRole("button", { name: /Example Feed/ })).queryByText("見直し対象外")).toBeNull();
     expect(useUiStore.getState().toastMessage).toBeNull();
 
     await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
-    const freshBar = within(detailPane).getByTestId("subscriptions-detail-decision-bar");
-    expect(within(freshBar).getByRole("button", { name: "見直し対象外を解除" })).toBeInTheDocument();
-    expect(within(freshBar).getByRole("button", { name: "編集" })).toBeInTheDocument();
-    expect(within(detailPane).queryByTestId("subscriptions-detail-management-bar")).toBeNull();
+    const freshRail = within(detailPane).getByTestId("subscriptions-detail-action-rail");
+    expect(within(freshRail).getByRole("button", { name: "見直し対象外を解除" })).toBeInTheDocument();
+    const freshEditButton = within(freshRail).getByRole("button", { name: "編集" });
 
-    await user.click(within(freshBar).getByRole("button", { name: "見直し対象外を解除" }));
-    const managementBar = within(detailPane).getByTestId("subscriptions-detail-management-bar");
-    expect(within(managementBar).getByRole("button", { name: "編集" })).toHaveFocus();
+    await user.click(within(freshRail).getByRole("button", { name: "見直し対象外を解除" }));
+    expect(within(freshRail).queryByRole("button", { name: "見直し対象外を解除" })).toBeNull();
+    expect(within(freshRail).getByRole("button", { name: "編集" })).toBe(freshEditButton);
+    expect(freshEditButton).toHaveFocus();
   });
 
   it("removes kept feeds from the active stale filter and clears the detail pane", async () => {
