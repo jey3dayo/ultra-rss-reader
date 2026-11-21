@@ -9,6 +9,7 @@ import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useLocalFeedSyncStatuses } from "@/hooks/use-local-feed-sync-statuses";
+import { useRemoteFeedSyncStatuses } from "@/hooks/use-remote-feed-sync-statuses";
 import { copyValueToClipboard } from "@/lib/runtime/clipboard";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
@@ -211,6 +212,7 @@ function SubscriptionsIndexPageForAccount({
   const summaryQuery = useFeedArticleSummaries(selectedAccountId);
   const feedArticleSummaries = summaryQuery.data ?? [];
   const localFeedSync = useLocalFeedSyncStatuses(selectedAccountId);
+  const remoteFeedSync = useRemoteFeedSyncStatuses(selectedAccountId);
   const {
     deleteTargetFeed,
     editTargetFeed,
@@ -249,13 +251,19 @@ function SubscriptionsIndexPageForAccount({
     feedSyncStatuses: localFeedSync.statusQuery.data,
     feedSyncStatusesPending: localFeedSync.statusQuery.isPending,
     feedSyncStatusesError: localFeedSync.statusQuery.isError,
+    isFreshRssAccount: remoteFeedSync.isFreshRssAccount,
+    remoteFeedSyncStatuses: remoteFeedSync.statusQuery.data,
+    remoteFeedSyncStatusesPending: remoteFeedSync.statusQuery.isPending,
+    remoteFeedSyncStatusesError: remoteFeedSync.statusQuery.isError,
     feedLoad: toQueryLoadState(feedQuery),
     summaryLoad: toQueryLoadState(summaryQuery),
     rowsPending:
       feedQuery.isPending ||
       summaryQuery.isPending ||
       localFeedSync.accountsPending ||
-      (localFeedSync.isLocalAccount && localFeedSync.statusQuery.isPending),
+      remoteFeedSync.accountsPending ||
+      (localFeedSync.isLocalAccount && localFeedSync.statusQuery.isPending) ||
+      (remoteFeedSync.isFreshRssAccount && remoteFeedSync.statusQuery.isPending),
     onRetryFeed: localFeedSync.retryFeed,
     retryOutcomeFor: localFeedSync.retryOutcomeFor,
     onEditFeed: (feedId) => {

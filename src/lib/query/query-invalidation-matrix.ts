@@ -8,6 +8,7 @@ export type InvalidateFeedQueriesOptions = {
   includeFolders?: boolean;
   includeAccountUnreadCount?: boolean;
   includeLocalFeedSyncStatuses?: boolean;
+  includeRemoteFeedSyncStatuses?: boolean;
   includeAccounts?: boolean;
 };
 
@@ -121,6 +122,11 @@ export const FEED_INVALIDATION_TARGETS = [
     option: "includeLocalFeedSyncStatuses",
     defaultEnabled: false,
     queryKeys: [queryKeys.localFeedSyncStatuses.root],
+  },
+  {
+    option: "includeRemoteFeedSyncStatuses",
+    defaultEnabled: false,
+    queryKeys: [queryKeys.remoteFeedSyncStatuses.root],
   },
   {
     option: "includeAccounts",
@@ -336,6 +342,7 @@ export const QUERY_INVALIDATION_INTENT_MATRIX: Record<QueryInvalidationIntent, Q
       queryKeys.feeds.root,
       queryKeys.articles.root,
       queryKeys.localFeedSyncStatuses.root,
+      queryKeys.remoteFeedSyncStatuses.root,
       queryKeys.accounts.root,
     ],
   },

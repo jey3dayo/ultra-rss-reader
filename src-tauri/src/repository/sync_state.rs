@@ -12,6 +12,7 @@ pub enum SyncStateScopeKey {
     GReaderUnreadDrift(String),
     Feed(String),
     LocalFeed(String),
+    FeverFeed(String),
     Raw(String),
     LegacyRaw(String),
 }
@@ -41,6 +42,10 @@ impl SyncStateScopeKey {
         Self::LocalFeed(normalize_local_feed_scope_url(&feed_url.into()))
     }
 
+    pub fn fever_feed(feed_id: impl Into<String>) -> Self {
+        Self::FeverFeed(feed_id.into())
+    }
+
     pub fn raw(scope_key: impl Into<String>) -> Self {
         Self::Raw(scope_key.into())
     }
@@ -55,6 +60,7 @@ impl SyncStateScopeKey {
             }
             Self::Feed(remote_id) => format!("feed:{remote_id}"),
             Self::LocalFeed(feed_url) => format!("local_feed:{feed_url}"),
+            Self::FeverFeed(feed_id) => format!("fever_feed:{feed_id}"),
             Self::Raw(scope_key) => format!("raw:{scope_key}"),
             Self::LegacyRaw(scope_key) => scope_key.clone(),
         }
@@ -229,6 +235,11 @@ impl From<&str> for SyncStateScopeKey {
                         .map(|remote_id| Self::Feed(remote_id.to_string()))
                 })
                 .or_else(|| value.strip_prefix("local_feed:").map(Self::local_feed))
+                .or_else(|| {
+                    value
+                        .strip_prefix("fever_feed:")
+                        .map(|feed_id| Self::FeverFeed(feed_id.to_string()))
+                })
                 .or_else(|| {
                     value
                         .strip_prefix("raw:")

@@ -106,6 +106,7 @@ export const syncAccountArgs = s.object({
 });
 export const getAccountSyncStatusArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const getLocalFeedSyncStatusesArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const getRemoteFeedSyncStatusesArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const startupSyncArgs = s.object({
   preferredAccountId: optionalBlankStringToUndefinedSchema,
 });

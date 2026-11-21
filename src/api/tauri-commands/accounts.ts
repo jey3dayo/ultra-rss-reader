@@ -9,8 +9,10 @@ import {
   getAccountCloudflareAccessArgs,
   getAccountSyncStatusArgs,
   getLocalFeedSyncStatusesArgs,
+  getRemoteFeedSyncStatusesArgs,
   LocalFeedSyncStatusListSchema,
   NullResponseSchema,
+  RemoteFeedSyncStatusListSchema,
   renameAccountArgs,
   testAccountConnectionArgs,
   updateAccountCredentialsArgs,
@@ -101,5 +103,12 @@ export const getLocalFeedSyncStatuses = (accountId: string) =>
   safeInvoke(
     "get_local_feed_sync_statuses",
     { response: LocalFeedSyncStatusListSchema, args: getLocalFeedSyncStatusesArgs },
+    { accountId },
+  );
+
+export const getRemoteFeedSyncStatuses = (accountId: string) =>
+  safeInvoke(
+    "get_remote_feed_sync_statuses",
+    { response: RemoteFeedSyncStatusListSchema, args: getRemoteFeedSyncStatusesArgs },
     { accountId },
   );

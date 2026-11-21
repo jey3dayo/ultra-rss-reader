@@ -251,6 +251,7 @@ export function invalidateSyncCompletedQueries(
     actionOwner,
     includeAccountUnreadCount: true,
     includeLocalFeedSyncStatuses: true,
+    includeRemoteFeedSyncStatuses: true,
     includeAccounts: true,
   });
   invalidateArticleQueries(queryClient, {

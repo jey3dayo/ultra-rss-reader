@@ -180,6 +180,7 @@ function readRustCommandSources() {
     "sync_commands/manual.rs",
     "sync_commands/scheduler.rs",
     "sync_commands/local_feed_health.rs",
+    "sync_commands/remote_feed_health.rs",
     "sync_commands/tests/mod.rs",
     "sync_commands/tests/progress.rs",
     "sync_commands/tests/startup_repair.rs",

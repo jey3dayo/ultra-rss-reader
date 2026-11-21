@@ -40,6 +40,7 @@ export const TAURI_COMMAND_NAMES = [
   "get_feed_integrity_report",
   "get_local_account_sync_settings",
   "get_local_feed_sync_statuses",
+  "get_remote_feed_sync_statuses",
   "get_platform_info",
   "get_preferences",
   "get_tag_article_counts",

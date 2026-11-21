@@ -14,7 +14,7 @@ export function buildSubscriptionsFilterBarModel(params: {
   accountSelected: boolean;
   feeds: QueryLoadState;
   summaries: QueryLoadState;
-  fetchStatuses: { isLocalAccount: boolean; hasData: boolean; pending: boolean; error: boolean };
+  fetchStatuses: { applicable: boolean; hasData: boolean; pending: boolean; error: boolean };
   labels: {
     group: string;
     all: string;
@@ -29,7 +29,7 @@ export function buildSubscriptionsFilterBarModel(params: {
   const feedsReady = areQueriesReady(accountSelected, [feeds]);
   const derivedReady = areQueriesReady(accountSelected, [feeds, summaries]);
   const fetchErrorsReady =
-    fetchStatuses.isLocalAccount &&
+    fetchStatuses.applicable &&
     fetchStatuses.hasData &&
     !fetchStatuses.pending &&
     !fetchStatuses.error &&

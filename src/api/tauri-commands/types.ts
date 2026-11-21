@@ -16,6 +16,7 @@ export type {
   OldUnreadDays,
   OldUnreadScopeKind,
   PreferencesDto,
+  RemoteFeedSyncStatusDto,
   TagDto,
   UpdateInfoDto,
 } from "@/api/schemas";

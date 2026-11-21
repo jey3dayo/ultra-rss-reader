@@ -166,6 +166,10 @@ fn command_db_lock_policy_classifies_command_categories() {
             "get_local_feed_sync_statuses",
             CommandDbLockPolicy::BlockingLock,
         ),
+        (
+            "get_remote_feed_sync_statuses",
+            CommandDbLockPolicy::BlockingLock,
+        ),
         ("export_opml_to_file", CommandDbLockPolicy::BlockingLock),
         ("export_settings_profile", CommandDbLockPolicy::BlockingLock),
         (

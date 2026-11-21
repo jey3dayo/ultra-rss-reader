@@ -35,6 +35,7 @@ export const QUERY_KEY_ROOTS = {
   feedIntegrityReport: createSchemaVersionedQueryKey("feedIntegrityReport"),
   feedArticleSummaries: createSchemaVersionedQueryKey("feedArticleSummaries"),
   localFeedSyncStatuses: createSchemaVersionedQueryKey("localFeedSyncStatuses"),
+  remoteFeedSyncStatuses: createSchemaVersionedQueryKey("remoteFeedSyncStatuses"),
 } as const satisfies Record<string, QueryInvalidationKey>;
 
 export const TAGS_QUERY_KEY = ["tags"] as const;
@@ -122,6 +123,11 @@ export const queryKeys = {
     root: QUERY_KEY_ROOTS.localFeedSyncStatuses,
     byAccount: (accountId: string | null) =>
       [...QUERY_KEY_ROOTS.localFeedSyncStatuses, normalizeQueryAccountId(accountId)] as const,
+  },
+  remoteFeedSyncStatuses: {
+    root: QUERY_KEY_ROOTS.remoteFeedSyncStatuses,
+    byAccount: (accountId: string | null) =>
+      [...QUERY_KEY_ROOTS.remoteFeedSyncStatuses, normalizeQueryAccountId(accountId)] as const,
   },
 } as const;
 

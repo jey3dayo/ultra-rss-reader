@@ -7,6 +7,7 @@ import type {
   FeedArticleSummaryDto,
   LocalFeedSyncStatusDto,
   MuteKeywordDto,
+  RemoteFeedSyncStatusDto,
   TagDto,
 } from "@/api/tauri-commands";
 import { isInvokableCommandName } from "@/api/tauri-commands/command-names";
@@ -133,6 +134,8 @@ function createDefaultHandler(): MockHandler {
         return createSampleFolders().filter((folder) => folder.account_id === args.accountId);
       case "get_local_feed_sync_statuses":
         return [] satisfies LocalFeedSyncStatusDto[];
+      case "get_remote_feed_sync_statuses":
+        return [] satisfies RemoteFeedSyncStatusDto[];
       case "get_article":
         return structuredClone(mockArticles.find((article) => article.id === args.articleId) ?? mockArticles[0]);
       case "list_articles":

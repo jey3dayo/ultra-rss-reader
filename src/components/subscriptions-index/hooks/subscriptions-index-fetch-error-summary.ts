@@ -1,4 +1,5 @@
-import type { FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
+import type { FeedDto, LocalFeedSyncStatusDto, RemoteFeedSyncStatusDto } from "@/api/tauri-commands";
+import { resolveRemoteFeedFetchFailures } from "@/lib/subscriptions/remote-feed-fetch-failure";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 
 export function attachLocalFeedFetchErrors(
@@ -17,6 +18,21 @@ export function attachLocalFeedFetchErrors(
   return rows.map((row) => {
     const fetchError = statusesByFeedId.get(row.feed.id);
     return fetchError ? { ...row, reasonTooltipKey: "fetch_error", fetchError } : row;
+  });
+}
+
+export function attachRemoteFeedFetchFailures(
+  rows: SubscriptionListRow[],
+  feeds: FeedDto[],
+  statuses: RemoteFeedSyncStatusDto[] | undefined,
+  isFreshRssAccount: boolean,
+): SubscriptionListRow[] {
+  if (!isFreshRssAccount || !statuses) return rows;
+  const failures = resolveRemoteFeedFetchFailures({ feeds, statuses });
+  if (failures.size === 0) return rows;
+  return rows.map((row) => {
+    const remoteFetchFailure = failures.get(row.feed.id);
+    return remoteFetchFailure ? { ...row, reasonTooltipKey: "remote_fetch_error", remoteFetchFailure } : row;
   });
 }
 

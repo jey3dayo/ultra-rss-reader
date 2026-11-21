@@ -30,6 +30,15 @@ pub struct AccountSyncStatus {
     pub waiting_for_credential_access: bool,
 }
 
+/// Per-feed last successful refresh as reported by the remote server
+/// (FreshRSS via the Fever API). Unlike [`LocalFeedSyncStatus`] there is no
+/// error detail: FreshRSS does not retain the failure kind or status code.
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+pub struct RemoteFeedSyncStatus {
+    pub feed_id: String,
+    pub last_success_at: Option<String>,
+}
+
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 pub struct LocalFeedSyncStatus {
     pub feed_id: String,

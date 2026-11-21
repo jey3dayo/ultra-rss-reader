@@ -32,6 +32,7 @@ type SubscriptionsListRowProps = {
   statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel: string;
+  remoteFetchFailureLabel: string;
   formatUnreadCountLabel: (count: number) => string;
   latestArticleLabels: SubscriptionsLatestArticleLabels;
   onSelectFeed: (feedId: string) => void;
@@ -63,9 +64,13 @@ function resolveStatusChip(
   row: SubscriptionListRow,
   statusLabels: SubscriptionsActionableStatusLabels,
   fetchErrorLabel: string,
+  remoteFetchFailureLabel: string,
 ): { tone: SubscriptionStatusTone; label: string } | null {
   if (row.fetchError) {
     return { tone: "danger", label: fetchErrorLabel };
+  }
+  if (row.remoteFetchFailure) {
+    return { tone: "danger", label: remoteFetchFailureLabel };
   }
   const statusKey = row.status.labelKey;
   if (statusKey === "normal") {
@@ -152,12 +157,13 @@ export function SubscriptionsListRow({
   statusLabels,
   reasonTooltipLabels,
   fetchErrorLabel,
+  remoteFetchFailureLabel,
   formatUnreadCountLabel,
   latestArticleLabels,
   onSelectFeed,
 }: SubscriptionsListRowProps) {
   const selecting = bulkSelection?.mode === true;
-  const statusChip = resolveStatusChip(row, statusLabels, fetchErrorLabel);
+  const statusChip = resolveStatusChip(row, statusLabels, fetchErrorLabel, remoteFetchFailureLabel);
   const rowButton = (
     <button
       type="button"

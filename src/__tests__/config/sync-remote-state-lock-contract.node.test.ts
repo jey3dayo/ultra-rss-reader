@@ -81,6 +81,7 @@ const SYNC_PROVIDERS_LOCK_DB_ALLOWLIST: ReadonlyArray<readonly [string, string]>
   ["commands/sync_providers/account/db.rs", "record_feed_last_seen_article_probe"],
   ["commands/sync_providers/account/db.rs", "save_feed_sync_state"],
   ["commands/sync_providers/account/db.rs", "save_greader_folders_snapshot"],
+  ["commands/sync_providers/account/fever.rs", "save_fever_feed_sync_states"],
   ["commands/sync_providers/account/remote_state.rs", "apply_remote_state_with_protection"],
   ["commands/sync_providers/local.rs", "commit_local_feed_sync_result"],
   ["commands/sync_providers/local.rs", "load_local_feed_sync_state"],
