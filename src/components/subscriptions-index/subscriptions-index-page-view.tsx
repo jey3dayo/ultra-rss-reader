@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { WORKSPACE_CANVAS_CLASS, WORKSPACE_CHROME_SPACING_CLASS, workspaceSplitShellClassName } from "@/design-system";
 import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
-import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
+import type { SubscriptionActionRail } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -12,7 +12,6 @@ import type {
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
-import type { SubscriptionManagementActions } from "./subscription-decision-bar";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import type { SubscriptionsFilterBarModel } from "./subscriptions-filter-bar";
@@ -88,8 +87,7 @@ type SubscriptionsIndexPageViewProps = {
   contentUrlLabel: string;
   displayModeLabel: string;
   displayModeValue: string;
-  decisionActions: SubscriptionDecisionActions | null;
-  managementActions: SubscriptionManagementActions | null;
+  actionRail: SubscriptionActionRail | null;
   isGroupExpanded: (groupKey: string) => boolean;
   onSelectSummaryFilter: (filterKey: SubscriptionSummaryFilterKey) => void;
   onSelectFeed: (feedId: string) => void;
@@ -152,8 +150,7 @@ export function SubscriptionsIndexPageView({
   contentUrlLabel,
   displayModeLabel,
   displayModeValue,
-  decisionActions,
-  managementActions,
+  actionRail,
   isGroupExpanded,
   onSelectSummaryFilter,
   onSelectFeed,
@@ -239,8 +236,7 @@ export function SubscriptionsIndexPageView({
               displayModeLabel={displayModeLabel}
               displayModeValue={displayModeValue}
               dateLocale={dateLocale}
-              decisionActions={decisionActions}
-              managementActions={managementActions}
+              actionRail={actionRail}
             />
           </div>
         </div>

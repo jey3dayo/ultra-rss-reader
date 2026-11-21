@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { SubscriptionDetailPane } from "@/components/subscriptions-index/subscription-detail-pane";
 import { WorkspaceManagementActionButton } from "@/design-system";
-import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
+import type { SubscriptionActionRail } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionDetailMetrics, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto> = {}): FeedDto {
@@ -63,8 +63,7 @@ const baseProps = {
   contentUrlLabel: "Content URL",
   displayModeLabel: "Display",
   displayModeValue: "Default",
-  decisionActions: null,
-  managementActions: null,
+  actionRail: null,
   dateLocale: "en",
 };
 
@@ -402,93 +401,69 @@ describe("SubscriptionDetailPane", () => {
     );
   });
 
-  it("delegates decision bar actions and hides management actions while decisions are present", () => {
-    const decisionActions = {
-      kind: "undecided",
-      keepLabel: "Exclude from review",
-      deleteLabel: "Delete",
-      onKeep: vi.fn(),
-      onDelete: vi.fn(),
-    } satisfies SubscriptionDecisionActions;
-    const managementActions = {
-      editLabel: "Edit",
-      deleteLabel: "Remove",
-      onEdit: vi.fn(),
-      onDelete: vi.fn(),
-    };
+  it("keeps the rail and edit button nodes when the decision toggles between keep and unkeep", () => {
+    const railBase = { editLabel: "Edit", deleteLabel: "Remove", onEdit: vi.fn(), onDelete: vi.fn() };
+    const keepRail = {
+      ...railBase,
+      decision: { kind: "keep", label: "Exclude from review", onClick: vi.fn(), remainsAfterClick: true },
+    } satisfies SubscriptionActionRail;
+    const unkeepRail = {
+      ...railBase,
+      decision: {
+        kind: "unkeep",
+        label: "Remove review exclusion",
+        onClick: vi.fn(),
+        keptChipLabel: "Excluded from review",
+        keptEffectLabel: "Left out of lists",
+        remainsAfterClick: true,
+      },
+    } satisfies SubscriptionActionRail;
 
-    render(
-      <SubscriptionDetailPane {...baseProps} decisionActions={decisionActions} managementActions={managementActions} />,
-    );
-
-    expect(screen.getByTestId("subscriptions-detail-decision-bar")).toHaveClass("grid-cols-1", "sm:grid-cols-2");
-    expect(screen.queryByTestId("subscriptions-detail-management-bar")).not.toBeInTheDocument();
-    for (const label of ["Exclude from review", "Delete"]) {
-      const actionButton = screen.getByRole("button", { name: label });
-      expect(actionButton).toBeVisible();
-      expect(actionButton.querySelector("svg")).toHaveClass("size-4");
-    }
+    const { rerender } = render(<SubscriptionDetailPane {...baseProps} actionRail={keepRail} />);
+    const rail = screen.getByTestId("subscriptions-detail-action-rail");
+    const editButton = screen.getByRole("button", { name: "Edit" });
+    expect(screen.queryByTestId("subscriptions-detail-kept-status")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Exclude from review" }));
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(keepRail.decision.onClick).toHaveBeenCalledOnce();
 
-    expect(decisionActions.onKeep).toHaveBeenCalledOnce();
-    expect(decisionActions.onDelete).toHaveBeenCalledOnce();
-    expect(managementActions.onEdit).not.toHaveBeenCalled();
-    expect(managementActions.onDelete).not.toHaveBeenCalled();
+    rerender(<SubscriptionDetailPane {...baseProps} actionRail={unkeepRail} />);
+
+    expect(screen.getByTestId("subscriptions-detail-action-rail")).toBe(rail);
+    expect(screen.getByRole("button", { name: "Edit" })).toBe(editButton);
+    expect(screen.getByTestId("subscriptions-detail-kept-status")).toBeInTheDocument();
   });
 
-  it("delegates management actions when no decision actions are present", () => {
-    const managementActions = {
+  it("reaches edit and delete without a decision and keeps delete last", () => {
+    const actionRail = {
+      decision: null,
       editLabel: "Edit",
       deleteLabel: "Remove",
       onEdit: vi.fn(),
       onDelete: vi.fn(),
-    };
+    } satisfies SubscriptionActionRail;
 
-    render(<SubscriptionDetailPane {...baseProps} decisionActions={null} managementActions={managementActions} />);
+    render(<SubscriptionDetailPane {...baseProps} actionRail={actionRail} />);
 
-    expect(screen.queryByTestId("subscriptions-detail-decision-bar")).not.toBeInTheDocument();
-    expect(screen.getByTestId("subscriptions-detail-management-bar")).toHaveClass("flex", "flex-wrap", "justify-end");
-    for (const label of ["Edit", "Remove"]) {
-      const actionButton = screen.getByRole("button", { name: label });
-      expect(actionButton).toBeVisible();
-      expect(actionButton.querySelector("svg")).toHaveClass("size-4");
-    }
-    expect(screen.getByRole("button", { name: "Edit" })).toHaveClass("bg-surface-1/88", "text-foreground-soft");
-    expect(screen.getByRole("button", { name: "Remove" })).toHaveClass(
-      "bg-state-danger-surface",
-      "text-state-danger-foreground",
-    );
+    const buttons = within(screen.getByTestId("subscriptions-detail-action-rail")).getAllByRole("button");
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(["Edit", "Remove"]);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
 
-    expect(managementActions.onEdit).toHaveBeenCalledOnce();
-    expect(managementActions.onDelete).toHaveBeenCalledOnce();
+    expect(actionRail.onEdit).toHaveBeenCalledOnce();
+    expect(actionRail.onDelete).toHaveBeenCalledOnce();
   });
 
   it("renders the localized empty label for missing and invalid latest article dates", () => {
     const { rerender } = render(
-      <SubscriptionDetailPane
-        {...baseProps}
-        metrics={{ ...metrics, latestArticleAt: null }}
-        decisionActions={null}
-        managementActions={null}
-      />,
+      <SubscriptionDetailPane {...baseProps} metrics={{ ...metrics, latestArticleAt: null }} />,
     );
 
     expect(within(getLatestArticleMetricRow()).getByText("No articles fetched")).toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
 
-    rerender(
-      <SubscriptionDetailPane
-        {...baseProps}
-        metrics={{ ...metrics, latestArticleAt: "not-a-date" }}
-        decisionActions={null}
-        managementActions={null}
-      />,
-    );
+    rerender(<SubscriptionDetailPane {...baseProps} metrics={{ ...metrics, latestArticleAt: "not-a-date" }} />);
 
     expect(within(getLatestArticleMetricRow()).getByText("No articles fetched")).toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("Invalid Date")).not.toBeInTheDocument();

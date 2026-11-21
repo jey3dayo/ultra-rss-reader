@@ -17,28 +17,32 @@ import type {
 } from "@/lib/subscriptions/subscriptions-index.types";
 
 function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
-  return status.labelKey !== "normal" && status.labelKey !== "attention_30d";
+  return status.labelKey !== "normal";
 }
 
-export type SubscriptionDecisionActions =
+export type SubscriptionRailDecision =
   | {
-      kind: "undecided";
-      keepLabel: string;
-      deleteLabel: string;
-      onKeep: () => void;
-      onDelete: () => void;
+      kind: "keep";
+      label: string;
+      onClick: () => void;
+      remainsAfterClick: true;
     }
   | {
-      kind: "kept";
+      kind: "unkeep";
+      label: string;
+      onClick: () => void;
       keptChipLabel: string;
       keptEffectLabel: string;
-      unkeepLabel: string;
-      editLabel: string;
-      deleteLabel: string;
-      onUnkeep: () => void;
-      onEdit: () => void;
-      onDelete: () => void;
+      remainsAfterClick: boolean;
     };
+
+export type SubscriptionActionRail = {
+  decision: SubscriptionRailDecision | null;
+  editLabel: string;
+  deleteLabel: string;
+  onEdit: () => void;
+  onDelete: () => void;
+};
 
 export function buildSubscriptionDetailCandidate(params: {
   selectedRow: SubscriptionListRow | null;
@@ -144,7 +148,40 @@ export function resolveSelectedSubscriptionDisplayModeLabel(params: {
   });
 }
 
-export function buildSubscriptionDecisionActions(params: {
+function buildRailDecision(params: {
+  selectedRow: SubscriptionListRow;
+  isKept: boolean;
+  labels: { keep: string; unkeep: string; keptChip: string; keptEffect: string };
+  onKeep: (selectedRow: SubscriptionListRow) => void;
+  onUnkeep: (selectedRow: SubscriptionListRow) => void;
+}): SubscriptionRailDecision | null {
+  const { selectedRow, isKept, labels, onKeep, onUnkeep } = params;
+  const flagged = isSubscriptionRowFlagged(selectedRow.status);
+
+  if (isKept) {
+    return {
+      kind: "unkeep",
+      label: labels.unkeep,
+      onClick: () => onUnkeep(selectedRow),
+      keptChipLabel: labels.keptChip,
+      keptEffectLabel: labels.keptEffect,
+      remainsAfterClick: flagged,
+    };
+  }
+
+  if (!flagged) {
+    return null;
+  }
+
+  return {
+    kind: "keep",
+    label: labels.keep,
+    onClick: () => onKeep(selectedRow),
+    remainsAfterClick: true,
+  };
+}
+
+export function buildSubscriptionActionRail(params: {
   selectedRow: SubscriptionListRow | null;
   isKept: boolean;
   labels: {
@@ -159,38 +196,21 @@ export function buildSubscriptionDecisionActions(params: {
   onUnkeep: (selectedRow: SubscriptionListRow) => void;
   onEdit: () => void;
   onDelete: () => void;
-}): SubscriptionDecisionActions | null {
-  const { selectedRow, isKept, labels, onKeep, onUnkeep, onEdit, onDelete } = params;
+}): SubscriptionActionRail | null {
+  const { selectedRow, labels, onEdit, onDelete } = params;
   if (!selectedRow) {
     return null;
   }
 
-  if (isKept) {
-    return {
-      kind: "kept",
-      keptChipLabel: labels.keptChip,
-      keptEffectLabel: labels.keptEffect,
-      unkeepLabel: labels.unkeep,
-      editLabel: labels.edit,
-      deleteLabel: labels.delete,
-      onUnkeep: () => onUnkeep(selectedRow),
-      onEdit,
-      onDelete,
-    };
-  }
-
-  if (!isSubscriptionRowFlagged(selectedRow.status)) {
-    return null;
-  }
-
   return {
-    kind: "undecided",
-    keepLabel: labels.keep,
+    decision: buildRailDecision({ ...params, selectedRow }),
+    editLabel: labels.edit,
     deleteLabel: labels.delete,
-    onKeep: () => onKeep(selectedRow),
+    onEdit,
     onDelete,
   };
 }
+
 export function buildSubscriptionDetailMetrics({
   feed,
   articles,

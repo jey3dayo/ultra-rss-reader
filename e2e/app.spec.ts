@@ -390,9 +390,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await openSubscriptionInventory(page);
     await page.setViewportSize({ width: 639, height: 900 });
 
-    const detailActions = page
-      .locator('[data-testid="subscriptions-detail-decision-bar"], [data-testid="subscriptions-detail-management-bar"]')
-      .first();
+    const detailActions = page.getByTestId("subscriptions-detail-action-rail");
     const inventoryHeading = page.getByRole("heading", {
       name: subscriptionsInventoryHeadingName,
     });

@@ -22,6 +22,7 @@ import {
   buildSubscriptionDetailMetrics,
   buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
+  type SubscriptionRailDecision,
 } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
@@ -169,6 +170,20 @@ const healthy = buildStoryDetail({
   summary: { latest_article_at: "2024-04-02T10:00:00Z", starred_count: 1 },
 });
 
+const storyRailLabels = {
+  editLabel: "Edit",
+  deleteLabel: "Unsubscribe",
+  onEdit: fn(),
+  onDelete: fn(),
+};
+
+const keepDecision = {
+  kind: "keep",
+  label: "Exclude from review",
+  onClick: fn(),
+  remainsAfterClick: true,
+} satisfies SubscriptionRailDecision;
+
 const meta = {
   title: "Subscriptions/Detail/SubscriptionDetailPane",
   component: SubscriptionDetailPane,
@@ -194,14 +209,7 @@ const meta = {
     displayModeLabel: "Display mode",
     displayModeValue: "Default",
     dateLocale: "en-US",
-    decisionActions: {
-      kind: "undecided",
-      keepLabel: "Exclude from review",
-      deleteLabel: "Unsubscribe",
-      onKeep: fn(),
-      onDelete: fn(),
-    },
-    managementActions: null,
+    actionRail: { ...storyRailLabels, decision: keepDecision },
   },
   decorators: [
     (Story) => (
@@ -219,16 +227,16 @@ export const Default: Story = {};
 
 export const KeptDecision: Story = {
   args: {
-    decisionActions: {
-      kind: "kept",
-      keptChipLabel: "Excluded from review",
-      keptEffectLabel: 'Excluded from the 90+ days without updates list and from "Select all shown".',
-      unkeepLabel: "Remove review exclusion",
-      editLabel: "Edit",
-      deleteLabel: "Unsubscribe",
-      onUnkeep: fn(),
-      onEdit: fn(),
-      onDelete: fn(),
+    actionRail: {
+      ...storyRailLabels,
+      decision: {
+        kind: "unkeep",
+        label: "Remove review exclusion",
+        onClick: fn(),
+        keptChipLabel: "Excluded from review",
+        keptEffectLabel: 'Excluded from the 90+ days without updates list and from "Select all shown".',
+        remainsAfterClick: true,
+      },
     },
   },
 };
@@ -238,23 +246,15 @@ export const Empty: Story = {
     row: null,
     metrics: null,
     detailCandidate: null,
-    decisionActions: null,
-    managementActions: null,
+    actionRail: null,
   },
 };
 
-export const WithoutDecisionActions: Story = {
+export const AttentionDecision: Story = {
   args: {
     row: attention.row,
     metrics: attention.metrics,
     detailCandidate: attention.detailCandidate,
-    decisionActions: null,
-    managementActions: {
-      editLabel: "Edit",
-      deleteLabel: "Unsubscribe",
-      onEdit: fn(),
-      onDelete: fn(),
-    },
   },
 };
 
@@ -263,13 +263,7 @@ export const NotReviewCandidate: Story = {
     row: healthy.row,
     metrics: healthy.metrics,
     detailCandidate: healthy.detailCandidate,
-    decisionActions: null,
-    managementActions: {
-      editLabel: "Edit",
-      deleteLabel: "Unsubscribe",
-      onEdit: fn(),
-      onDelete: fn(),
-    },
+    actionRail: { ...storyRailLabels, decision: null },
   },
 };
 
