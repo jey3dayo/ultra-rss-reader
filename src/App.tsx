@@ -7,6 +7,7 @@ import { scheduleAnimationFrameWithTimeoutFallback } from "@/lib/dom/animation-f
 import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AgentationMount } from "./components/app/agentation-mount";
 import { AppShell } from "./components/app-shell";
+import { BulkUnsubscribeRunner } from "./components/subscriptions-index/bulk-unsubscribe-runner";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
 import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query/query-client";
@@ -189,6 +190,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <AppInner />
       <AgentationMount />
+      <BulkUnsubscribeRunner />
     </QueryClientProvider>
   );
 }
