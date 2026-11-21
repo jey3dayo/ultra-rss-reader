@@ -10,9 +10,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { BulkUnsubscribeDialog } from "@/components/subscriptions-index/bulk-unsubscribe-dialog";
+import { BulkUnsubscribeRunner } from "@/components/subscriptions-index/bulk-unsubscribe-runner";
 import type { BulkUnsubscribeTarget } from "@/components/subscriptions-index/hooks/use-bulk-unsubscribe-feeds";
 import { MOTION_HOLD_CONFIRM_DURATION_MS } from "@/constants";
 import { buildSubscriptionListRows } from "@/lib/subscriptions/subscriptions-index";
+import { useBulkUnsubscribeStore } from "@/stores/bulk-unsubscribe-store";
 import { useUiStore } from "@/stores/ui-store";
 
 const BUSY_MESSAGE = "Database maintenance is unavailable while syncing. Try again after sync completes.";
@@ -66,16 +68,19 @@ function setupDeleteFeed(behaviors: Record<string, DeleteFeedBehavior> = {}) {
   return { calls, maxActive: () => maxActive };
 }
 
-function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>) {
+function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>, { withRunner = true } = {}) {
   const onSettled = vi.fn();
   const onClose = vi.fn();
   const { queryClient, wrapper } = createQueryWrapper();
 
   function Harness() {
     const [open, setOpen] = useState(true);
+    const [session, setSession] = useState(0);
     return (
       <>
+        {withRunner ? <BulkUnsubscribeRunner /> : null}
         <BulkUnsubscribeDialog
+          key={session}
           open={open}
           accountId="acc-1"
           targets={targets}
@@ -87,6 +92,9 @@ function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>) {
         />
         <button type="button" onClick={() => setOpen(true)}>
           reopen
+        </button>
+        <button type="button" onClick={() => setSession((current) => current + 1)}>
+          next session
         </button>
       </>
     );
@@ -106,6 +114,7 @@ describe("BulkUnsubscribeDialog", () => {
   const showToast = vi.fn();
 
   beforeEach(() => {
+    useBulkUnsubscribeStore.getState().reset();
     showToast.mockReset();
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -268,6 +277,33 @@ describe("BulkUnsubscribeDialog", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("starts again from the confirm step when the parent remounts the dialog over a finished run", async () => {
+    const user = userEvent.setup();
+    setupDeleteFeed({ a: () => Promise.reject(new Error(BUSY_MESSAGE)) });
+    renderDialog([makeTarget("a"), makeTarget("b")]);
+
+    await confirmWithKeyboard(user, 2);
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "next session", hidden: true }));
+
+    expect(await screen.findByRole("button", { name: /Unsubscribe from 2 feeds/ })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("reports a missing runner instead of silently ignoring the start request", async () => {
+    const user = userEvent.setup();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { calls } = setupDeleteFeed();
+    renderDialog([makeTarget("a"), makeTarget("b")], { withRunner: false });
+
+    await confirmWithKeyboard(user, 2);
+
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("BulkUnsubscribeRunner"));
+    expect(calls).toEqual([]);
+    expect(screen.getByRole("button", { name: /Unsubscribe from 2 feeds/ })).toBeInTheDocument();
+  });
+
   it("drops the run when unmounted mid-way: cache is refreshed but no settle callback or toast fires", async () => {
     const user = userEvent.setup();
     const inFlight = createDeferred<null>();
@@ -348,6 +384,7 @@ describe("BulkUnsubscribeDialog", () => {
 
 describe("BulkUnsubscribeDialog hold-to-confirm", () => {
   beforeEach(() => {
+    useBulkUnsubscribeStore.getState().reset();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     useUiStore.setState({
       ...useUiStore.getInitialState(),
