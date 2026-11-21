@@ -433,6 +433,20 @@ export function setupDevMocks(): RestoreDevMocks {
         );
       }
 
+      case "get_remote_feed_sync_statuses": {
+        const { accountId } = parseBrowserMockArgs("get_remote_feed_sync_statuses", rawIpcPayload);
+        const account = mockAccounts.find((item) => item.id === accountId);
+        if (account?.kind.toLowerCase() !== "freshrss") return [];
+        return cloneMockResponse(
+          mockFeeds
+            .filter((feed) => feed.account_id === accountId)
+            .map((feed) => ({
+              feed_id: feed.id,
+              last_success_at: toIsoTimestamp(addHours(getCurrentDate(), -0.2)),
+            })),
+        );
+      }
+
       case "list_folders": {
         const { accountId } = parseBrowserMockArgs("list_folders", rawIpcPayload);
         return cloneMockResponse(mockFolders.filter((f) => f.account_id === accountId));

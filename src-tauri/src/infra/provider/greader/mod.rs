@@ -1,3 +1,4 @@
+mod fever;
 mod http;
 mod stream;
 mod stream_subscriptions;
@@ -16,6 +17,7 @@ use crate::domain::provider::*;
 use crate::infra::feed_discovery::validate_discovery_url;
 #[cfg(test)]
 use chrono::{DateTime, Utc};
+pub(crate) use fever::FeverFeedLastSuccess;
 pub(crate) use stream::{UnreadPullResult, UnreadPullTermination};
 #[cfg(test)]
 use stream_types::{
@@ -48,6 +50,9 @@ pub struct GReaderProvider {
     // provider operation returns the error instead of silently using a default client.
     http_client: Result<reqwest::Client, DomainError>,
     auth_token: Option<String>,
+    /// MD5 of `username:password` for the FreshRSS Fever API, derived at
+    /// ClientLogin time. Kept only in memory, like `auth_token`.
+    fever_api_key: Option<String>,
     #[cfg(test)]
     mock_http_transport: bool,
     cloudflare_access: Option<crate::infra::keyring_store::cloudflare_access::CloudflareAccess>,
@@ -63,6 +68,10 @@ impl fmt::Debug for GReaderProvider {
             .field(
                 "auth_token",
                 &self.auth_token.as_ref().map(|_| "[redacted]"),
+            )
+            .field(
+                "fever_api_key",
+                &self.fever_api_key.as_ref().map(|_| "[redacted]"),
             )
             .finish_non_exhaustive()
     }

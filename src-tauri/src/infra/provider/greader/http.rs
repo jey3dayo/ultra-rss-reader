@@ -283,6 +283,7 @@ impl GReaderProvider {
             auth_base: base,
             http_client,
             auth_token: None,
+            fever_api_key: None,
             #[cfg(test)]
             mock_http_transport: false,
             cloudflare_access: None,
@@ -297,6 +298,7 @@ impl GReaderProvider {
             auth_base: base.clone(),
             http_client: Ok(Self::build_http_client(&base)?),
             auth_token: None,
+            fever_api_key: None,
             #[cfg(test)]
             mock_http_transport: false,
             cloudflare_access: None,
@@ -321,6 +323,7 @@ impl GReaderProvider {
             auth_base: base,
             http_client: Ok(client),
             auth_token: None,
+            fever_api_key: None,
             #[cfg(test)]
             mock_http_transport: false,
             cloudflare_access: access,

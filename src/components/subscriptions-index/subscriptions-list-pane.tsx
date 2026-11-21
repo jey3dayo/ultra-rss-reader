@@ -62,6 +62,7 @@ type SubscriptionsListPaneProps = {
   statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel?: string;
+  remoteFetchFailureLabel?: string;
   formatUnreadCountLabel: (count: number) => string;
   latestArticleLabels: SubscriptionsLatestArticleLabels;
   isGroupExpanded: (groupKey: string) => boolean;
@@ -170,6 +171,7 @@ type SubscriptionGroupSectionProps = Pick<
 > & {
   group: SubscriptionsListPaneProps["groups"][number];
   fetchErrorLabel: string;
+  remoteFetchFailureLabel: string;
   expanded: boolean;
   selecting: boolean;
 };
@@ -184,6 +186,7 @@ function SubscriptionGroupSection({
   statusLabels,
   reasonTooltipLabels,
   fetchErrorLabel,
+  remoteFetchFailureLabel,
   formatUnreadCountLabel,
   latestArticleLabels,
   onSelectFeed,
@@ -224,6 +227,7 @@ function SubscriptionGroupSection({
                 statusLabels={statusLabels}
                 reasonTooltipLabels={reasonTooltipLabels}
                 fetchErrorLabel={fetchErrorLabel}
+                remoteFetchFailureLabel={remoteFetchFailureLabel}
                 formatUnreadCountLabel={formatUnreadCountLabel}
                 latestArticleLabels={latestArticleLabels}
                 onSelectFeed={onSelectFeed}
@@ -248,6 +252,7 @@ export function SubscriptionsListPane({
   statusLabels,
   reasonTooltipLabels,
   fetchErrorLabel = "Fetch error",
+  remoteFetchFailureLabel = "Fetch failed",
   formatUnreadCountLabel,
   latestArticleLabels,
   isGroupExpanded,
@@ -409,6 +414,7 @@ export function SubscriptionsListPane({
                 statusLabels={statusLabels}
                 reasonTooltipLabels={reasonTooltipLabels}
                 fetchErrorLabel={fetchErrorLabel}
+                remoteFetchFailureLabel={remoteFetchFailureLabel}
                 formatUnreadCountLabel={formatUnreadCountLabel}
                 latestArticleLabels={latestArticleLabels}
                 onSelectFeed={onSelectFeed}

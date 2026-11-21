@@ -44,6 +44,12 @@ type SubscriptionsIndexPageViewProps = {
     reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => string;
     retryOutcome: (kind: FeedRetryOutcomeKind) => string;
   };
+  selectedRemoteFetchFailure: { lastSuccessAt: string } | null;
+  remoteFetchFailureLabels: {
+    heading: string;
+    body: string;
+    lastSuccess: string;
+  };
   selectedRetryOutcome: FeedRetryOutcomeKind | null;
   onRetryFeed: (feedId: string) => void;
   onEditFeed: () => void;
@@ -60,6 +66,7 @@ type SubscriptionsIndexPageViewProps = {
   statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel: string;
+  remoteFetchFailureLabel: string;
   formatUnreadCountLabel: (count: number) => string;
   latestArticleLabels: SubscriptionsLatestArticleLabels;
   dateLocale: string;
@@ -107,6 +114,8 @@ export function SubscriptionsIndexPageView({
   selectedDetailCandidate,
   selectedFetchError,
   fetchErrorLabels,
+  selectedRemoteFetchFailure,
+  remoteFetchFailureLabels,
   selectedRetryOutcome,
   onRetryFeed,
   onEditFeed,
@@ -123,6 +132,7 @@ export function SubscriptionsIndexPageView({
   statusLabels,
   reasonTooltipLabels,
   fetchErrorLabel,
+  remoteFetchFailureLabel,
   formatUnreadCountLabel,
   latestArticleLabels,
   dateLocale,
@@ -189,6 +199,7 @@ export function SubscriptionsIndexPageView({
               statusLabels={statusLabels}
               reasonTooltipLabels={reasonTooltipLabels}
               fetchErrorLabel={fetchErrorLabel}
+              remoteFetchFailureLabel={remoteFetchFailureLabel}
               formatUnreadCountLabel={formatUnreadCountLabel}
               latestArticleLabels={latestArticleLabels}
               isGroupExpanded={isGroupExpanded}
@@ -215,6 +226,8 @@ export function SubscriptionsIndexPageView({
               detailCandidate={selectedDetailCandidate}
               fetchError={selectedFetchError}
               fetchErrorLabels={fetchErrorLabels}
+              remoteFetchFailure={selectedRemoteFetchFailure}
+              remoteFetchFailureLabels={remoteFetchFailureLabels}
               retryOutcome={selectedRetryOutcome}
               onRetryFeed={onRetryFeed}
               onEditFeed={onEditFeed}

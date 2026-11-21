@@ -449,7 +449,13 @@ describe("query-invalidation", () => {
     );
     expectQueryKeys(
       () => invalidateAccountSyncNowQueries(queryClient),
-      [queryKeys.feeds.root, queryKeys.articles.root, queryKeys.localFeedSyncStatuses.root, queryKeys.accounts.root],
+      [
+        queryKeys.feeds.root,
+        queryKeys.articles.root,
+        queryKeys.localFeedSyncStatuses.root,
+        queryKeys.remoteFeedSyncStatuses.root,
+        queryKeys.accounts.root,
+      ],
     );
     expectQueryKeys(
       () => invalidateLocalAccountSyncImportArticleQueries(queryClient),
@@ -883,6 +889,7 @@ describe("query-invalidation", () => {
       { queryKey: queryKeys.folders.root },
       { queryKey: queryKeys.accountUnreadCount.root },
       { queryKey: queryKeys.localFeedSyncStatuses.root },
+      { queryKey: queryKeys.remoteFeedSyncStatuses.root },
       { queryKey: queryKeys.accounts.root },
       { queryKey: queryKeys.articles.root },
       { queryKey: queryKeys.accountArticles.root },

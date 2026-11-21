@@ -9,7 +9,7 @@ const labels = { group: "g", all: "all", stale: "stale", frequent: "freq", frequ
 function buildModel(overrides: {
   activeSummaryFilter?: SubscriptionSummaryFilterKey;
   summaries?: QueryLoadState;
-  fetchStatuses?: { isLocalAccount: boolean; hasData: boolean; pending: boolean; error: boolean };
+  fetchStatuses?: { applicable: boolean; hasData: boolean; pending: boolean; error: boolean };
 }) {
   return buildSubscriptionsFilterBarModel({
     rows: [],
@@ -18,7 +18,7 @@ function buildModel(overrides: {
     accountSelected: true,
     feeds: ready,
     summaries: overrides.summaries ?? ready,
-    fetchStatuses: overrides.fetchStatuses ?? { isLocalAccount: true, hasData: true, pending: false, error: false },
+    fetchStatuses: overrides.fetchStatuses ?? { applicable: true, hasData: true, pending: false, error: false },
     labels,
   });
 }
@@ -38,7 +38,7 @@ describe("buildSubscriptionsFilterBarModel", () => {
 
     const unreadyStatuses = buildModel({
       activeSummaryFilter: "fetch_errors",
-      fetchStatuses: { isLocalAccount: true, hasData: true, pending: false, error: true },
+      fetchStatuses: { applicable: true, hasData: true, pending: false, error: true },
     }).options;
     expect(unreadyStatuses.at(-1)?.count).toBeNull();
   });

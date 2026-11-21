@@ -58,6 +58,7 @@ export {
   getCommandArgsSchema,
   getLocalAccountSyncSettingsArgs,
   getLocalFeedSyncStatusesArgs,
+  getRemoteFeedSyncStatusesArgs,
   getTagArticleCountsArgs,
   importLocalAccountSyncOperationsArgs,
   importOpmlArgs,
@@ -176,6 +177,11 @@ export {
   PlatformInfoSchema,
 } from "./platform-info";
 export { type PreferencesDto, PreferencesDtoSchema } from "./preferences";
+export {
+  type RemoteFeedSyncStatusDto,
+  RemoteFeedSyncStatusListSchema,
+  RemoteFeedSyncStatusSchema,
+} from "./remote-feed-sync-status";
 export {
   createSchemaVersionedQueryKey,
   FRONTEND_SCHEMA_CONTRACT_VERSION,

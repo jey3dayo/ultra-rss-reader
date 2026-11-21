@@ -33,6 +33,7 @@ use super::{GReaderSession, ProviderSyncOutcome};
 mod db;
 mod entries;
 mod feeds;
+mod fever;
 mod remote_state;
 mod warnings;
 
@@ -100,6 +101,7 @@ pub(crate) async fn sync_greader_account(
 
     // Steps 2-6
     let mut outcome = sync_greader_feeds(db, session.provider(), account).await?;
+    fever::refresh_fever_feed_last_successes(db, account, session.provider()).await;
     let folder_cleanup_started_at = Instant::now();
     let deleted_folder_count = delete_missing_greader_folders(db, account, &remote_folder_ids)?;
     if deleted_folder_count > 0 {

@@ -71,6 +71,12 @@ type SubscriptionDetailPaneProps = {
   actionRail: SubscriptionActionRailModel | null;
   fetchError?: LocalFeedSyncStatusDto | null;
   fetchErrorLabels?: FetchErrorLabels;
+  remoteFetchFailure?: { lastSuccessAt: string } | null;
+  remoteFetchFailureLabels?: {
+    heading: string;
+    body: string;
+    lastSuccess: string;
+  };
   retryOutcome?: FeedRetryOutcomeKind | null;
   onRetryFeed?: (feedId: string) => void;
   onEditFeed?: () => void;
@@ -290,6 +296,89 @@ function FetchErrorDetailCard({
   );
 }
 
+type RemoteFetchFailureDetailCardProps = {
+  labels: NonNullable<SubscriptionDetailPaneProps["remoteFetchFailureLabels"]>;
+  formattedLastSuccess: string | null;
+};
+
+function RemoteFetchFailureDetailCard({ labels, formattedLastSuccess }: RemoteFetchFailureDetailCardProps) {
+  return (
+    <SurfaceCard
+      data-testid="subscriptions-remote-fetch-failure-detail"
+      variant="section"
+      tone="default"
+      padding="compact"
+      className="flex flex-col gap-3 rounded-md border border-state-danger-border/70 bg-state-danger-surface/70 p-3.5 shadow-none sm:p-4"
+    >
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold text-state-danger-foreground">{labels.heading}</h3>
+        {labels.body ? <p className="mt-1 text-sm leading-relaxed text-foreground">{labels.body}</p> : null}
+        {formattedLastSuccess ? (
+          <p className="mt-1 text-xs text-foreground-soft">
+            {labels.lastSuccess}: {formattedLastSuccess}
+          </p>
+        ) : null}
+      </div>
+    </SurfaceCard>
+  );
+}
+
+type SubscriptionFetchStatusCardProps = {
+  fetchError: LocalFeedSyncStatusDto | null | undefined;
+  fetchErrorLabels: FetchErrorLabels;
+  remoteFetchFailure: { lastSuccessAt: string } | null;
+  remoteFetchFailureLabels: NonNullable<SubscriptionDetailPaneProps["remoteFetchFailureLabels"]>;
+  retryOutcome: FeedRetryOutcomeKind | null | undefined;
+  formattedLastAttempt: string | null;
+  dateLocale: string;
+  feedId: string;
+  onRetryFeed: (feedId: string) => void;
+  onEditFeed: () => void;
+  isRetryingFeed: (feedId: string) => boolean;
+  onCopyDiagnosticId: (diagnosticId: string) => void;
+};
+
+function SubscriptionFetchStatusCard({
+  fetchError,
+  fetchErrorLabels,
+  remoteFetchFailure,
+  remoteFetchFailureLabels,
+  retryOutcome,
+  formattedLastAttempt,
+  dateLocale,
+  feedId,
+  onRetryFeed,
+  onEditFeed,
+  isRetryingFeed,
+  onCopyDiagnosticId,
+}: SubscriptionFetchStatusCardProps) {
+  if (fetchError?.error_kind) {
+    return (
+      <FetchErrorDetailCard
+        errorKind={fetchError.error_kind}
+        labels={fetchErrorLabels}
+        retryOutcome={retryOutcome ?? null}
+        formattedLastAttempt={formattedLastAttempt}
+        diagnosticId={fetchError.diagnostic_id}
+        feedId={feedId}
+        onRetryFeed={onRetryFeed}
+        onEditFeed={onEditFeed}
+        isRetryingFeed={isRetryingFeed}
+        onCopyDiagnosticId={onCopyDiagnosticId}
+      />
+    );
+  }
+  if (remoteFetchFailure) {
+    return (
+      <RemoteFetchFailureDetailCard
+        labels={remoteFetchFailureLabels}
+        formattedLastSuccess={formatShortDateTime(remoteFetchFailure.lastSuccessAt, dateLocale)}
+      />
+    );
+  }
+  return null;
+}
+
 export function SubscriptionDetailPane({
   heading,
   emptyLabel,
@@ -313,6 +402,12 @@ export function SubscriptionDetailPane({
   dateLocale,
   actionRail,
   fetchError,
+  remoteFetchFailure = null,
+  remoteFetchFailureLabels = {
+    heading: "Fetch failed",
+    body: "",
+    lastSuccess: "Last succeeded",
+  },
   fetchErrorLabels = {
     heading: "Fetch error",
     lastAttempt: "Last attempt",
@@ -332,7 +427,9 @@ export function SubscriptionDetailPane({
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const hasFetchError = Boolean(fetchError?.error_kind);
-  const showReviewContext = !hasFetchError || (row !== null && row.status.labelKey !== "normal");
+  const hasRemoteFetchFailure = !hasFetchError && remoteFetchFailure !== null;
+  const showReviewContext =
+    !(hasFetchError || hasRemoteFetchFailure) || (row !== null && row.status.labelKey !== "normal");
   const formattedLastAttempt = fetchError?.last_attempt_at
     ? formatShortDateTime(fetchError.last_attempt_at, dateLocale)
     : null;
@@ -357,20 +454,20 @@ export function SubscriptionDetailPane({
             className={`${MOTION_CONTENT_SWAP_CLASS_NAME} lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
           >
             <div className="flex w-full flex-col gap-3.5 pb-4 pt-0.5 lg:min-h-full">
-              {fetchError?.error_kind ? (
-                <FetchErrorDetailCard
-                  errorKind={fetchError.error_kind}
-                  labels={fetchErrorLabels}
-                  retryOutcome={retryOutcome}
-                  formattedLastAttempt={formattedLastAttempt}
-                  diagnosticId={fetchError.diagnostic_id}
-                  feedId={row.feed.id}
-                  onRetryFeed={onRetryFeed}
-                  onEditFeed={onEditFeed}
-                  isRetryingFeed={isRetryingFeed}
-                  onCopyDiagnosticId={onCopyDiagnosticId}
-                />
-              ) : null}
+              <SubscriptionFetchStatusCard
+                fetchError={fetchError}
+                fetchErrorLabels={fetchErrorLabels}
+                remoteFetchFailure={remoteFetchFailure}
+                remoteFetchFailureLabels={remoteFetchFailureLabels}
+                retryOutcome={retryOutcome}
+                formattedLastAttempt={formattedLastAttempt}
+                dateLocale={dateLocale}
+                feedId={row.feed.id}
+                onRetryFeed={onRetryFeed}
+                onEditFeed={onEditFeed}
+                isRetryingFeed={isRetryingFeed}
+                onCopyDiagnosticId={onCopyDiagnosticId}
+              />
               <FeedDetailPanel
                 surface="low-wire"
                 title={row.feed.title}
@@ -384,8 +481,12 @@ export function SubscriptionDetailPane({
                     size="lg"
                   />
                 }
-                badgeLabel={resolveBadgeLabel(hasFetchError, fetchErrorLabels.heading, detailCandidate)}
-                badgeTone={resolveBadgeTone(hasFetchError, detailCandidate)}
+                badgeLabel={resolveBadgeLabel(
+                  hasFetchError || hasRemoteFetchFailure,
+                  hasRemoteFetchFailure ? remoteFetchFailureLabels.heading : fetchErrorLabels.heading,
+                  detailCandidate,
+                )}
+                badgeTone={resolveBadgeTone(hasFetchError || hasRemoteFetchFailure, detailCandidate)}
                 reasonBox={resolveReasonBox(showReviewContext, detailCandidate, reasonHeading)}
                 metrics={buildDetailMetrics({
                   row,

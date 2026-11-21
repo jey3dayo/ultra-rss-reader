@@ -90,6 +90,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "update_feed_display_settings"
         | "get_account_sync_status"
         | "get_local_feed_sync_statuses"
+        | "get_remote_feed_sync_statuses"
         | "get_article"
         | "list_articles"
         | "list_account_articles"

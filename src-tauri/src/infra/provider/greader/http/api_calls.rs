@@ -78,6 +78,7 @@ impl GReaderProvider {
             .ok_or_else(|| DomainError::Auth("Auth token not found in response".into()))?;
 
         self.auth_token = Some(auth_token);
+        self.fever_api_key = Some(super::super::fever::fever_api_key(username, password));
         Ok(())
     }
 

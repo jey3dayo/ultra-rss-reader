@@ -5,6 +5,7 @@ mod local_feed_health;
 mod local_import_export;
 mod manual;
 mod progress;
+mod remote_feed_health;
 mod scheduler;
 
 pub(crate) use finish_plan::{plan_finish, FinishInput, SyncEntry};
@@ -32,6 +33,10 @@ pub(crate) use manual::{
     __tauri_command_name_get_account_sync_status, __tauri_command_name_get_sync_state,
     __tauri_command_name_trigger_sync, __tauri_command_name_trigger_sync_account,
     __tauri_command_name_trigger_sync_feed,
+};
+#[cfg(not(test))]
+pub(crate) use remote_feed_health::{
+    __cmd__get_remote_feed_sync_statuses, __tauri_command_name_get_remote_feed_sync_statuses,
 };
 #[cfg(not(test))]
 pub(crate) use scheduler::{
@@ -71,6 +76,7 @@ pub use manual::{
 use progress::{
     next_sync_progress_completed, next_sync_progress_session_id, sync_event_emit_warning, SyncGuard,
 };
+pub use remote_feed_health::get_remote_feed_sync_statuses;
 #[cfg(test)]
 use scheduler::{
     clear_scheduler_sync_status, enable_automatic_sync, map_account_sync_status,

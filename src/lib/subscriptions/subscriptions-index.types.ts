@@ -1,4 +1,5 @@
 import type { ArticleDto, FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
+import type { RemoteFeedFetchFailure } from "@/lib/subscriptions/remote-feed-fetch-failure";
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 
 export type SubscriptionSummaryFilterKey = "all" | "stale" | "frequent" | "fetch_errors";
@@ -25,8 +26,9 @@ export type SubscriptionListRow = {
   latestArticleDays: number | null;
   recentArticleCount: number;
   status: SubscriptionRowStatus;
-  reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | "fetch_error" | null;
+  reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | "fetch_error" | "remote_fetch_error" | null;
   fetchError?: LocalFeedSyncStatusDto;
+  remoteFetchFailure?: RemoteFeedFetchFailure;
 };
 
 export type SubscriptionListGroup = {

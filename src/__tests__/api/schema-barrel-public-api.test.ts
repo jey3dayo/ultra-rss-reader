@@ -55,6 +55,7 @@ const schemaFilesCoveredByAggregateTests = [
   "local-feed-sync-status",
   "mute-keyword",
   "preferences",
+  "remote-feed-sync-status",
   "runtime-contracts",
   "settings-profile",
   "starred-articles",

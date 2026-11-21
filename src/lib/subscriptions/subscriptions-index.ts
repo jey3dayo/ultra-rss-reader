@@ -64,7 +64,7 @@ function rowMatchesSubscriptionSummaryFilter(
   }
 
   if (filterKey === "fetch_errors") {
-    return Boolean(row.fetchError);
+    return Boolean(row.fetchError ?? row.remoteFetchFailure);
   }
 
   return false;
@@ -83,7 +83,7 @@ function rowMatchesSubscriptionDecisionVisibility(params: {
     return true;
   }
 
-  if (row.fetchError) {
+  if (row.fetchError ?? row.remoteFetchFailure) {
     return true;
   }
 

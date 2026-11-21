@@ -874,6 +874,43 @@ describe("subscriptions index helpers", () => {
     expect(visibleIdsFor("fetch_errors")).toEqual(["feed-stale"]);
   });
 
+  it("treats a remote fetch failure like a fetch error in filters and kept visibility", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      feedArticleSummaries,
+      now: new Date("2026-04-05T00:00:00Z"),
+    });
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "Work"]]),
+    }).map((row) =>
+      row.feed.id === "feed-stale"
+        ? {
+            ...row,
+            remoteFetchFailure: { lastSuccessAt: "2026-03-01T00:00:00Z" },
+            reasonTooltipKey: "remote_fetch_error" as const,
+          }
+        : row,
+    );
+
+    const visibleIdsFor = (activeSummaryFilter: "stale" | "fetch_errors") =>
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter,
+        keptFeedIds: new Set(["feed-stale"]),
+        showKept: false,
+        searchQuery: "",
+        sortKey: "title",
+      }).map((row) => row.feed.id);
+
+    expect(visibleIdsFor("stale")).toContain("feed-stale");
+    expect(visibleIdsFor("fetch_errors")).toEqual(["feed-stale"]);
+    expect(countSubscriptionFilterRows(rows, new Set(["feed-stale"])).fetch_errors).toBe(1);
+  });
+
   it("treats a legacy other error with a clamped zero count as a fetch failure", () => {
     const rows = buildSubscriptionListRows({
       feeds: feeds.filter((feed) => feed.id === "feed-active"),

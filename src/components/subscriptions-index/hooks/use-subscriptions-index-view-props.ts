@@ -7,6 +7,7 @@ import type {
   FeedDto,
   FolderDto,
   LocalFeedSyncStatusDto,
+  RemoteFeedSyncStatusDto,
 } from "@/api/tauri-commands";
 import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
 import {
@@ -36,8 +37,15 @@ import type { SubscriptionDetailCandidate } from "@/lib/subscriptions/subscripti
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import type { SubscriptionsIndexPageView } from "../subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
-import { attachLocalFeedFetchErrors, resolveSubscriptionsEmptyLabel } from "./subscriptions-index-fetch-error-summary";
-import { buildSubscriptionsFilterBarModel } from "./subscriptions-index-filter-options";
+import {
+  attachLocalFeedFetchErrors,
+  attachRemoteFeedFetchFailures,
+  resolveSubscriptionsEmptyLabel,
+} from "./subscriptions-index-fetch-error-summary";
+import {
+  buildSubscriptionsFilterBarModel,
+  resolveSubscriptionsFetchStatuses,
+} from "./subscriptions-index-filter-options";
 import { isQueryUnavailable, type QueryLoadState, resolveListLoadState } from "./subscriptions-index-load-state";
 import { useSubscriptionActionRail } from "./use-subscription-action-rail";
 import { useSubscriptionsKeptBanner } from "./use-subscriptions-kept-banner";
@@ -59,6 +67,10 @@ type UseSubscriptionsIndexViewPropsParams = {
   feedSyncStatuses: LocalFeedSyncStatusDto[] | undefined;
   feedSyncStatusesPending: boolean;
   feedSyncStatusesError: boolean;
+  isFreshRssAccount: boolean;
+  remoteFeedSyncStatuses: RemoteFeedSyncStatusDto[] | undefined;
+  remoteFeedSyncStatusesPending: boolean;
+  remoteFeedSyncStatusesError: boolean;
   feedLoad: QueryLoadState;
   summaryLoad: QueryLoadState;
   rowsPending: boolean;
@@ -90,6 +102,10 @@ export function useSubscriptionsIndexViewProps({
   feedSyncStatuses,
   feedSyncStatusesPending,
   feedSyncStatusesError,
+  isFreshRssAccount,
+  remoteFeedSyncStatuses,
+  remoteFeedSyncStatusesPending,
+  remoteFeedSyncStatusesError,
   feedLoad,
   summaryLoad,
   rowsPending,
@@ -124,13 +140,27 @@ export function useSubscriptionsIndexViewProps({
   const folderNameById = useMemo(() => buildFolderNameByIdMap(folders), [folders]);
   const rows = useMemo(
     () =>
-      attachLocalFeedFetchErrors(
-        buildSubscriptionListRows({ feeds, candidateMap, feedArticleSummaryMap, folderNameById }),
+      attachRemoteFeedFetchFailures(
+        attachLocalFeedFetchErrors(
+          buildSubscriptionListRows({ feeds, candidateMap, feedArticleSummaryMap, folderNameById }),
+          feeds,
+          feedSyncStatuses,
+          isLocalAccount,
+        ),
         feeds,
-        feedSyncStatuses,
-        isLocalAccount,
+        remoteFeedSyncStatuses,
+        isFreshRssAccount,
       ),
-    [candidateMap, feedArticleSummaryMap, feedSyncStatuses, feeds, folderNameById, isLocalAccount],
+    [
+      candidateMap,
+      feedArticleSummaryMap,
+      feedSyncStatuses,
+      feeds,
+      folderNameById,
+      isFreshRssAccount,
+      isLocalAccount,
+      remoteFeedSyncStatuses,
+    ],
   );
 
   const state = useSubscriptionsIndexState(rows, {
@@ -207,12 +237,20 @@ export function useSubscriptionsIndexViewProps({
     accountSelected: selectedAccountId !== null,
     feeds: feedLoad,
     summaries: summaryLoad,
-    fetchStatuses: {
+    fetchStatuses: resolveSubscriptionsFetchStatuses({
       isLocalAccount,
-      hasData: feedSyncStatuses !== undefined,
-      pending: feedSyncStatusesPending,
-      error: feedSyncStatusesError,
-    },
+      local: {
+        hasData: feedSyncStatuses !== undefined,
+        pending: feedSyncStatusesPending,
+        error: feedSyncStatusesError,
+      },
+      isFreshRssAccount,
+      remote: {
+        hasData: remoteFeedSyncStatuses !== undefined,
+        pending: remoteFeedSyncStatusesPending,
+        error: remoteFeedSyncStatusesError,
+      },
+    }),
     labels: {
       group: t("summary_region_label"),
       all: t("summary_total"),
@@ -260,6 +298,12 @@ export function useSubscriptionsIndexViewProps({
     selectedMetrics,
     selectedDetailCandidate,
     selectedFetchError: state.selectedRow?.fetchError ?? null,
+    selectedRemoteFetchFailure: state.selectedRow?.remoteFetchFailure ?? null,
+    remoteFetchFailureLabels: {
+      heading: t("detail_remote_fetch_error_heading"),
+      body: t("detail_remote_fetch_error_body"),
+      lastSuccess: t("detail_remote_fetch_error_last_success"),
+    },
     fetchErrorLabels: {
       heading: t("detail_fetch_error_heading"),
       lastAttempt: t("detail_fetch_error_last_failed"),
@@ -331,8 +375,10 @@ export function useSubscriptionsIndexViewProps({
       stale_90d: t("tooltip_reason_stale_90d"),
       quiet_no_unread: t("tooltip_reason_quiet_no_unread"),
       fetch_error: t("status_fetch_error"),
+      remote_fetch_error: t("status_remote_fetch_error"),
     },
     fetchErrorLabel: t("status_fetch_error"),
+    remoteFetchFailureLabel: t("status_remote_fetch_error"),
     formatUnreadCountLabel: (count) => t("meta_unread_count", { count }),
     latestArticleLabels: {
       srPrefix: t("meta_latest_article_label"),

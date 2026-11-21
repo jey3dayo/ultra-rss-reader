@@ -56,6 +56,7 @@ ammonia = "4.2.3"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 sha2 = "0.11"
+md-5 = "0.10"
 hex = "0.4"
 zeroize = "1"
 log = "0.4"
