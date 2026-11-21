@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   BUSY_MESSAGE,
@@ -117,5 +117,25 @@ describe("BulkUnsubscribeDialog busy wait", () => {
 
     await advance(60_000);
     expect(calls).toEqual(["a", "b"]);
+  });
+
+  it("releases the wait at once when the dialog unmounts, and does not retry afterwards", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { calls } = setupDeleteFeed({ b: busyTimes(Number.POSITIVE_INFINITY) });
+    const { onSettled, onClose, queryClient } = renderDialog([makeTarget("a"), makeTarget("b")]);
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+    await confirmWithKeyboard(user, 2);
+    await waitFor(() => expect(calls).toEqual(["a", "b"]));
+    expect(invalidateQueries).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "remove dialog", hidden: true }));
+    await advance(100);
+    expect(invalidateQueries).toHaveBeenCalled();
+
+    await advance(60_000);
+    expect(calls).toEqual(["a", "b"]);
+    expect(onSettled).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
