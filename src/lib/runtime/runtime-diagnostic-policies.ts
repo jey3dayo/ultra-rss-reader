@@ -19,6 +19,7 @@ export type RuntimeDiagnosticPolicyId =
   | "mute-keyword-scope-select"
   | "command-history-storage"
   | "sidebar-expanded-folders-storage"
+  | "subscription-review-storage"
   | "window-always-on-top"
   | "window-runtime-error";
 
@@ -165,6 +166,13 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     redactSecrets: true,
   },
   "sidebar-expanded-folders-storage": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    once: true,
+    redactSecrets: true,
+  },
+  "subscription-review-storage": {
     console: "warn",
     devOnlyConsole: false,
     productionDiagnostics: true,

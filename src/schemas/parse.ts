@@ -22,6 +22,14 @@ export const PARSE_JSON_WITH_SCHEMA_OR_NULL_CALLER_OWNERS = [
     callCount: 3,
     fallbackBehavior: "Drops malformed or schema-invalid expansion cache and rebuilds from visible accounts.",
   },
+  {
+    owner: "subscription review decisions storage",
+    fallbackBoundary: "localStorage persisted decisions recovery",
+    callsite: "src/lib/subscriptions/subscription-review-storage.ts",
+    callCount: 1,
+    fallbackBehavior:
+      "Drops malformed or schema-invalid persisted decisions and continues with in-memory decisions for the session.",
+  },
 ] as const;
 
 export const JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS = {

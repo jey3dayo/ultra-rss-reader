@@ -6,6 +6,9 @@ import {
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
+  MAX_STORED_SUBSCRIPTION_REVIEW_ACCOUNTS,
+  MAX_STORED_SUBSCRIPTION_REVIEW_FEEDS_PER_ACCOUNT,
+  MAX_STORED_SUBSCRIPTION_REVIEW_STORAGE_LENGTH,
   PRIVATE_DATA_EXPORT_STORAGE_CLEANUP_POLICIES,
   SETTINGS_DATA_RESET_STORAGE_CLEANUP_POLICIES,
   STORAGE_CLEANUP_POLICY_CONNECTIONS,
@@ -47,6 +50,11 @@ describe("storage constants", () => {
         schema: "startup-sync-timestamp",
         cleanup: "startup-window-expiring",
       },
+      {
+        owner: "subscription-review-store",
+        schema: "subscription-review-decisions-json",
+        cleanup: "user-clearable",
+      },
     ]);
   });
 
@@ -62,12 +70,14 @@ describe("storage constants", () => {
         STORAGE_KEYS.commandHistory,
         STORAGE_KEYS.sidebarExpandedFolders,
         STORAGE_KEYS.startupSyncLastTriggeredAt,
+        STORAGE_KEYS.subscriptionReviewDecisions,
       ],
       privateDataExportKeys: [
         STORAGE_KEYS.theme,
         STORAGE_KEYS.commandHistory,
         STORAGE_KEYS.sidebarExpandedFolders,
         STORAGE_KEYS.startupSyncLastTriggeredAt,
+        STORAGE_KEYS.subscriptionReviewDecisions,
       ],
     });
   });
@@ -80,6 +90,11 @@ describe("storage constants", () => {
     expect(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT).toBeGreaterThan(0);
     expect(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH).toBeGreaterThan(
       MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS * MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+    );
+    expect(MAX_STORED_SUBSCRIPTION_REVIEW_ACCOUNTS).toBeGreaterThan(0);
+    expect(MAX_STORED_SUBSCRIPTION_REVIEW_FEEDS_PER_ACCOUNT).toBeGreaterThan(0);
+    expect(MAX_STORED_SUBSCRIPTION_REVIEW_STORAGE_LENGTH).toBeGreaterThan(
+      MAX_STORED_SUBSCRIPTION_REVIEW_ACCOUNTS * MAX_STORED_SUBSCRIPTION_REVIEW_FEEDS_PER_ACCOUNT,
     );
   });
 
@@ -113,6 +128,22 @@ describe("storage constants", () => {
           controlCharacterPolicy: "strip C0, DEL, and C1 controls from account and folder ids before trimming",
           accountPruningPriority:
             "schema preserves insertion order and caps after normalization; storage writes insert the active account first before stale accounts",
+        },
+      },
+      subscriptionReviewDecisions: {
+        storageKey: STORAGE_KEYS.subscriptionReviewDecisions,
+        schemaName: "StoredSubscriptionReviewDecisionsSchema",
+        fallbackOwner: "subscription review store localStorage recovery",
+        accountEntryCountCap: MAX_STORED_SUBSCRIPTION_REVIEW_ACCOUNTS,
+        feedEntryCountCap: MAX_STORED_SUBSCRIPTION_REVIEW_FEEDS_PER_ACCOUNT,
+        rawJsonByteCap: MAX_STORED_SUBSCRIPTION_REVIEW_STORAGE_LENGTH,
+        unitPolicy: {
+          accountEntryCountCap: "account map entries after account id normalization",
+          feedEntryCountCap: "feed id entries per account after feed id normalization",
+          rawJsonByteCap: "JSON string length before parsing",
+          controlCharacterPolicy: "strip C0, DEL, and C1 controls from account and feed ids before trimming",
+          accountPruningPriority:
+            "schema preserves insertion order and caps after normalization; storage writes serialize the current in-memory decisions as-is",
         },
       },
     });

@@ -204,10 +204,11 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
 
     expect(queryClient.clear).toHaveBeenCalledTimes(1);
     expect(clearSettingsDirtyState).toHaveBeenCalledTimes(1);
-    expect(storage.removeItem).toHaveBeenCalledTimes(3);
+    expect(storage.removeItem).toHaveBeenCalledTimes(4);
     expect(storage.removeItem).toHaveBeenNthCalledWith(1, STORAGE_KEYS.commandHistory);
     expect(storage.removeItem).toHaveBeenNthCalledWith(2, STORAGE_KEYS.sidebarExpandedFolders);
     expect(storage.removeItem).toHaveBeenNthCalledWith(3, STORAGE_KEYS.startupSyncLastTriggeredAt);
+    expect(storage.removeItem).toHaveBeenNthCalledWith(4, STORAGE_KEYS.subscriptionReviewDecisions);
     expect(restoreAccountSelection).toHaveBeenCalledWith("acc-restored", {
       focusedPane: "list",
     });
@@ -220,6 +221,7 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
         STORAGE_KEYS.commandHistory,
         STORAGE_KEYS.sidebarExpandedFolders,
         STORAGE_KEYS.startupSyncLastTriggeredAt,
+        STORAGE_KEYS.subscriptionReviewDecisions,
       ],
       selectedAccountId: "acc-restored",
       preferenceAccountId: "acc-restored",
@@ -279,7 +281,7 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
     });
 
     expect(queryClient.clear).toHaveBeenCalledTimes(1);
-    expect(storage.removeItem).toHaveBeenCalledTimes(3);
+    expect(storage.removeItem).toHaveBeenCalledTimes(4);
     expect(restoreAccountSelection).toHaveBeenCalledWith("acc-restored", {
       focusedPane: "list",
     });
@@ -310,7 +312,7 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
     });
 
     expect(queryClient.clear).toHaveBeenCalledTimes(1);
-    expect(storage.removeItem).toHaveBeenCalledTimes(3);
+    expect(storage.removeItem).toHaveBeenCalledTimes(4);
     expect(restoreAccountSelection).toHaveBeenCalledWith("acc-after-reset", {
       focusedPane: "list",
     });

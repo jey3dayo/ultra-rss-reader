@@ -24,6 +24,7 @@ import {
 } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useSubscriptionReviewStore } from "@/stores/subscription-review-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
@@ -427,6 +428,7 @@ export function useAccountDetailDangerZone({
         const fallbackAccountId = remainingAccountIds[0] ?? "";
 
         useUiStore.getState().handleAccountDeleted(account.id, remainingAccountIds);
+        useSubscriptionReviewStore.getState().forgetAccount(account.id);
         removeDeletedAccountArticleCaches(queryClient, account.id);
         if (savedAccountId.trim() === account.id) {
           setPref("selected_account_id", fallbackAccountId);

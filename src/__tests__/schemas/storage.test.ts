@@ -16,6 +16,7 @@ import {
   STORAGE_SCHEMA_CAPACITY_FIXTURES,
   StorageCleanupPolicyConnectionsSchema,
   StoredSidebarExpandedFoldersSchema,
+  StoredSubscriptionReviewDecisionsSchema,
 } from "@/schemas/storage";
 
 describe("storage schemas", () => {
@@ -192,12 +193,29 @@ describe("storage schemas", () => {
     ).toBe(false);
   });
 
+  it("keeps account review decision maps while dropping invalid entries", () => {
+    const parsed = parse(StoredSubscriptionReviewDecisionsSchema, {
+      " account-1 ": [" feed-1 ", 42, "feed-2", null, "feed-1"],
+      "account-2": "feed-3",
+      "account-3": ["feed-2", "feed-4", "feed-2"],
+      " ": ["feed-6"],
+      "account-4": [" ", "\u0000"],
+    });
+
+    expect(parsed).toEqual({
+      "account-1": ["feed-1", "feed-2"],
+      "account-3": ["feed-2", "feed-4"],
+    });
+    expect(Object.getPrototypeOf(parsed)).toBeNull();
+  });
+
   it("fixes DB restore localStorage reconciliation to DB-derived user-clearable keys", () => {
     expect(parse(DatabaseRestoreStorageReconciliationPolicySchema, undefined as unknown)).toEqual({
       removeKeys: [
         STORAGE_KEYS.commandHistory,
         STORAGE_KEYS.sidebarExpandedFolders,
         STORAGE_KEYS.startupSyncLastTriggeredAt,
+        STORAGE_KEYS.subscriptionReviewDecisions,
       ],
       retainKeys: [STORAGE_KEYS.theme],
     });

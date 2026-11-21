@@ -6,8 +6,12 @@ import {
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
+  MAX_STORED_SUBSCRIPTION_REVIEW_ACCOUNTS,
+  MAX_STORED_SUBSCRIPTION_REVIEW_FEEDS_PER_ACCOUNT,
+  MAX_STORED_SUBSCRIPTION_REVIEW_STORAGE_LENGTH,
   SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
   STORAGE_KEYS,
+  SUBSCRIPTION_REVIEW_DECISIONS_STORAGE_VERSION,
 } from "@/constants/storage";
 import * as s from "@/schemas/validation";
 
@@ -78,42 +82,49 @@ export const CommandHistoryStorageSchema = v.pipe(
   v.transform((items) => collectNormalizedUniqueStrings(items, normalizeCommandHistoryEntry, MAX_COMMAND_HISTORY)),
 );
 
-export const StoredSidebarExpandedFoldersSchema = v.pipe(
-  v.custom<Record<string, unknown>>(isUnknownRecord),
-  v.transform((parsed): Record<string, string[]> => {
-    const expandedFolders: Record<string, string[]> = Object.create(null);
-    let accountCount = 0;
+function createStoredAccountEntryListSchema(maxAccounts: number, maxEntriesPerAccount: number) {
+  return v.pipe(
+    v.custom<Record<string, unknown>>(isUnknownRecord),
+    v.transform((parsed): Record<string, string[]> => {
+      const entries: Record<string, string[]> = Object.create(null);
+      let accountCount = 0;
 
-    for (const [accountId, folderIds] of Object.entries(parsed)) {
-      const normalizedAccountId = normalizeStoredIdentity(accountId);
-      if (!normalizedAccountId || !Array.isArray(folderIds)) {
-        continue;
+      for (const [accountId, entryIds] of Object.entries(parsed)) {
+        const normalizedAccountId = normalizeStoredIdentity(accountId);
+        if (!normalizedAccountId || !Array.isArray(entryIds)) {
+          continue;
+        }
+
+        const normalizedEntryIds = collectNormalizedUniqueStrings(
+          entryIds,
+          normalizeStoredIdentity,
+          maxEntriesPerAccount,
+        );
+        if (normalizedEntryIds.length === 0) {
+          continue;
+        }
+
+        Object.defineProperty(entries, normalizedAccountId, {
+          configurable: true,
+          enumerable: true,
+          value: normalizedEntryIds,
+          writable: true,
+        });
+        accountCount += 1;
+
+        if (accountCount >= maxAccounts) {
+          break;
+        }
       }
 
-      const normalizedFolderIds = collectNormalizedUniqueStrings(
-        folderIds,
-        normalizeStoredIdentity,
-        MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
-      );
-      if (normalizedFolderIds.length === 0) {
-        continue;
-      }
+      return entries;
+    }),
+  );
+}
 
-      Object.defineProperty(expandedFolders, normalizedAccountId, {
-        configurable: true,
-        enumerable: true,
-        value: normalizedFolderIds,
-        writable: true,
-      });
-      accountCount += 1;
-
-      if (accountCount >= MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS) {
-        break;
-      }
-    }
-
-    return expandedFolders;
-  }),
+export const StoredSidebarExpandedFoldersSchema = createStoredAccountEntryListSchema(
+  MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
+  MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
 );
 
 export type StoredSidebarExpandedFolders = v.InferOutput<typeof StoredSidebarExpandedFoldersSchema>;
@@ -127,11 +138,26 @@ export const SidebarExpandedFoldersStorageVersionMarkerSchema = s.looseObject({ 
 
 export type SidebarExpandedFoldersStorage = v.InferOutput<typeof StoredSidebarExpandedFoldersStorageSchema>;
 
+export const StoredSubscriptionReviewDecisionsSchema = createStoredAccountEntryListSchema(
+  MAX_STORED_SUBSCRIPTION_REVIEW_ACCOUNTS,
+  MAX_STORED_SUBSCRIPTION_REVIEW_FEEDS_PER_ACCOUNT,
+);
+
+export type StoredSubscriptionReviewDecisions = v.InferOutput<typeof StoredSubscriptionReviewDecisionsSchema>;
+
+export const StoredSubscriptionReviewDecisionsStorageSchema = s.strictObject({
+  version: v.literal(SUBSCRIPTION_REVIEW_DECISIONS_STORAGE_VERSION),
+  accounts: StoredSubscriptionReviewDecisionsSchema,
+});
+
+export type SubscriptionReviewDecisionsStorage = v.InferOutput<typeof StoredSubscriptionReviewDecisionsStorageSchema>;
+
 const DatabaseRestoreStorageReconciliationPolicySchemaBase = s.strictObject({
   removeKeys: v.tuple([
     v.literal(STORAGE_KEYS.commandHistory),
     v.literal(STORAGE_KEYS.sidebarExpandedFolders),
     v.literal(STORAGE_KEYS.startupSyncLastTriggeredAt),
+    v.literal(STORAGE_KEYS.subscriptionReviewDecisions),
   ]),
   retainKeys: v.tuple([v.literal(STORAGE_KEYS.theme)]),
 });
@@ -143,6 +169,7 @@ export const DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY: v.InferInput<
     STORAGE_KEYS.commandHistory,
     STORAGE_KEYS.sidebarExpandedFolders,
     STORAGE_KEYS.startupSyncLastTriggeredAt,
+    STORAGE_KEYS.subscriptionReviewDecisions,
   ],
   retainKeys: [STORAGE_KEYS.theme],
 };
@@ -187,6 +214,22 @@ export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
         "schema preserves insertion order and caps after normalization; storage writes insert the active account first before stale accounts",
     },
   },
+  subscriptionReviewDecisions: {
+    storageKey: STORAGE_KEYS.subscriptionReviewDecisions,
+    schemaName: "StoredSubscriptionReviewDecisionsSchema",
+    fallbackOwner: "subscription review store localStorage recovery",
+    accountEntryCountCap: MAX_STORED_SUBSCRIPTION_REVIEW_ACCOUNTS,
+    feedEntryCountCap: MAX_STORED_SUBSCRIPTION_REVIEW_FEEDS_PER_ACCOUNT,
+    rawJsonByteCap: MAX_STORED_SUBSCRIPTION_REVIEW_STORAGE_LENGTH,
+    unitPolicy: {
+      accountEntryCountCap: "account map entries after account id normalization",
+      feedEntryCountCap: "feed id entries per account after feed id normalization",
+      rawJsonByteCap: "JSON string length before parsing",
+      controlCharacterPolicy: "strip C0, DEL, and C1 controls from account and feed ids before trimming",
+      accountPruningPriority:
+        "schema preserves insertion order and caps after normalization; storage writes serialize the current in-memory decisions as-is",
+    },
+  },
 } as const;
 
 const StorageKeySchema = v.picklist([
@@ -194,6 +237,7 @@ const StorageKeySchema = v.picklist([
   STORAGE_KEYS.commandHistory,
   STORAGE_KEYS.sidebarExpandedFolders,
   STORAGE_KEYS.startupSyncLastTriggeredAt,
+  STORAGE_KEYS.subscriptionReviewDecisions,
 ]);
 
 export const StorageCleanupPolicyConnectionsSchema = s.strictObject({
