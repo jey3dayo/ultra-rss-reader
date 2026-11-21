@@ -34,6 +34,8 @@ import {
 } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionDetailCandidate } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
+import { useBulkUnsubscribeStore } from "@/stores/bulk-unsubscribe-store";
+import type { SubscriptionsBulkRunStatus } from "../subscriptions-bulk-run-status";
 import type { SubscriptionsIndexPageView } from "../subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
 import { attachLocalFeedFetchErrors, resolveSubscriptionsEmptyLabel } from "./subscriptions-index-fetch-error-summary";
@@ -70,6 +72,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
   onRequestBulkUnsubscribe: () => void;
+  onShowBulkUnsubscribeRun: () => void;
   onRequestResetKept: (keptCount: number) => void;
   bulkToggleRef: RefObject<HTMLButtonElement | null>;
   listHeadingRef: RefObject<HTMLHeadingElement | null>;
@@ -101,6 +104,7 @@ export function useSubscriptionsIndexViewProps({
   setDeleteTargetFeed,
   setEditTargetFeed,
   onRequestBulkUnsubscribe,
+  onShowBulkUnsubscribeRun,
   onRequestResetKept,
   bulkToggleRef,
   listHeadingRef,
@@ -145,6 +149,27 @@ export function useSubscriptionsIndexViewProps({
     viewportWidth,
     selectionReady: !rowsPending,
   });
+  const bulkRun = useBulkUnsubscribeStore((store) => store.run);
+  const bulkRunActive = useBulkUnsubscribeStore((store) => store.runActive);
+  const bulkRunAccountId = useBulkUnsubscribeStore((store) => store.request?.accountId ?? null);
+  const bulkRunStatus: SubscriptionsBulkRunStatus | null =
+    bulkRunActive && bulkRun.phase === "running" && bulkRunAccountId === selectedAccountId
+      ? {
+          done: bulkRun.rows.filter((row) => row.status === "done" || row.status === "failed").length,
+          total: bulkRun.snapshot.length,
+          waitingForSync: bulkRun.waitingForSync,
+          stopRequested: bulkRun.stopRequested,
+          labels: {
+            status: (done, total) => t("bulk_run_status", { done, total }),
+            waiting: t("bulk_dialog_waiting_for_sync"),
+            showDetails: t("bulk_run_show_details"),
+            stop: t("bulk_dialog_stop"),
+            stopping: t("bulk_dialog_stopping"),
+          },
+          onStop: () => useBulkUnsubscribeStore.getState().requestStop(),
+          onShowDetails: onShowBulkUnsubscribeRun,
+        }
+      : null;
   const scrollRegionRef = useRef<HTMLDivElement | null>(null);
   const preservePendingScroll = rowsPending && scopedIndexReturnState !== null;
   const captureState = (): SubscriptionsWorkspaceReturnState => ({
@@ -376,6 +401,7 @@ export function useSubscriptionsIndexViewProps({
       onToggleAllVisible: state.toggleAllVisibleChecked,
       onRequestUnsubscribe: onRequestBulkUnsubscribe,
     },
+    bulkRunStatus,
     latestArticleLabel: t("latest_article"),
     latestArticleEmptyLabel: t("meta_latest_article_none"),
     updateFrequencyLabel: t("update_frequency"),

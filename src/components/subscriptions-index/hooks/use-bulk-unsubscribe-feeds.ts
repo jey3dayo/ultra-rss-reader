@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
   type BulkUnsubscribeTarget,
   orderBulkUnsubscribeTargets,
@@ -15,45 +15,28 @@ export { orderBulkUnsubscribeTargets } from "@/stores/bulk-unsubscribe-store";
 type UseBulkUnsubscribeFeedsArgs = {
   open: boolean;
   accountId: string | null;
-  onSettled: (succeededFeedIds: readonly string[]) => void;
-  onClose: (outcome: { allSucceeded: boolean }) => void;
 };
 
-export function useBulkUnsubscribeFeeds({ open, accountId, onSettled, onClose }: UseBulkUnsubscribeFeedsArgs) {
+// The dialog is only a view onto the store run: closing or unmounting it never touches the
+// run, and a finished run's leftover result step is dropped when a dialog mounts again.
+export function useBulkUnsubscribeFeeds({ open, accountId }: UseBulkUnsubscribeFeedsArgs) {
   const state = useBulkUnsubscribeStore((store) => store.run);
-  const mountedRef = useRef(false);
-  const callbacksRef = useRef({ onSettled, onClose });
 
   useEffect(() => {
-    callbacksRef.current = { onSettled, onClose };
-  });
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
+    if (useBulkUnsubscribeStore.getState().run.phase === "result") {
       useBulkUnsubscribeStore.getState().reset();
-    };
+    }
   }, []);
 
   useEffect(() => {
-    if (!open) {
-      useBulkUnsubscribeStore.getState().invalidateRun();
-    }
+    useBulkUnsubscribeStore.getState().setDialogOpen(open);
+    return () => {
+      useBulkUnsubscribeStore.getState().setDialogOpen(false);
+    };
   }, [open]);
 
   const execute = (snapshot: ReadonlyArray<BulkUnsubscribeTarget>, queue: ReadonlyArray<number>) => {
-    useBulkUnsubscribeStore.getState().requestRun({
-      snapshot,
-      queue,
-      accountId,
-      onSettled: (succeededFeedIds) => {
-        if (mountedRef.current) {
-          callbacksRef.current.onSettled(succeededFeedIds);
-        }
-      },
-      onClose: (outcome) => callbacksRef.current.onClose(outcome),
-    });
+    useBulkUnsubscribeStore.getState().requestRun({ snapshot, queue, accountId });
   };
 
   const start = (targets: ReadonlyArray<BulkUnsubscribeTarget>) => {

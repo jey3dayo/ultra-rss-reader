@@ -135,5 +135,7 @@
   "bulk_result_partial": "Unsubscribed from {{succeeded, count}}. {{failed, count}} could not be unsubscribed.",
   "bulk_result_cancelled": "Stopped. Unsubscribed from {{succeeded, count}}; {{skipped, count}} not run.",
   "bulk_toast_done_one": "Unsubscribed from 1 feed",
-  "bulk_toast_done_other": "Unsubscribed from {{count, count}} feeds"
+  "bulk_toast_done_other": "Unsubscribed from {{count, count}} feeds",
+  "bulk_run_status": "Unsubscribing: {{done, count}} / {{total, count}}",
+  "bulk_run_show_details": "Show details"
 }

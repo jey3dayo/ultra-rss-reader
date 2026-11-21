@@ -103,29 +103,40 @@ export function orderBulkUnsubscribeTargets(
   return [...targets.filter((target) => target.wasKept), ...targets.filter((target) => !target.wasKept)];
 }
 
-// onSettled / onClose are delivered to the dialog that requested the run, and only while it is still mounted.
+// A run is owned by the store, not by the dialog that requested it: closing or unmounting
+// the dialog never cancels it. When a run finishes, its result is published as
+// `lastSettled` and the page (selection cleanup) and the runner (toasts) react to it.
 type BulkUnsubscribeRunInput = {
   snapshot: ReadonlyArray<BulkUnsubscribeTarget>;
   queue: ReadonlyArray<number>;
   accountId: string | null;
-  onSettled: (succeededFeedIds: readonly string[]) => void;
-  onClose: (outcome: { allSucceeded: boolean }) => void;
 };
 
 export type BulkUnsubscribeRunRequest = BulkUnsubscribeRunInput & { runId: number };
+
+type BulkUnsubscribeSettledRun = {
+  runId: number;
+  accountId: string | null;
+  outcome: BulkUnsubscribeOutcome;
+  succeededFeedIds: ReadonlyArray<string>;
+};
 
 type BulkUnsubscribeState = {
   run: RunState;
   runId: number;
   runActive: boolean;
   runnerMounted: boolean;
+  dialogOpen: boolean;
   syncCompletedSeq: number;
   request: BulkUnsubscribeRunRequest | null;
+  lastSettled: BulkUnsubscribeSettledRun | null;
 };
 
 type BulkUnsubscribeActions = {
   setRunnerMounted: (mounted: boolean) => void;
+  setDialogOpen: (open: boolean) => void;
   requestRun: (input: BulkUnsubscribeRunInput) => void;
+  settle: (settled: BulkUnsubscribeSettledRun) => void;
   rowRunning: (index: number) => void;
   syncWaiting: (index: number) => void;
   rowDone: (index: number) => void;
@@ -133,7 +144,6 @@ type BulkUnsubscribeActions = {
   requestStop: () => void;
   notifySyncCompleted: () => void;
   finish: (outcome: BulkUnsubscribeOutcome, skipped: ReadonlyArray<number>) => void;
-  invalidateRun: () => void;
   reset: () => void;
 };
 
@@ -142,10 +152,16 @@ export const useBulkUnsubscribeStore = create<BulkUnsubscribeState & BulkUnsubsc
   runId: 0,
   runActive: false,
   runnerMounted: false,
+  dialogOpen: false,
   syncCompletedSeq: 0,
   request: null,
+  lastSettled: null,
 
   setRunnerMounted: (mounted) => set({ runnerMounted: mounted }),
+
+  setDialogOpen: (open) => set({ dialogOpen: open }),
+
+  settle: (settled) => set({ lastSettled: settled }),
 
   requestRun: (input) => {
     const state = get();
@@ -178,8 +194,6 @@ export const useBulkUnsubscribeStore = create<BulkUnsubscribeState & BulkUnsubsc
 
   finish: (outcome, skipped) =>
     set((state) => ({ runActive: false, run: reduceRunState(state.run, { type: "finish", outcome, skipped }) })),
-
-  invalidateRun: () => set((state) => ({ runId: state.runId + 1, runActive: false })),
 
   reset: () =>
     set((state) => ({

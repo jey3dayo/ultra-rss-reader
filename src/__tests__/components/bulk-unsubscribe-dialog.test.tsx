@@ -109,7 +109,7 @@ describe("BulkUnsubscribeDialog", () => {
     expect(showToast).toHaveBeenCalledWith("Unsubscribed from 3 feeds");
   });
 
-  it("ignores Escape while running and stops after the in-flight feed when asked to stop", async () => {
+  it("closes mid-run without stopping the run, and stopping from the reopened dialog ends it as cancelled", async () => {
     const user = userEvent.setup();
     const inFlight = createDeferred<null>();
     const started = createDeferred<void>();
@@ -125,8 +125,14 @@ describe("BulkUnsubscribeDialog", () => {
     await started.promise;
 
     await user.keyboard("{Escape}");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(onClose).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith({ allSucceeded: false });
+    expect(calls).toEqual(["a", "b"]);
+
+    await user.click(screen.getByRole("button", { name: "reopen" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Stop" }));
     expect(screen.getByRole("button", { name: "Stopping…" })).toBeDisabled();
@@ -140,7 +146,38 @@ describe("BulkUnsubscribeDialog", () => {
     expect(calls).toEqual(["a", "b"]);
     expect(onSettled).toHaveBeenCalledTimes(1);
     expect(onSettled).toHaveBeenCalledWith(["a", "b"]);
-    expect(onClose).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("toasts the result summary when a run finishes partially with the dialog closed", async () => {
+    const user = userEvent.setup();
+    const inFlight = createDeferred<null>();
+    const started = createDeferred<void>();
+    const { calls } = setupDeleteFeed({
+      b: () => {
+        started.resolve();
+        return inFlight.promise;
+      },
+    });
+    const { onSettled } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
+
+    await confirmWithKeyboard(user, 3);
+    await started.promise;
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    inFlight.reject(new Error("Feed is locked"));
+
+    await waitFor(() =>
+      expect(showToast).toHaveBeenCalledWith({
+        message: "Unsubscribed from 2. 1 could not be unsubscribed.",
+        severity: "error",
+      }),
+    );
+    expect(calls).toEqual(["a", "b", "c"]);
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(onSettled).toHaveBeenCalledWith(["a", "c"]);
   });
 
   it("starts again from the confirm step when reopened after a finished run", async () => {
@@ -186,7 +223,7 @@ describe("BulkUnsubscribeDialog", () => {
     expect(screen.getByRole("button", { name: /Unsubscribe from 2 feeds/ })).toBeInTheDocument();
   });
 
-  it("drops the run when unmounted mid-way: cache is refreshed but no settle callback or toast fires", async () => {
+  it("keeps the run going when the whole tree unmounts mid-way: the remaining feeds are still deleted", async () => {
     const user = userEvent.setup();
     const inFlight = createDeferred<null>();
     const started = createDeferred<void>();
@@ -208,14 +245,14 @@ describe("BulkUnsubscribeDialog", () => {
     unmount();
     inFlight.resolve(null);
 
+    await waitFor(() => expect(calls).toEqual(["a", "b", "c"]));
     await waitFor(() => expect(invalidateQueries).toHaveBeenCalled());
-    expect(calls).toEqual(["a", "b"]);
     expect(onSettled).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
   });
 
-  it("drops the run when only the dialog unmounts and the runner stays mounted", async () => {
+  it("finishes the run in the background when only the dialog unmounts and the runner stays mounted", async () => {
     const user = userEvent.setup();
     const inFlight = createDeferred<null>();
     const started = createDeferred<void>();
@@ -233,11 +270,13 @@ describe("BulkUnsubscribeDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "remove dialog", hidden: true }));
     inFlight.resolve(null);
 
-    await waitFor(() => expect(invalidateQueries).toHaveBeenCalled());
-    expect(calls).toEqual(["a", "b"]);
-    expect(onSettled).not.toHaveBeenCalled();
+    await waitFor(() => expect(onSettled).toHaveBeenCalledWith(["a", "b", "c"]));
+    expect(calls).toEqual(["a", "b", "c"]);
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith("Unsubscribed from 3 feeds");
     expect(onClose).not.toHaveBeenCalled();
-    expect(showToast).not.toHaveBeenCalled();
+    await waitFor(() => expect(invalidateQueries).toHaveBeenCalled());
   });
 
   it("stops before the next feed when the displayed account changes, leaving the rest unrun", async () => {

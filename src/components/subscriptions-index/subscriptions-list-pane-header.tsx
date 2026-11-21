@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import type { RefObject } from "react";
 import { Button, Input } from "@/design-system";
+import { type SubscriptionsBulkRunStatus, SubscriptionsBulkRunStatusView } from "./subscriptions-bulk-run-status";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsFilterBar, type SubscriptionsFilterBarProps } from "./subscriptions-filter-bar";
 
@@ -13,6 +14,7 @@ type SubscriptionsListPaneHeaderProps = {
   searchPlaceholder: string;
   filterBar?: SubscriptionsFilterBarProps;
   bulkSelection?: SubscriptionsBulkSelection;
+  bulkRunStatus?: SubscriptionsBulkRunStatus | null;
   bulkToggleDisabled: boolean;
   onSearchQueryChange: (query: string) => void;
 };
@@ -26,6 +28,7 @@ export function SubscriptionsListPaneHeader({
   searchPlaceholder,
   filterBar,
   bulkSelection,
+  bulkRunStatus,
   bulkToggleDisabled,
   onSearchQueryChange,
 }: SubscriptionsListPaneHeaderProps) {
@@ -76,6 +79,7 @@ export function SubscriptionsListPaneHeader({
           searchField
         )}
       </div>
+      {bulkRunStatus ? <SubscriptionsBulkRunStatusView status={bulkRunStatus} /> : null}
       {filterBar ? <SubscriptionsFilterBar {...filterBar} /> : null}
     </div>
   );

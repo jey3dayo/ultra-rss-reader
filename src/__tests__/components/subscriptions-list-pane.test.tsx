@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
+import type { SubscriptionsBulkRunStatus } from "@/components/subscriptions-index/subscriptions-bulk-run-status";
 import type { SubscriptionsBulkSelection } from "@/components/subscriptions-index/subscriptions-bulk-selection";
 import type { SubscriptionsFilterBarProps } from "@/components/subscriptions-index/subscriptions-filter-bar";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
@@ -61,6 +62,7 @@ function renderListPane(
     reasonTooltipLabels?: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
     kept?: SubscriptionsKeptMarker;
     bulkSelection?: SubscriptionsBulkSelection;
+    bulkRunStatus?: SubscriptionsBulkRunStatus | null;
     loadState?: SubscriptionsListLoadState;
     filterBar?: SubscriptionsFilterBarProps;
   },
@@ -88,6 +90,7 @@ function renderListPane(
       scrollResetKey={options?.scrollResetKey}
       kept={options?.kept}
       bulkSelection={options?.bulkSelection}
+      bulkRunStatus={options?.bulkRunStatus}
       loadState={options?.loadState}
       filterBar={options?.filterBar}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
@@ -269,6 +272,39 @@ describe("SubscriptionsListPane bulk selection", () => {
     });
 
     expect(screen.getByRole("status")).toHaveTextContent("3件を選択中(検索で非表示2件)");
+  });
+
+  it("shows the bulk unsubscribe progress with stop and details actions while a run is in flight", async () => {
+    const user = userEvent.setup();
+    const onStop = vi.fn();
+    const onShowDetails = vi.fn();
+    renderListPane(buildBulkRows(), {
+      bulkRunStatus: {
+        done: 1,
+        total: 3,
+        waitingForSync: true,
+        stopRequested: false,
+        labels: {
+          status: (done, total) => `購読を解除しています：${done} / ${total}件`,
+          waiting: "同期などの処理が終わるのを待っています。終わり次第、自動で続けます。",
+          showDetails: "詳細を表示",
+          stop: "中止",
+          stopping: "中止しています…",
+        },
+        onStop,
+        onShowDetails,
+      },
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("購読を解除しています：1 / 3件");
+    expect(
+      screen.getByText("同期などの処理が終わるのを待っています。終わり次第、自動で続けます。"),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "詳細を表示" }));
+    expect(onShowDetails).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: "中止" }));
+    expect(onStop).toHaveBeenCalledTimes(1);
   });
 });
 

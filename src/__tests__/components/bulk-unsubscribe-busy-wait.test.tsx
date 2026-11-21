@@ -119,23 +119,25 @@ describe("BulkUnsubscribeDialog busy wait", () => {
     expect(calls).toEqual(["a", "b"]);
   });
 
-  it("releases the wait at once when the dialog unmounts, and does not retry afterwards", async () => {
+  it("keeps waiting when the dialog unmounts, then retries after the delay and finishes in the background", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const { calls } = setupDeleteFeed({ b: busyTimes(Number.POSITIVE_INFINITY) });
+    const { calls } = setupDeleteFeed({ b: busyTimes(1) });
     const { onSettled, onClose, queryClient } = renderDialog([makeTarget("a"), makeTarget("b")]);
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
 
     await confirmWithKeyboard(user, 2);
     await waitFor(() => expect(calls).toEqual(["a", "b"]));
-    expect(invalidateQueries).not.toHaveBeenCalled();
+    // Entering the busy wait already refreshes the list with the feeds unsubscribed so far.
+    await waitFor(() => expect(invalidateQueries).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "remove dialog", hidden: true }));
     await advance(100);
-    expect(invalidateQueries).toHaveBeenCalled();
-
-    await advance(60_000);
     expect(calls).toEqual(["a", "b"]);
-    expect(onSettled).not.toHaveBeenCalled();
+
+    await advance(3_000);
+    expect(calls).toEqual(["a", "b", "b"]);
+    await waitFor(() => expect(onSettled).toHaveBeenCalledWith(["a", "b"]));
+    expect(showToast).toHaveBeenCalledWith("Unsubscribed from 2 feeds");
     expect(onClose).not.toHaveBeenCalled();
   });
 });

@@ -135,5 +135,7 @@
   "bulk_result_partial": "{{succeeded, count}}件の購読を解除しました。{{failed, count}}件は解除できませんでした。",
   "bulk_result_cancelled": "中止しました。{{succeeded, count}}件を解除し、{{skipped, count}}件は実行していません。",
   "bulk_toast_done_one": "1件の購読を解除しました",
-  "bulk_toast_done_other": "{{count, count}}件の購読を解除しました"
+  "bulk_toast_done_other": "{{count, count}}件の購読を解除しました",
+  "bulk_run_status": "購読を解除しています：{{done, count}} / {{total, count}}件",
+  "bulk_run_show_details": "詳細を表示"
 }

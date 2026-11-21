@@ -1,14 +1,35 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import type userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { expect, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { BulkUnsubscribeDialog } from "@/components/subscriptions-index/bulk-unsubscribe-dialog";
 import { BulkUnsubscribeRunner } from "@/components/subscriptions-index/bulk-unsubscribe-runner";
 import type { BulkUnsubscribeTarget } from "@/components/subscriptions-index/hooks/use-bulk-unsubscribe-feeds";
 import { buildSubscriptionListRows } from "@/lib/subscriptions/subscriptions-index";
+import { useBulkUnsubscribeStore } from "@/stores/bulk-unsubscribe-store";
 import { createQueryWrapper } from "./create-wrapper";
 import { setupTauriMocks } from "./tauri-mocks";
+
+// Mirrors the subscriptions page: a finished run publishes its result through the store,
+// and the page applies the succeeded feeds to the selection.
+function BulkSettleProbe({ onSettled }: { onSettled: (succeededFeedIds: readonly string[]) => void }) {
+  useEffect(() => {
+    let lastAppliedRunId = useBulkUnsubscribeStore.getState().lastSettled?.runId ?? 0;
+    return useBulkUnsubscribeStore.subscribe((state) => {
+      const settled = state.lastSettled;
+      if (settled === null || settled.runId <= lastAppliedRunId) {
+        return;
+      }
+      lastAppliedRunId = settled.runId;
+      if (settled.accountId !== "acc-1") {
+        return;
+      }
+      onSettled(settled.succeededFeedIds);
+    });
+  }, [onSettled]);
+  return null;
+}
 
 export const BUSY_MESSAGE = "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
@@ -73,13 +94,13 @@ export function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>, { wi
     return (
       <>
         {withRunner ? <BulkUnsubscribeRunner /> : null}
+        <BulkSettleProbe onSettled={onSettled} />
         {dialogMounted ? (
           <BulkUnsubscribeDialog
             key={session}
             open={open}
             accountId="acc-1"
             targets={targets}
-            onSettled={onSettled}
             onClose={(outcome) => {
               onClose(outcome);
               setOpen(false);
