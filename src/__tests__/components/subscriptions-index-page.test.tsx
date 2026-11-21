@@ -802,7 +802,7 @@ describe("SubscriptionsIndexPage", () => {
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     });
-    expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(screen.getByText("「90日以上未更新」に一致する購読はありません")).toBeInTheDocument();
     expect(within(detailPane).getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
   });
 
@@ -873,7 +873,7 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper });
 
-    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(await screen.findByText("「90日以上未更新」に一致する購読はありません")).toBeInTheDocument();
     feedRows = availableFeeds;
     await queryClient.invalidateQueries({ queryKey: queryKeys.feeds.byAccount("acc-1") });
 
@@ -1024,7 +1024,7 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(await screen.findByText("「90日以上未更新」に一致する購読はありません")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     expect(screen.getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
   });
@@ -1111,7 +1111,7 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
-    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(await screen.findByText("「90日以上未更新」に一致する購読はありません")).toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
 
@@ -1175,7 +1175,7 @@ describe("SubscriptionsIndexPage", () => {
     });
 
     await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
-    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(await screen.findByText("「90日以上未更新」に一致する購読はありません")).toBeInTheDocument();
 
     vi.setSystemTime(new Date("2026-04-01T00:00:00Z"));
     setDocumentVisibilityState("hidden");
@@ -1472,7 +1472,7 @@ describe("SubscriptionsIndexPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
     const banner = await screen.findByTestId("subscriptions-kept-banner");
-    expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(screen.getByText("「90日以上未更新」に一致する購読はありません")).toBeInTheDocument();
     expect(within(banner).getByText("見直し対象外にした1件を隠しています")).toBeInTheDocument();
 
     await user.click(within(banner).getByRole("button", { name: "表示する" }));

@@ -30,6 +30,7 @@ import {
   SubscriptionsListRow,
 } from "./subscriptions-list-row";
 import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
+import { type SubscriptionsSearchCondition, SubscriptionsSearchConditionView } from "./subscriptions-search-condition";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
 const READY_LOAD_STATE: SubscriptionsListLoadState = { status: "ready" };
@@ -76,6 +77,8 @@ type SubscriptionsListPaneProps = {
   loadState?: SubscriptionsListLoadState;
   kept?: SubscriptionsKeptMarker;
   keptBanner?: SubscriptionsKeptBanner | null;
+  searchCondition?: SubscriptionsSearchCondition | null;
+  emptyShowAllLabel?: string;
   headingRef?: RefObject<HTMLHeadingElement | null>;
   filterBar?: SubscriptionsFilterBarProps;
   bulkSelection?: SubscriptionsBulkSelection;
@@ -91,12 +94,16 @@ function SubscriptionsListEmptyState({
   filterBar,
   searchQuery,
   searchClearLabel,
+  emptyShowAllLabel,
   onSearchQueryChange,
 }: Pick<
   SubscriptionsListPaneProps,
-  "emptyLabel" | "filterBar" | "searchQuery" | "searchClearLabel" | "onSearchQueryChange"
+  "emptyLabel" | "filterBar" | "searchQuery" | "searchClearLabel" | "emptyShowAllLabel" | "onSearchQueryChange"
 >) {
   const description = filterBar?.model.activeDescription;
+  const activeFilterKey = filterBar?.model.options.find((option) => option.isActive)?.filterKey ?? "all";
+  const showAllAction = activeFilterKey !== "all" && emptyShowAllLabel && filterBar ? filterBar : null;
+  const hasActions = searchQuery.length > 0 || showAllAction !== null;
 
   return (
     <div
@@ -107,15 +114,29 @@ function SubscriptionsListEmptyState({
         {emptyLabel}
       </p>
       {description ? <p className="mt-1.5 text-xs leading-[1.5] text-foreground-soft">{description}</p> : null}
-      {searchQuery.length > 0 ? (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onSearchQueryChange("")}
-          className="mt-3 min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
-        >
-          {searchClearLabel}
-        </Button>
+      {hasActions ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {searchQuery.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onSearchQueryChange("")}
+              className="min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
+            >
+              {searchClearLabel}
+            </Button>
+          ) : null}
+          {showAllAction ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => showAllAction.onSelect("all")}
+              className="min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
+            >
+              {emptyShowAllLabel}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -267,6 +288,8 @@ export function SubscriptionsListPane({
   loadState = READY_LOAD_STATE,
   kept,
   keptBanner,
+  searchCondition,
+  emptyShowAllLabel,
   headingRef,
   filterBar,
   bulkSelection,
@@ -392,6 +415,7 @@ export function SubscriptionsListPane({
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
         <SubscriptionsListLoadStatus loadState={loadState} />
+        {showKeptBanner ? <SubscriptionsSearchConditionView condition={searchCondition} /> : null}
         <SubscriptionsKeptBannerView banner={showKeptBanner ? keptBanner : null} />
         {bulkSelection && selecting && showRows ? (
           <SubscriptionsBulkSelectAllRow bulkSelection={bulkSelection} visibleRowCount={totalRowCount} />
@@ -402,6 +426,7 @@ export function SubscriptionsListPane({
             filterBar={filterBar}
             searchQuery={searchQuery}
             searchClearLabel={searchClearLabel}
+            emptyShowAllLabel={emptyShowAllLabel}
             onSearchQueryChange={onSearchQueryChange}
           />
         ) : null}

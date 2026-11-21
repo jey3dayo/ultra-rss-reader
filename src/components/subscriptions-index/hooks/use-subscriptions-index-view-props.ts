@@ -42,7 +42,8 @@ import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
 import {
   attachLocalFeedFetchErrors,
   attachRemoteFeedFetchFailures,
-  resolveSubscriptionsEmptyLabel,
+  buildSubscriptionsEmptyLabel,
+  resolveSubscriptionsEmptyExceptionLabel,
 } from "./subscriptions-index-fetch-error-summary";
 import {
   buildSubscriptionsFilterBarModel,
@@ -313,6 +314,15 @@ export function useSubscriptionsIndexViewProps({
     onRequestReset: onRequestResetKept,
   });
 
+  const searchCondition =
+    state.searchQuery.length > 0
+      ? {
+          label: t("search_condition", { query: state.searchQuery }),
+          clearLabel: t("search_clear"),
+          onClear: () => state.setSearchQuery(""),
+        }
+      : null;
+
   const viewProps = {
     filterBar,
     inventoryHeading,
@@ -373,17 +383,28 @@ export function useSubscriptionsIndexViewProps({
           onRetry: summaryLoad.retry,
         }
       : null,
-    emptyLabel: resolveSubscriptionsEmptyLabel(
-      state.activeSummaryFilter,
-      filterBar.options.find((option) => option.filterKey === "fetch_errors")?.count ?? null,
-      isQueryUnavailable(summaryLoad),
-      {
+    emptyLabel: buildSubscriptionsEmptyLabel({
+      exceptionLabel: resolveSubscriptionsEmptyExceptionLabel(
+        state.activeSummaryFilter,
+        filterBar.options.find((option) => option.filterKey === "fetch_errors")?.count ?? null,
+        isQueryUnavailable(summaryLoad),
+        {
+          fetchErrorsUnknown: t("summary_fetch_errors_unknown"),
+          fetchErrorsEmpty: t("summary_fetch_errors_empty"),
+          summariesUnavailable: t("empty_summary_unavailable"),
+        },
+      ),
+      activeSummaryFilter: state.activeSummaryFilter,
+      filterLabel: filterBar.options.find((option) => option.isActive)?.label ?? "",
+      searchQuery: state.searchQuery,
+      labels: {
         default: t("empty"),
-        fetchErrorsUnknown: t("summary_fetch_errors_unknown"),
-        fetchErrorsEmpty: t("summary_fetch_errors_empty"),
-        summariesUnavailable: t("empty_summary_unavailable"),
+        filterAndSearch: (filter, query) => t("empty_for_filter_and_search", { filter, query }),
+        searchOnly: (query) => t("empty_for_search", { query }),
+        filterOnly: (filter) => t("empty_for_filter", { filter }),
       },
-    ),
+    }),
+    emptyShowAllLabel: t("empty_show_all"),
     searchQuery: state.searchQuery,
     searchLabel: t("search_label"),
     searchPlaceholder: t("search_placeholder"),
@@ -421,6 +442,7 @@ export function useSubscriptionsIndexViewProps({
     scrollReady: !rowsPending || (!feedLoad.pending && !feedLoad.error && feeds.length === 0),
     kept: { feedIds: state.keptFeedIds, chipLabel: t("kept_chip") },
     keptBanner,
+    searchCondition,
     listHeadingRef,
     bulkSelection: {
       mode: state.bulkSelectionMode,
