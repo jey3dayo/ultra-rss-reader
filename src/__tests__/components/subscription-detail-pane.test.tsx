@@ -401,6 +401,12 @@ describe("SubscriptionDetailPane", () => {
     );
   });
 
+  function expectDecisionFullWidthAndDeleteLast(rail: HTMLElement, decisionLabel: string) {
+    const buttons = within(rail).getAllByRole("button");
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([decisionLabel, "Edit", "Remove"]);
+    expect(buttons[0]).toHaveClass("col-span-full");
+  }
+
   it("keeps the rail and edit button nodes when the decision toggles between keep and unkeep", () => {
     const railBase = { editLabel: "Edit", deleteLabel: "Remove", onEdit: vi.fn(), onDelete: vi.fn() };
     const keepRail = {
@@ -423,6 +429,7 @@ describe("SubscriptionDetailPane", () => {
     const rail = screen.getByTestId("subscriptions-detail-action-rail");
     const editButton = screen.getByRole("button", { name: "Edit" });
     expect(screen.queryByTestId("subscriptions-detail-kept-status")).not.toBeInTheDocument();
+    expectDecisionFullWidthAndDeleteLast(rail, "Exclude from review");
 
     fireEvent.click(screen.getByRole("button", { name: "Exclude from review" }));
     expect(keepRail.decision.onClick).toHaveBeenCalledOnce();
@@ -432,6 +439,7 @@ describe("SubscriptionDetailPane", () => {
     expect(screen.getByTestId("subscriptions-detail-action-rail")).toBe(rail);
     expect(screen.getByRole("button", { name: "Edit" })).toBe(editButton);
     expect(screen.getByTestId("subscriptions-detail-kept-status")).toBeInTheDocument();
+    expectDecisionFullWidthAndDeleteLast(rail, "Remove review exclusion");
   });
 
   it("reaches edit and delete without a decision and keeps delete last", () => {
