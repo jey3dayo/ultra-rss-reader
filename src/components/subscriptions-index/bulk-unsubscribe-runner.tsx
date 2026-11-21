@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { deleteFeed } from "@/api/tauri-commands";
+import i18n from "@/lib/i18n";
 import { invalidateDeleteFeedQueries } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import {
@@ -97,7 +97,6 @@ async function executeRun(request: BulkUnsubscribeRunRequest, { queryClient, not
 }
 
 export function BulkUnsubscribeRunner() {
-  const { t } = useTranslation("subscriptions");
   const queryClient = useQueryClient();
   const showToast = useUiStore((state) => state.showToast);
 
@@ -108,7 +107,7 @@ export function BulkUnsubscribeRunner() {
       if (state.request !== null && state.request !== previous.request) {
         void executeRun(state.request, {
           queryClient,
-          notifyCompleted: (count) => showToast(t("bulk_toast_done", { count })),
+          notifyCompleted: (count) => showToast(i18n.t("bulk_toast_done", { ns: "subscriptions", count })),
         });
       }
     });
@@ -116,7 +115,7 @@ export function BulkUnsubscribeRunner() {
       unsubscribe();
       setRunnerMounted(false);
     };
-  }, [queryClient, showToast, t]);
+  }, [queryClient, showToast]);
 
   return null;
 }

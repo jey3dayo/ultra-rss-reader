@@ -76,25 +76,31 @@ function renderDialog(targets: ReadonlyArray<BulkUnsubscribeTarget>, { withRunne
   function Harness() {
     const [open, setOpen] = useState(true);
     const [session, setSession] = useState(0);
+    const [dialogMounted, setDialogMounted] = useState(true);
     return (
       <>
         {withRunner ? <BulkUnsubscribeRunner /> : null}
-        <BulkUnsubscribeDialog
-          key={session}
-          open={open}
-          accountId="acc-1"
-          targets={targets}
-          onSettled={onSettled}
-          onClose={(outcome) => {
-            onClose(outcome);
-            setOpen(false);
-          }}
-        />
+        {dialogMounted ? (
+          <BulkUnsubscribeDialog
+            key={session}
+            open={open}
+            accountId="acc-1"
+            targets={targets}
+            onSettled={onSettled}
+            onClose={(outcome) => {
+              onClose(outcome);
+              setOpen(false);
+            }}
+          />
+        ) : null}
         <button type="button" onClick={() => setOpen(true)}>
           reopen
         </button>
         <button type="button" onClick={() => setSession((current) => current + 1)}>
           next session
+        </button>
+        <button type="button" onClick={() => setDialogMounted(false)}>
+          remove dialog
         </button>
       </>
     );
@@ -324,6 +330,31 @@ describe("BulkUnsubscribeDialog", () => {
     await confirmWithKeyboard(user, 3);
     await started.promise;
     unmount();
+    inFlight.resolve(null);
+
+    await waitFor(() => expect(invalidateQueries).toHaveBeenCalled());
+    expect(calls).toEqual(["a", "b"]);
+    expect(onSettled).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("drops the run when only the dialog unmounts and the runner stays mounted", async () => {
+    const user = userEvent.setup();
+    const inFlight = createDeferred<null>();
+    const started = createDeferred<void>();
+    const { calls } = setupDeleteFeed({
+      b: () => {
+        started.resolve();
+        return inFlight.promise;
+      },
+    });
+    const { onSettled, onClose, queryClient } = renderDialog([makeTarget("a"), makeTarget("b"), makeTarget("c")]);
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+    await confirmWithKeyboard(user, 3);
+    await started.promise;
+    fireEvent.click(screen.getByRole("button", { name: "remove dialog", hidden: true }));
     inFlight.resolve(null);
 
     await waitFor(() => expect(invalidateQueries).toHaveBeenCalled());

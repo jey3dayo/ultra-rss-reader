@@ -78,7 +78,7 @@ export function orderBulkUnsubscribeTargets(
   return [...targets.filter((target) => target.wasKept), ...targets.filter((target) => !target.wasKept)];
 }
 
-// onSettled / onClose bind a run to the dialog that started it; #765 PR 3 removes that coupling.
+// onSettled / onClose are delivered to the dialog that requested the run, and only while it is still mounted.
 type BulkUnsubscribeRunInput = {
   snapshot: ReadonlyArray<BulkUnsubscribeTarget>;
   queue: ReadonlyArray<number>;
