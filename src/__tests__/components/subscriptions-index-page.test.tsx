@@ -1878,4 +1878,39 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(staleDialog).queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
     expect(deleteFeedCalls).toEqual([]);
   });
+
+  it("opens the add feed dialog from the list header", async () => {
+    const user = userEvent.setup();
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "フィードを追加" }));
+
+    expect(useUiStore.getState().isAddFeedDialogOpen).toBe(true);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText("フィード")).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "キャンセル" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().isAddFeedDialogOpen).toBe(false);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  it("opens the add feed dialog from the empty state when the account has no subscriptions", async () => {
+    const user = userEvent.setup();
+    feedRows = [];
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    const addButtons = screen.getAllByRole("button", { name: "フィードを追加" });
+    expect(addButtons).toHaveLength(2);
+
+    await user.click(addButtons[1]);
+
+    expect(useUiStore.getState().isAddFeedDialogOpen).toBe(true);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
 });
