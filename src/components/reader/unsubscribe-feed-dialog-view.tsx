@@ -14,6 +14,9 @@ export function UnsubscribeFeedDialogView({
   confirmAccessibleLabel,
   confirmDisabled,
   confirmDisabledReason,
+  retryLabel,
+  retryPending,
+  onRetry,
   errorMessage,
   pending,
   onOpenChange,
@@ -29,6 +32,9 @@ export function UnsubscribeFeedDialogView({
       confirmAccessibleLabel={confirmAccessibleLabel}
       confirmDisabled={confirmDisabled}
       confirmDisabledReason={confirmDisabledReason}
+      retryLabel={retryLabel}
+      retryPending={retryPending}
+      onRetry={onRetry}
       errorMessage={errorMessage}
       pending={pending}
       onOpenChange={onOpenChange}

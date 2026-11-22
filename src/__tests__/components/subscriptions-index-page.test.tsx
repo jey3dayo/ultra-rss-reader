@@ -1838,4 +1838,44 @@ describe("SubscriptionsIndexPage", () => {
     ).toBeDisabled();
     expect(deleteFeedCalls).toEqual([]);
   });
+
+  it("recovers a stale unsubscribe target from the dialog retry after the feed list reloads", async () => {
+    const user = userEvent.setup();
+    const { queryClient, wrapper } = createQueryWrapper({
+      includeToastHost: true,
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
+
+    const removedFeed = feedRows.find((feed) => feed.id === "feed-1");
+    feedRows = feedRows.filter((feed) => feed.id !== "feed-1");
+    await queryClient.invalidateQueries({ queryKey: queryKeys.feeds.root });
+
+    const staleDialog = await screen.findByRole("dialog");
+    expect(
+      within(staleDialog).getByText("フィードを再読み込みできません。対象が確認できるまで購読解除は無効です。"),
+    ).toBeInTheDocument();
+    const confirmButton = within(staleDialog).getByRole("button", {
+      name: "「Example Feed」の購読を解除します。元に戻せません。",
+    });
+    expect(confirmButton).toBeDisabled();
+
+    feedRows = removedFeed ? [...feedRows, removedFeed] : feedRows;
+    await user.click(within(staleDialog).getByRole("button", { name: "再試行" }));
+
+    await waitFor(() => {
+      expect(confirmButton).toBeEnabled();
+    });
+    expect(
+      within(staleDialog).queryByText("フィードを再読み込みできません。対象が確認できるまで購読解除は無効です。"),
+    ).not.toBeInTheDocument();
+    expect(within(staleDialog).queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
+    expect(deleteFeedCalls).toEqual([]);
+  });
 });

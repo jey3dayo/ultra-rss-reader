@@ -306,6 +306,50 @@ describe("DestructiveConfirmDialogView", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
+  it("offers the retry action next to the disabled reason and hides it once enabled", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+    const onRetry = vi.fn();
+
+    const { rerender } = render(
+      <DestructiveConfirmDialogView
+        open={true}
+        title="Unsubscribe from feed"
+        description="This cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        confirmDisabled={true}
+        confirmDisabledReason="The target could not be reloaded."
+        retryLabel="Retry"
+        onRetry={onRetry}
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    rerender(
+      <DestructiveConfirmDialogView
+        open={true}
+        title="Unsubscribe from feed"
+        description="This cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        confirmDisabled={false}
+        retryLabel="Retry"
+        onRetry={onRetry}
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  });
+
   it("delegates dialog close separately from destructive confirm", async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
