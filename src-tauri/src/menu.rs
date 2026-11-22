@@ -24,6 +24,7 @@ const ACCOUNTS_SYNC_MENU_ID: &str = "accounts-sync";
 const ACCOUNTS_SHOW_MENU_ID: &str = "accounts-show";
 const ACCOUNTS_ADD_MENU_ID: &str = "accounts-add";
 const SUBS_ADD_MENU_ID: &str = "subs-add";
+const SUBS_INDEX_MENU_ID: &str = "subs-index";
 const SUBS_PREV_MENU_ID: &str = "subs-prev";
 const SUBS_NEXT_MENU_ID: &str = "subs-next";
 const ITEM_PREV_MENU_ID: &str = "item-prev";
@@ -60,6 +61,7 @@ fn resolve_menu_action(menu_id: &str) -> Option<&'static str> {
         ACCOUNTS_SHOW_MENU_ID => Some("open-settings-accounts"),
         ACCOUNTS_ADD_MENU_ID => Some("open-settings-accounts-add"),
         SUBS_ADD_MENU_ID => Some("open-add-feed"),
+        SUBS_INDEX_MENU_ID => Some("open-subscriptions-index"),
         SUBS_PREV_MENU_ID => Some("prev-feed"),
         SUBS_NEXT_MENU_ID => Some("next-feed"),
         ITEM_PREV_MENU_ID => Some("prev-article"),
@@ -294,11 +296,14 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
     // --- Subscriptions submenu ---
     let subs_add =
         MenuItemBuilder::with_id(SUBS_ADD_MENU_ID, labels.add_subscription).build(app)?;
+    let subs_index =
+        MenuItemBuilder::with_id(SUBS_INDEX_MENU_ID, labels.open_subscriptions).build(app)?;
     let subs_prev = MenuItemBuilder::with_id(SUBS_PREV_MENU_ID, labels.previous_feed).build(app)?;
     let subs_next = MenuItemBuilder::with_id(SUBS_NEXT_MENU_ID, labels.next_feed).build(app)?;
 
     let subs_submenu = SubmenuBuilder::new(app, labels.subscriptions_menu)
         .item(&subs_add)
+        .item(&subs_index)
         .separator()
         .item(&subs_prev)
         .item(&subs_next)
