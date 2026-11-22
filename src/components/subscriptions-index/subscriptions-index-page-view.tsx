@@ -71,7 +71,7 @@ type SubscriptionsIndexPageViewProps = {
   searchPlaceholder: string;
   searchClearLabel: string;
   addFeedLabel: string;
-  onAddFeed: () => void;
+  onAddFeed?: () => void;
   detailEmptyLabel: string;
   statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;

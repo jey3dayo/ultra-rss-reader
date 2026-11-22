@@ -1913,4 +1913,22 @@ describe("SubscriptionsIndexPage", () => {
     expect(useUiStore.getState().isAddFeedDialogOpen).toBe(true);
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
+
+  it("hides the add feed actions when no account is available", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") return [];
+      return undefined;
+    });
+    useUiStore.setState({
+      selectedAccountId: null,
+      subscriptionsWorkspace: { kind: "index", accountId: null },
+    });
+    feedRows = [];
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
+    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "フィードを追加" })).not.toBeInTheDocument();
+    expect(useUiStore.getState().isAddFeedDialogOpen).toBe(false);
+  });
 });

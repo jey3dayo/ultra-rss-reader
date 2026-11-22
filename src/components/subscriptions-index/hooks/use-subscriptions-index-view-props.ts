@@ -89,7 +89,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   onRequestBulkUnsubscribe: () => void;
   onShowBulkUnsubscribeRun: () => void;
   onRequestResetKept: (keptCount: number) => void;
-  onAddFeed: () => void;
+  onAddFeed?: () => void;
   bulkToggleRef: RefObject<HTMLButtonElement | null>;
   listHeadingRef: RefObject<HTMLHeadingElement | null>;
 };

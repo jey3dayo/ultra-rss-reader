@@ -317,7 +317,9 @@ function SubscriptionsIndexPageForAccount({
       setBulkDialogOpen(true);
     },
     onRequestResetKept: (keptCount) => setResetKeptDialog({ open: true, keptCount }),
-    onAddFeed: () => useUiStore.getState().openAddFeedDialog(),
+    // Without an account the dialog cannot render, so the action stays unbound and
+    // both entry points hide instead of setting a dialog flag nothing can dismiss.
+    onAddFeed: selectedAccountId ? () => useUiStore.getState().openAddFeedDialog() : undefined,
     bulkToggleRef,
     listHeadingRef,
   });
