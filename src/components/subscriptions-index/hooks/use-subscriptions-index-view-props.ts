@@ -89,6 +89,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   onRequestBulkUnsubscribe: () => void;
   onShowBulkUnsubscribeRun: () => void;
   onRequestResetKept: (keptCount: number) => void;
+  onAddFeed?: () => void;
   bulkToggleRef: RefObject<HTMLButtonElement | null>;
   listHeadingRef: RefObject<HTMLHeadingElement | null>;
 };
@@ -126,6 +127,7 @@ export function useSubscriptionsIndexViewProps({
   onRequestBulkUnsubscribe,
   onShowBulkUnsubscribeRun,
   onRequestResetKept,
+  onAddFeed,
   bulkToggleRef,
   listHeadingRef,
 }: UseSubscriptionsIndexViewPropsParams) {
@@ -428,6 +430,7 @@ export function useSubscriptionsIndexViewProps({
     searchLabel: t("search_label"),
     searchPlaceholder: t("search_placeholder"),
     searchClearLabel: t("search_clear"),
+    addFeedLabel: tr("add_feed"),
     detailEmptyLabel: t("detail_empty"),
     statusLabels: {
       attention_30d: t("status_attention_30d"),
@@ -519,6 +522,7 @@ export function useSubscriptionsIndexViewProps({
     onListScrollTopChange: state.setListScrollTop,
     onSearchQueryChange: state.setSearchQuery,
     onToggleGroup: state.toggleGroup,
+    onAddFeed,
   } satisfies SubscriptionsIndexPageViewProps;
   const bulk: {
     selectionMode: boolean;

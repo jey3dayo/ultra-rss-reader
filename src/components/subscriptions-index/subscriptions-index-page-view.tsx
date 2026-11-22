@@ -70,6 +70,8 @@ type SubscriptionsIndexPageViewProps = {
   searchLabel: string;
   searchPlaceholder: string;
   searchClearLabel: string;
+  addFeedLabel: string;
+  onAddFeed?: () => void;
   detailEmptyLabel: string;
   statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
@@ -143,6 +145,8 @@ export function SubscriptionsIndexPageView({
   searchLabel,
   searchPlaceholder,
   searchClearLabel,
+  addFeedLabel,
+  onAddFeed,
   detailEmptyLabel,
   statusLabels,
   reasonTooltipLabels,
@@ -214,6 +218,8 @@ export function SubscriptionsIndexPageView({
               searchLabel={searchLabel}
               searchPlaceholder={searchPlaceholder}
               searchClearLabel={searchClearLabel}
+              addFeedLabel={addFeedLabel}
+              onAddFeed={onAddFeed}
               statusLabels={statusLabels}
               reasonTooltipLabels={reasonTooltipLabels}
               fetchErrorLabel={fetchErrorLabel}

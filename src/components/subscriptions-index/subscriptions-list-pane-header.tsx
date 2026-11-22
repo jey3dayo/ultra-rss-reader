@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import type { RefObject } from "react";
 import { Button, Input } from "@/design-system";
 import { type SubscriptionsBulkRunStatus, SubscriptionsBulkRunStatusView } from "./subscriptions-bulk-run-status";
@@ -12,6 +12,8 @@ type SubscriptionsListPaneHeaderProps = {
   searchQuery: string;
   searchLabel: string;
   searchPlaceholder: string;
+  addFeedLabel?: string;
+  onAddFeed?: () => void;
   filterBar?: SubscriptionsFilterBarProps;
   bulkSelection?: SubscriptionsBulkSelection;
   bulkRunStatus?: SubscriptionsBulkRunStatus | null;
@@ -26,6 +28,8 @@ export function SubscriptionsListPaneHeader({
   searchQuery,
   searchLabel,
   searchPlaceholder,
+  addFeedLabel,
+  onAddFeed,
   filterBar,
   bulkSelection,
   bulkRunStatus,
@@ -33,6 +37,13 @@ export function SubscriptionsListPaneHeader({
   onSearchQueryChange,
 }: SubscriptionsListPaneHeaderProps) {
   const selecting = bulkSelection?.mode === true;
+  const addFeedButton =
+    addFeedLabel && onAddFeed ? (
+      <Button type="button" variant="default" onClick={onAddFeed} className="min-h-11 shrink-0">
+        <Plus aria-hidden="true" className="size-4" />
+        {addFeedLabel}
+      </Button>
+    ) : null;
   const searchField = (
     <div className="relative w-full min-w-0 sm:max-w-[20rem]">
       <Search
@@ -74,6 +85,12 @@ export function SubscriptionsListPaneHeader({
             >
               {selecting ? bulkSelection.labels.end : bulkSelection.labels.start}
             </Button>
+            {addFeedButton}
+          </div>
+        ) : addFeedButton ? (
+          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:justify-end">
+            {searchField}
+            {addFeedButton}
           </div>
         ) : (
           searchField

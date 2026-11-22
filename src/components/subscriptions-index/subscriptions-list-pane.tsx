@@ -71,6 +71,8 @@ type SubscriptionsListPaneProps = {
   searchLabel: string;
   searchPlaceholder: string;
   searchClearLabel: string;
+  addFeedLabel?: string;
+  onAddFeed?: () => void;
   statusLabels: SubscriptionsActionableStatusLabels;
   reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   fetchErrorLabel?: string;
@@ -105,15 +107,25 @@ function SubscriptionsListEmptyState({
   searchQuery,
   searchClearLabel,
   emptyShowAllLabel,
+  addFeedLabel,
+  onAddFeed,
   onSearchQueryChange,
 }: Pick<
   SubscriptionsListPaneProps,
-  "emptyLabel" | "filterBar" | "searchQuery" | "searchClearLabel" | "emptyShowAllLabel" | "onSearchQueryChange"
+  | "emptyLabel"
+  | "filterBar"
+  | "searchQuery"
+  | "searchClearLabel"
+  | "emptyShowAllLabel"
+  | "addFeedLabel"
+  | "onAddFeed"
+  | "onSearchQueryChange"
 >) {
   const description = filterBar?.model.activeDescription;
   const activeFilterKey = filterBar?.model.options.find((option) => option.isActive)?.filterKey ?? "all";
   const showAllAction = activeFilterKey !== "all" && emptyShowAllLabel && filterBar ? filterBar : null;
-  const hasActions = searchQuery.length > 0 || showAllAction !== null;
+  const showAddFeedAction = Boolean(addFeedLabel && onAddFeed);
+  const hasActions = searchQuery.length > 0 || showAllAction !== null || showAddFeedAction;
 
   return (
     <div
@@ -144,6 +156,16 @@ function SubscriptionsListEmptyState({
               className="min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
             >
               {emptyShowAllLabel}
+            </Button>
+          ) : null}
+          {showAddFeedAction ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onAddFeed}
+              className="min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
+            >
+              {addFeedLabel}
             </Button>
           ) : null}
         </div>
@@ -282,6 +304,8 @@ export function SubscriptionsListPane({
   searchLabel,
   searchPlaceholder,
   searchClearLabel,
+  addFeedLabel,
+  onAddFeed,
   statusLabels,
   reasonTooltipLabels,
   fetchErrorLabel = "Fetch error",
@@ -453,6 +477,8 @@ export function SubscriptionsListPane({
         searchQuery={searchQuery}
         searchLabel={searchLabel}
         searchPlaceholder={searchPlaceholder}
+        addFeedLabel={addFeedLabel}
+        onAddFeed={onAddFeed}
         filterBar={filterBar}
         bulkSelection={bulkSelection}
         bulkRunStatus={bulkRunStatus}
@@ -478,6 +504,8 @@ export function SubscriptionsListPane({
             searchQuery={searchQuery}
             searchClearLabel={searchClearLabel}
             emptyShowAllLabel={emptyShowAllLabel}
+            addFeedLabel={addFeedLabel}
+            onAddFeed={onAddFeed}
             onSearchQueryChange={onSearchQueryChange}
           />
         ) : null}

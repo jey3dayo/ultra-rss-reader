@@ -1,5 +1,6 @@
 import { type Ref, useCallback, useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
 import { AppSelectPopup, Select, SelectItem, SelectTrigger, SelectValue, WorkspaceHeader } from "@/design-system";
@@ -204,6 +205,12 @@ export function SubscriptionsIndexPage() {
   );
 }
 
+// Without an account the dialog cannot render, so the action stays unbound and
+// both entry points hide instead of setting a dialog flag nothing can dismiss.
+function resolveOnAddFeed(selectedAccountId: string | null): (() => void) | undefined {
+  return selectedAccountId ? () => useUiStore.getState().openAddFeedDialog() : undefined;
+}
+
 function SubscriptionsIndexPageForAccount({
   ref,
   accountId: selectedAccountId,
@@ -223,6 +230,7 @@ function SubscriptionsIndexPageForAccount({
 }) {
   const { t } = useTranslation("subscriptions");
   const showToast = useUiStore((state) => state.showToast);
+  const isAddFeedDialogOpen = useUiStore((state) => state.isAddFeedDialogOpen);
   const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
   const feedQuery = useFeeds(selectedAccountId);
   const feeds = feedQuery.data ?? [];
@@ -315,6 +323,7 @@ function SubscriptionsIndexPageForAccount({
       setBulkDialogOpen(true);
     },
     onRequestResetKept: (keptCount) => setResetKeptDialog({ open: true, keptCount }),
+    onAddFeed: resolveOnAddFeed(selectedAccountId),
     bulkToggleRef,
     listHeadingRef,
   });
@@ -355,7 +364,12 @@ function SubscriptionsIndexPageForAccount({
     });
   }, [selectedAccountId]);
 
-  const hasOpenDialog = editTargetFeed !== null || deleteTargetFeed !== null || bulkDialogOpen || resetKeptDialog.open;
+  const hasOpenDialog =
+    editTargetFeed !== null ||
+    deleteTargetFeed !== null ||
+    bulkDialogOpen ||
+    resetKeptDialog.open ||
+    isAddFeedDialogOpen;
 
   useEffect(() => {
     if (!bulkDialogOpen && focusBulkToggleAfterCloseRef.current) {
@@ -388,6 +402,20 @@ function SubscriptionsIndexPageForAccount({
   return (
     <>
       <SubscriptionsIndexPageView {...viewProps.viewProps} />
+
+      {selectedAccountId ? (
+        <AddFeedDialog
+          open={isAddFeedDialogOpen}
+          onOpenChange={(open) => {
+            if (open) {
+              useUiStore.getState().openAddFeedDialog();
+            } else {
+              useUiStore.getState().closeAddFeedDialog();
+            }
+          }}
+          accountId={selectedAccountId}
+        />
+      ) : null}
 
       {editTargetFeed ? (
         <FeedEditDialog
