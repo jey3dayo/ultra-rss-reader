@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
 import { SurfaceCard } from "@/components/shared/surface-card";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 
@@ -16,6 +17,9 @@ export type DestructiveConfirmDialogViewProps = {
   confirmAccessibleLabel?: string;
   confirmDisabled?: boolean;
   confirmDisabledReason?: string;
+  retryLabel?: string;
+  retryPending?: boolean;
+  onRetry?: () => void;
   errorMessage?: string | null;
   pending?: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +37,9 @@ export function DestructiveConfirmDialogView({
   confirmAccessibleLabel,
   confirmDisabled = false,
   confirmDisabledReason,
+  retryLabel,
+  retryPending = false,
+  onRetry,
   errorMessage,
   pending = false,
   onOpenChange,
@@ -114,6 +121,19 @@ export function DestructiveConfirmDialogView({
           <p id={confirmDescriptionId} className="text-sm text-state-danger-foreground">
             {confirmDisabledReason}
           </p>
+        ) : null}
+        {confirmDisabled && onRetry && retryLabel ? (
+          <div>
+            <Button
+              variant="outline"
+              onClick={onRetry}
+              disabled={retryPending}
+              aria-busy={retryPending}
+              className="min-h-11"
+            >
+              {retryLabel}
+            </Button>
+          </div>
         ) : null}
         {errorMessage ? (
           <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">

@@ -8,6 +8,9 @@ type UnsubscribeDialogProps = {
   pending?: boolean;
   confirmDisabled?: boolean;
   confirmDisabledReason?: string;
+  retryLabel?: string;
+  retryPending?: boolean;
+  onRetry?: () => void;
   errorMessage?: string | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
@@ -19,6 +22,9 @@ export function UnsubscribeDialog({
   pending,
   confirmDisabled,
   confirmDisabledReason,
+  retryLabel,
+  retryPending,
+  onRetry,
   errorMessage,
   onOpenChange,
   onConfirm,
@@ -44,6 +50,9 @@ export function UnsubscribeDialog({
       })}
       confirmDisabled={confirmDisabled}
       confirmDisabledReason={confirmDisabledReason}
+      retryLabel={retryLabel}
+      retryPending={retryPending}
+      onRetry={onRetry}
       errorMessage={errorMessage}
       pending={pending}
       onOpenChange={onOpenChange}

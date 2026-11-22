@@ -426,6 +426,15 @@ function SubscriptionsIndexPageForAccount({
           pending={unsubscribeDialogPending}
           confirmDisabled={!isDeleteTargetKnown}
           confirmDisabledReason={t("delete_target_unavailable")}
+          retryLabel={t("load_retry")}
+          retryPending={feedQuery.isFetching}
+          onRetry={
+            isDeleteTargetKnown
+              ? undefined
+              : () => {
+                  void feedQuery.refetch();
+                }
+          }
           errorMessage={unsubscribeFailureMessage}
           onOpenChange={(open) => {
             if (!open) {
