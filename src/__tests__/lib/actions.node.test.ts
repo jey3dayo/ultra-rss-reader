@@ -783,6 +783,7 @@ describe("isAppAction node contracts", () => {
         "open-settings-accounts",
         "open-settings-accounts-add",
         "open-add-feed",
+        "open-subscriptions-index",
         "prev-feed",
         "next-feed",
         "prev-article",
