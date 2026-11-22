@@ -10,6 +10,7 @@ import type {
   RemoteFeedSyncStatusDto,
 } from "@/api/tauri-commands";
 import type { FeedRetryOutcomeKind } from "@/hooks/use-local-feed-sync-statuses";
+import { readMatchMedia } from "@/lib/runtime/match-media-listener";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
@@ -82,6 +83,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   onEditFeed: (feedId: string) => void;
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
+  onCopyFeedUrl: (feedUrl: string) => void;
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
   onRequestBulkUnsubscribe: () => void;
@@ -118,6 +120,7 @@ export function useSubscriptionsIndexViewProps({
   onEditFeed,
   isRetryingFeed,
   onCopyDiagnosticId,
+  onCopyFeedUrl,
   setDeleteTargetFeed,
   setEditTargetFeed,
   onRequestBulkUnsubscribe,
@@ -342,6 +345,8 @@ export function useSubscriptionsIndexViewProps({
     fetchErrorLabels: {
       heading: t("detail_fetch_error_heading"),
       lastAttempt: t("detail_fetch_error_last_failed"),
+      lastSuccess: t("detail_fetch_error_last_success"),
+      errorCount: (count: number) => t("detail_fetch_error_consecutive_failures", { count }),
       copyDiagnosticId: t("detail_fetch_error_copy_diagnostic_id"),
       retry: t("detail_fetch_error_retry"),
       retrying: t("detail_fetch_error_retrying"),
@@ -369,6 +374,20 @@ export function useSubscriptionsIndexViewProps({
     },
     isRetryingFeed,
     onCopyDiagnosticId,
+    onCopyFeedUrl,
+    copyFeedUrlLabel: t("detail_feed_url_copy"),
+    backToListLabel: t("detail_back_to_list"),
+    onBackToList: () => {
+      const heading = listHeadingRef.current;
+      if (!heading) {
+        return;
+      }
+      if (typeof heading.scrollIntoView === "function") {
+        const reducedMotion = readMatchMedia("(prefers-reduced-motion: reduce)")?.matches ?? false;
+        heading.scrollIntoView({ block: "start", behavior: reducedMotion ? "instant" : "smooth" });
+      }
+      heading.focus({ preventScroll: true });
+    },
     listLoadState: resolveListLoadState({
       accountSelected: selectedAccountId !== null,
       rowsPending,

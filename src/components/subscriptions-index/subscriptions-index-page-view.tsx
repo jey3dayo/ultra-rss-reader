@@ -39,6 +39,8 @@ type SubscriptionsIndexPageViewProps = {
   fetchErrorLabels: {
     heading: string;
     lastAttempt: string;
+    lastSuccess?: string;
+    errorCount?: (count: number) => string;
     copyDiagnosticId: string;
     retry: string;
     retrying: string;
@@ -57,6 +59,10 @@ type SubscriptionsIndexPageViewProps = {
   onEditFeed: () => void;
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
+  copyFeedUrlLabel: string;
+  onCopyFeedUrl: (feedUrl: string) => void;
+  backToListLabel: string;
+  onBackToList: () => void;
   emptyLabel: string;
   listLoadState: SubscriptionsListLoadState;
   summaryLoadFailure: SubscriptionsLoadFailure | null;
@@ -126,6 +132,10 @@ export function SubscriptionsIndexPageView({
   onEditFeed,
   isRetryingFeed,
   onCopyDiagnosticId,
+  copyFeedUrlLabel,
+  onCopyFeedUrl,
+  backToListLabel,
+  onBackToList,
   emptyLabel,
   listLoadState,
   summaryLoadFailure,
@@ -244,6 +254,10 @@ export function SubscriptionsIndexPageView({
               onEditFeed={onEditFeed}
               isRetryingFeed={isRetryingFeed}
               onCopyDiagnosticId={onCopyDiagnosticId}
+              copyFeedUrlLabel={copyFeedUrlLabel}
+              onCopyFeedUrl={onCopyFeedUrl}
+              backToListLabel={backToListLabel}
+              onBackToList={onBackToList}
               emptyLabel={detailEmptyLabel}
               folderLabel={folderLabel}
               latestArticleLabel={latestArticleLabel}

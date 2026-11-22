@@ -299,6 +299,12 @@ function SubscriptionsIndexPageForAccount({
           showToast({ message: t("detail_fetch_error_diagnostic_copy_failed"), severity: "error", persistent: true }),
       });
     },
+    onCopyFeedUrl: (feedUrl) => {
+      void copyValueToClipboard(feedUrl, {
+        onSuccess: () => showToast(t("detail_feed_url_copied")),
+        onError: () => showToast({ message: t("detail_feed_url_copy_failed"), severity: "error", persistent: true }),
+      });
+    },
     setDeleteTargetFeed,
     setEditTargetFeed,
     onRequestBulkUnsubscribe: () => {
