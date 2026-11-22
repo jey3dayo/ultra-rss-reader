@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { ExternalLink, List, type LucideIcon } from "lucide-react";
+import { Copy, ExternalLink, List, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
 import { LabelChip } from "@/components/shared/label-chip";
@@ -15,6 +15,9 @@ type FeedDetailLink = {
   href: string;
   label: string;
   icon?: LucideIcon;
+  detailText?: string;
+  onCopyDetail?: () => void;
+  copyDetailLabel?: string;
 };
 
 type FeedDetailArticle = {
@@ -328,10 +331,29 @@ function FeedDetailLinks({ links }: { links: FeedDetailLink[] }) {
       {links.map((link) => {
         const LinkIcon = link.icon ?? ExternalLink;
         return (
-          <Link key={link.href} variant="detail" href={link.href} target="_blank" rel="noreferrer">
-            <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
-            <span className="underline decoration-border underline-offset-4">{link.label}</span>
-          </Link>
+          <div key={link.href}>
+            <Link variant="detail" href={link.href} target="_blank" rel="noreferrer">
+              <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
+              <span className="underline decoration-border underline-offset-4">{link.label}</span>
+            </Link>
+            {link.detailText ? (
+              <div className="mt-1 flex min-w-0 items-start gap-1.5 pl-5">
+                <span className="min-w-0 break-all text-xs leading-5 text-foreground-soft">{link.detailText}</span>
+                {link.onCopyDetail && link.copyDetailLabel ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={link.copyDetailLabel}
+                    className="shrink-0 text-foreground-soft hover:text-foreground"
+                    onClick={link.onCopyDetail}
+                  >
+                    <Copy className="size-3.5" aria-hidden="true" />
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         );
       })}
     </div>

@@ -370,7 +370,7 @@ describe("SubscriptionDetailPane", () => {
     expect(contentLink).toHaveAttribute("href", "https://example.com");
     expect(contentLink).toHaveAttribute("target", "_blank");
     expect(metricsList?.nextElementSibling).toContainElement(contentLink);
-    expect(contentLink.nextElementSibling).toBe(feedLink);
+    expect(contentLink.parentElement?.nextElementSibling).toContainElement(feedLink);
   });
 
   it("renders shared workspace management action button styles by intent", () => {
@@ -476,6 +476,157 @@ describe("SubscriptionDetailPane", () => {
     expect(within(getLatestArticleMetricRow()).getByText("No articles fetched")).toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("Invalid Date")).not.toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
+  });
+
+  it("pairs the last success with the last failure and shows the consecutive failure count", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: "2026-04-01T09:30:00Z",
+          error_kind: "network",
+          error_count: 3,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "Fetch error",
+          lastAttempt: "Last failed",
+          lastSuccess: "Last succeeded",
+          errorCount: (count) => `${count} consecutive failures`,
+          copyDiagnosticId: "Copy diagnostic number",
+          retry: "Retry",
+          retrying: "Retrying",
+          editFeedUrl: "Review feed destination",
+          reason: () => "Communication failed.",
+          retryOutcome: (kind) => `outcome:${kind}`,
+        }}
+      />,
+    );
+
+    const card = screen.getByTestId("subscriptions-fetch-error-detail");
+    expect(within(card).getByText(/Last failed: Apr 4, \d{2}:\d{2}/)).toBeInTheDocument();
+    expect(within(card).getByText(/Last succeeded: Apr 1, \d{2}:\d{2}/)).toBeInTheDocument();
+    expect(within(card).getByText("3 consecutive failures")).toBeInTheDocument();
+  });
+
+  it("omits the last success and consecutive count when there is nothing to pair", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "Fetch error",
+          lastAttempt: "Last failed",
+          lastSuccess: "Last succeeded",
+          errorCount: (count) => `${count} consecutive failures`,
+          copyDiagnosticId: "Copy diagnostic number",
+          retry: "Retry",
+          retrying: "Retrying",
+          editFeedUrl: "Review feed destination",
+          reason: () => "Communication failed.",
+          retryOutcome: (kind) => `outcome:${kind}`,
+        }}
+      />,
+    );
+
+    const card = screen.getByTestId("subscriptions-fetch-error-detail");
+    expect(within(card).queryByText(/Last succeeded:/)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/consecutive failures/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the review reason subordinate to the fetch error card", () => {
+    const detailCandidate = {
+      candidate: null,
+      tone: "danger" as const,
+      statusLabel: "90日以上未更新",
+      reasonBoxBody: "最終更新から120日です。",
+    };
+    const fetchErrorLabels = {
+      heading: "取得エラー",
+      lastAttempt: "失敗日時",
+      copyDiagnosticId: "診断番号をコピー",
+      retry: "再取得",
+      retrying: "再取得中",
+      editFeedUrl: "取得先を確認",
+      reason: () => "通信に失敗しました。",
+      retryOutcome: (kind: string) => `outcome:${kind}`,
+    };
+
+    const { rerender } = render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        row={{ ...buildRow(), status: { labelKey: "stale_90d" } }}
+        detailCandidate={detailCandidate}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass("bg-state-danger-surface");
+
+    rerender(
+      <SubscriptionDetailPane
+        {...baseProps}
+        row={{ ...buildRow(), status: { labelKey: "stale_90d" } }}
+        detailCandidate={detailCandidate}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={fetchErrorLabels}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-reason-box")).not.toHaveClass("bg-state-danger-surface");
+    expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass("bg-surface-1/85");
+    expect(screen.getByText("最終更新から120日です。")).toBeInTheDocument();
+  });
+
+  it("shows the feed URL under the RSS link and copies it from there", () => {
+    const onCopyFeedUrl = vi.fn();
+    render(<SubscriptionDetailPane {...baseProps} copyFeedUrlLabel="Copy feed URL" onCopyFeedUrl={onCopyFeedUrl} />);
+
+    expect(screen.getByText("https://example.com/feed.xml")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy feed URL" }));
+
+    expect(onCopyFeedUrl).toHaveBeenCalledWith("https://example.com/feed.xml");
+  });
+
+  it("does not show the feed URL text without a copy handler", () => {
+    render(<SubscriptionDetailPane {...baseProps} />);
+
+    expect(screen.queryByText("https://example.com/feed.xml")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy feed URL" })).not.toBeInTheDocument();
+  });
+
+  it("offers a back-to-list button scoped to the narrow layout", () => {
+    const onBackToList = vi.fn();
+    render(<SubscriptionDetailPane {...baseProps} backToListLabel="Back to list" onBackToList={onBackToList} />);
+
+    const button = screen.getByRole("button", { name: "Back to list" });
+    expect(button.closest("div")).toHaveClass("lg:hidden");
+
+    fireEvent.click(button);
+
+    expect(onBackToList).toHaveBeenCalledOnce();
+  });
+
+  it("omits the back-to-list button when no handler is wired", () => {
+    render(<SubscriptionDetailPane {...baseProps} />);
+
+    expect(screen.queryByRole("button", { name: "Back to list" })).not.toBeInTheDocument();
   });
 
   it("shows the overloaded badge for 90 recent articles with 100 unread and not for 89", () => {

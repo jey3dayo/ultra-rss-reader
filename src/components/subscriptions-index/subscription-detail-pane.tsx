@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority";
-import { Copy, Globe, Pencil, RefreshCw, Rss } from "lucide-react";
+import { ArrowLeft, Copy, Globe, Pencil, RefreshCw, Rss } from "lucide-react";
 import { type ReactNode, useRef } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
@@ -21,6 +21,8 @@ import { SubscriptionActionRail, type SubscriptionRailFocusHandoff } from "./sub
 type FetchErrorLabels = {
   heading: string;
   lastAttempt: string;
+  lastSuccess?: string;
+  errorCount?: (count: number) => string;
   copyDiagnosticId: string;
   retry: string;
   retrying: string;
@@ -82,6 +84,10 @@ type SubscriptionDetailPaneProps = {
   onEditFeed?: () => void;
   isRetryingFeed?: (feedId: string) => boolean;
   onCopyDiagnosticId?: (diagnosticId: string) => void;
+  copyFeedUrlLabel?: string;
+  onCopyFeedUrl?: (feedUrl: string) => void;
+  backToListLabel?: string;
+  onBackToList?: () => void;
 };
 
 function formatLatestArticleMetric(value: string | null, locale: string, emptyLabel: string): string {
@@ -89,17 +95,73 @@ function formatLatestArticleMetric(value: string | null, locale: string, emptyLa
   return formatted === "—" ? emptyLabel : formatted;
 }
 
+type FeedUrlDetail = {
+  text: string;
+  onCopy: () => void;
+  copyLabel: string;
+};
+
+function formatOptionalDateTime(value: string | null | undefined, locale: string): string | null {
+  return value ? formatShortDateTime(value, locale) : null;
+}
+
+function resolveShowReviewContext(
+  hasFetchError: boolean,
+  hasRemoteFetchFailure: boolean,
+  row: SubscriptionListRow | null,
+): boolean {
+  return !(hasFetchError || hasRemoteFetchFailure) || (row !== null && row.status.labelKey !== "normal");
+}
+
+function buildFeedUrlDetail(
+  row: SubscriptionListRow | null,
+  onCopyFeedUrl: ((feedUrl: string) => void) | undefined,
+  copyFeedUrlLabel: string | undefined,
+): FeedUrlDetail | null {
+  if (!row || !onCopyFeedUrl || !copyFeedUrlLabel) {
+    return null;
+  }
+  return { text: row.feed.url, onCopy: () => onCopyFeedUrl(row.feed.url), copyLabel: copyFeedUrlLabel };
+}
+
+function SubscriptionDetailBackToList({ label, onBackToList }: { label: string; onBackToList: () => void }) {
+  return (
+    <div className="mb-3 lg:hidden">
+      <Button type="button" variant="ghost" size="sm" className="-ml-2" onClick={onBackToList}>
+        <ArrowLeft className="size-4" />
+        {label}
+      </Button>
+    </div>
+  );
+}
+
 function buildDetailLinks(
   feedUrlHref: string | null,
   contentUrlHref: string | null,
   feedUrlLabel: string,
   contentUrlLabel: string,
+  feedUrlDetail: FeedUrlDetail | null,
 ) {
   return [
     ...(contentUrlHref && contentUrlHref !== feedUrlHref
       ? [{ href: contentUrlHref, label: contentUrlLabel, icon: Globe }]
       : []),
-    ...(feedUrlHref ? [{ href: feedUrlHref, label: feedUrlLabel, icon: Rss }] : []),
+    ...(feedUrlHref
+      ? [
+          {
+            href: feedUrlHref,
+            label: feedUrlLabel,
+            icon: Rss,
+            ...(feedUrlDetail
+              ? {
+                  detailText: feedUrlDetail.text,
+                  onCopyDetail: feedUrlDetail.onCopy,
+                  copyDetailLabel: feedUrlDetail.copyLabel,
+                }
+              : {}),
+          },
+        ]
+      : []),
   ];
 }
 
@@ -189,6 +251,7 @@ function resolveReasonBox(
   showReviewContext: boolean,
   detailCandidate: SubscriptionDetailCandidate | null,
   reasonHeading: string,
+  subordinate: boolean,
 ) {
   if (!showReviewContext || !detailCandidate?.reasonBoxBody) {
     return null;
@@ -197,7 +260,9 @@ function resolveReasonBox(
   return {
     title: reasonHeading,
     body: detailCandidate.reasonBoxBody,
-    tone: resolveFeedDetailTone(detailCandidate.tone),
+    // A fetch failure card above the panel carries the primary explanation, so
+    // the review reason steps back to a neutral tone when both are shown.
+    tone: subordinate ? ("neutral" as const) : resolveFeedDetailTone(detailCandidate.tone),
   };
 }
 
@@ -219,6 +284,8 @@ type FetchErrorDetailCardProps = {
   labels: FetchErrorLabels;
   retryOutcome: FeedRetryOutcomeKind | null;
   formattedLastAttempt: string | null;
+  formattedLastSuccess: string | null;
+  errorCount: number;
   diagnosticId: string | null | undefined;
   feedId: string;
   onRetryFeed: (feedId: string) => void;
@@ -232,6 +299,8 @@ function FetchErrorDetailCard({
   labels,
   retryOutcome,
   formattedLastAttempt,
+  formattedLastSuccess,
+  errorCount,
   diagnosticId,
   feedId,
   onRetryFeed,
@@ -256,6 +325,14 @@ function FetchErrorDetailCard({
           <p className="mt-1 text-xs text-foreground-soft">
             {labels.lastAttempt}: {formattedLastAttempt}
           </p>
+        ) : null}
+        {formattedLastSuccess && labels.lastSuccess ? (
+          <p className="mt-1 text-xs text-foreground-soft">
+            {labels.lastSuccess}: {formattedLastSuccess}
+          </p>
+        ) : null}
+        {errorCount >= 2 && labels.errorCount ? (
+          <p className="mt-1 text-xs text-foreground-soft">{labels.errorCount(errorCount)}</p>
         ) : null}
         {retryOutcome ? (
           <p
@@ -330,6 +407,7 @@ type SubscriptionFetchStatusCardProps = {
   remoteFetchFailureLabels: NonNullable<SubscriptionDetailPaneProps["remoteFetchFailureLabels"]>;
   retryOutcome: FeedRetryOutcomeKind | null | undefined;
   formattedLastAttempt: string | null;
+  formattedLastSuccess: string | null;
   dateLocale: string;
   feedId: string;
   onRetryFeed: (feedId: string) => void;
@@ -345,6 +423,7 @@ function SubscriptionFetchStatusCard({
   remoteFetchFailureLabels,
   retryOutcome,
   formattedLastAttempt,
+  formattedLastSuccess,
   dateLocale,
   feedId,
   onRetryFeed,
@@ -359,6 +438,8 @@ function SubscriptionFetchStatusCard({
         labels={fetchErrorLabels}
         retryOutcome={retryOutcome ?? null}
         formattedLastAttempt={formattedLastAttempt}
+        formattedLastSuccess={formattedLastSuccess}
+        errorCount={fetchError.error_count}
         diagnosticId={fetchError.diagnostic_id}
         feedId={feedId}
         onRetryFeed={onRetryFeed}
@@ -411,6 +492,8 @@ export function SubscriptionDetailPane({
   fetchErrorLabels = {
     heading: "Fetch error",
     lastAttempt: "Last attempt",
+    lastSuccess: "Last succeeded",
+    errorCount: (count: number) => `${count} consecutive failures`,
     copyDiagnosticId: "Copy diagnostic number",
     retry: "Retry",
     retrying: "Retrying",
@@ -423,6 +506,10 @@ export function SubscriptionDetailPane({
   onEditFeed = () => undefined,
   isRetryingFeed = () => false,
   onCopyDiagnosticId = () => undefined,
+  copyFeedUrlLabel,
+  onCopyFeedUrl,
+  backToListLabel,
+  onBackToList,
 }: SubscriptionDetailPaneProps) {
   // Lives in the pane, which survives selection changes, so a decision click
   // in one row's rail can hand focus to the rail mounted for the next row.
@@ -431,11 +518,10 @@ export function SubscriptionDetailPane({
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const hasFetchError = Boolean(fetchError?.error_kind);
   const hasRemoteFetchFailure = !hasFetchError && remoteFetchFailure !== null;
-  const showReviewContext =
-    !(hasFetchError || hasRemoteFetchFailure) || (row !== null && row.status.labelKey !== "normal");
-  const formattedLastAttempt = fetchError?.last_attempt_at
-    ? formatShortDateTime(fetchError.last_attempt_at, dateLocale)
-    : null;
+  const showReviewContext = resolveShowReviewContext(hasFetchError, hasRemoteFetchFailure, row);
+  const formattedLastAttempt = formatOptionalDateTime(fetchError?.last_attempt_at, dateLocale);
+  const formattedLastSuccess = formatOptionalDateTime(fetchError?.last_success_at, dateLocale);
+  const feedUrlDetail = buildFeedUrlDetail(row, onCopyFeedUrl, copyFeedUrlLabel);
 
   return (
     <section
@@ -450,6 +536,9 @@ export function SubscriptionDetailPane({
         <SubscriptionEmptyState emptyLabel={emptyLabel} />
       ) : (
         <>
+          {onBackToList && backToListLabel ? (
+            <SubscriptionDetailBackToList label={backToListLabel} onBackToList={onBackToList} />
+          ) : null}
           <div
             data-testid="subscriptions-detail-scroll-region"
             key={row.feed.id}
@@ -464,6 +553,7 @@ export function SubscriptionDetailPane({
                 remoteFetchFailureLabels={remoteFetchFailureLabels}
                 retryOutcome={retryOutcome}
                 formattedLastAttempt={formattedLastAttempt}
+                formattedLastSuccess={formattedLastSuccess}
                 dateLocale={dateLocale}
                 feedId={row.feed.id}
                 onRetryFeed={onRetryFeed}
@@ -490,7 +580,12 @@ export function SubscriptionDetailPane({
                   detailCandidate,
                 )}
                 badgeTone={resolveBadgeTone(hasFetchError || hasRemoteFetchFailure, detailCandidate)}
-                reasonBox={resolveReasonBox(showReviewContext, detailCandidate, reasonHeading)}
+                reasonBox={resolveReasonBox(
+                  showReviewContext,
+                  detailCandidate,
+                  reasonHeading,
+                  hasFetchError || hasRemoteFetchFailure,
+                )}
                 metrics={buildDetailMetrics({
                   row,
                   metrics,
@@ -506,7 +601,7 @@ export function SubscriptionDetailPane({
                   displayModeLabel,
                   displayModeValue,
                 })}
-                links={buildDetailLinks(feedUrlHref, contentUrlHref, feedUrlLabel, contentUrlLabel)}
+                links={buildDetailLinks(feedUrlHref, contentUrlHref, feedUrlLabel, contentUrlLabel, feedUrlDetail)}
                 recentArticlesHeading={recentArticlesHeading}
                 recentArticles={buildRecentArticles(metrics.previewArticles, dateLocale)}
               />
