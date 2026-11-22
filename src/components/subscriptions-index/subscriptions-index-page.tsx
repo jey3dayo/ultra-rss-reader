@@ -205,6 +205,12 @@ export function SubscriptionsIndexPage() {
   );
 }
 
+// Without an account the dialog cannot render, so the action stays unbound and
+// both entry points hide instead of setting a dialog flag nothing can dismiss.
+function resolveOnAddFeed(selectedAccountId: string | null): (() => void) | undefined {
+  return selectedAccountId ? () => useUiStore.getState().openAddFeedDialog() : undefined;
+}
+
 function SubscriptionsIndexPageForAccount({
   ref,
   accountId: selectedAccountId,
@@ -317,9 +323,7 @@ function SubscriptionsIndexPageForAccount({
       setBulkDialogOpen(true);
     },
     onRequestResetKept: (keptCount) => setResetKeptDialog({ open: true, keptCount }),
-    // Without an account the dialog cannot render, so the action stays unbound and
-    // both entry points hide instead of setting a dialog flag nothing can dismiss.
-    onAddFeed: selectedAccountId ? () => useUiStore.getState().openAddFeedDialog() : undefined,
+    onAddFeed: resolveOnAddFeed(selectedAccountId),
     bulkToggleRef,
     listHeadingRef,
   });
