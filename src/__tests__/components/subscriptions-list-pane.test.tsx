@@ -66,6 +66,7 @@ function renderListPane(
     bulkRunStatus?: SubscriptionsBulkRunStatus | null;
     loadState?: SubscriptionsListLoadState;
     filterBar?: SubscriptionsFilterBarProps;
+    feedScrollRequest?: { feedId: string; sequence: number } | null;
     searchQuery?: string;
     searchCondition?: SubscriptionsSearchCondition | null;
     emptyShowAllLabel?: string;
@@ -98,6 +99,7 @@ function renderListPane(
       bulkRunStatus={options?.bulkRunStatus}
       loadState={options?.loadState}
       filterBar={options?.filterBar}
+      feedScrollRequest={options?.feedScrollRequest}
       searchCondition={options?.searchCondition}
       emptyShowAllLabel={options?.emptyShowAllLabel}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
@@ -1082,5 +1084,26 @@ describe("SubscriptionsListPane keyboard navigation", () => {
 
     expect(onSelectFeed).toHaveBeenCalledWith("gamma");
     expect(screen.getByRole("button", { name: /gamma feed/ })).toHaveFocus();
+  });
+});
+
+describe("SubscriptionsListPane feed scroll request", () => {
+  it("scrolls the requested feed row into view", async () => {
+    const scrollIntoView = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      const rows = buildBulkRows();
+      renderListPane(rows, { feedScrollRequest: { feedId: "beta", sequence: 1 } });
+
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      });
+      const beta = screen.getByRole("button", { name: /beta feed/ });
+      expect(scrollIntoView.mock.contexts[0]).toBe(beta);
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
   });
 });

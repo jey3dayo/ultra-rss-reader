@@ -383,6 +383,18 @@ Standing accepted risk:
   code outside the change that surfaced this, so it belongs in its own pass. Reviewed
   2026-09-09.
 
+- `use-subscriptions-index-state.ts` — the feed deep-link effect applies a queued navigation
+  request (`navigateToFeed`) once the rows finish loading: it consumes the request, resets the
+  filter and search when they hide the target row, expands the target's group, selects the row,
+  and emits a scroll request. None of the three remedies reaches it: the application is a
+  one-shot transition with side effects, so it cannot be derived during render; the hook has no
+  `key`, and keying the page would discard the list state this hook restores from
+  `scopedIndexReturnState`; and the event that completes the wait — the caller's feed query
+  settling — is owned outside this hook, so `navigateToFeed` itself cannot apply synchronously
+  against rows that have not arrived. The stale frame the rule names does not occur: until the
+  rows are ready the list legitimately shows its loading state, and the application is the
+  first frame in which the target row can be shown at all. Reviewed 2026-11-22.
+
 - `use-subscriptions-feed-dialogs.ts` — the stale-target effect calls `setDeleteTargetFeed(null)`
   when the target feed's account is no longer selected and no delete is in flight. None of the
   three remedies reaches it: the target records a user's click on a specific feed, so no prop

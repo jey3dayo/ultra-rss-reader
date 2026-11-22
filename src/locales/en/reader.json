@@ -190,6 +190,7 @@
   "failed_to_add_feed": "Failed to add feed: {{message}}",
   "feed_added_folder_failed": "Feed added but failed to assign folder: {{message}}",
   "open_site": "Open {{host}}",
+  "open_in_subscriptions_index": "Open in Subscriptions",
   "unsubscribe": "Unsubscribe",
   "unsubscribe_ellipsis": "Unsubscribe…",
   "edit_ellipsis": "Edit…",

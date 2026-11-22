@@ -60,6 +60,34 @@ function makeRow(
   };
 }
 
+function makeFolderRow(feedId: string, folderId: string): SubscriptionListRow {
+  const feed: FeedDto = {
+    id: feedId,
+    account_id: "acc-1",
+    folder_id: folderId,
+    remote_id: null,
+    title: feedId,
+    url: `https://example.com/${feedId}.xml`,
+    site_url: `https://example.com/${feedId}`,
+    unread_count: 0,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  };
+
+  const [row] = buildSubscriptionListRows({
+    feeds: [feed],
+    candidateMap: new Map(),
+    feedArticleSummaryMap: new Map(),
+    folderNameById: new Map([[folderId, "Folder"]]),
+  });
+
+  if (!row) {
+    throw new Error(`Failed to build subscription row for ${feedId}`);
+  }
+
+  return row;
+}
+
 describe("useSubscriptionsIndexState", () => {
   it("moves selection to the first visible row when the selected feed disappears", async () => {
     const firstRow = makeRow("feed-first");
@@ -755,6 +783,91 @@ describe("useSubscriptionsIndexState", () => {
 
       expect(result.current.checkedCount).toBe(0);
       expect(result.current.bulkSelectionMode).toBe(false);
+    });
+  });
+
+  describe("feed deep link navigation", () => {
+    it("selects the target row, expands its folder group, and requests a scroll", () => {
+      const target = makeFolderRow("feed-target", "folder-1");
+      const other = makeRow("feed-other");
+      const groupKey = "subscription-list:1-folder:folder-1";
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState([other, target], {
+          initialExpandedGroups: { [`group:${groupKey}`]: false },
+        }),
+      );
+      expect(result.current.isGroupExpanded(groupKey)).toBe(false);
+
+      act(() => {
+        result.current.navigateToFeed("feed-target");
+      });
+
+      expect(result.current.selectedFeedId).toBe("feed-target");
+      expect(result.current.isGroupExpanded(groupKey)).toBe(true);
+      expect(result.current.feedScrollRequest).toEqual({ feedId: "feed-target", sequence: 1 });
+    });
+
+    it("clears the filter and search when they hide the target row", () => {
+      const target = makeRow("feed-target");
+      const stale = makeRow("feed-stale", { labelKey: "stale_90d" });
+      const { result } = renderHook(() =>
+        useSubscriptionsIndexState([target, stale], {
+          initialSummaryFilter: "stale",
+          initialSearchQuery: "feed-stale",
+        }),
+      );
+      expect(result.current.visibleRows.map((row) => row.feed.id)).toEqual(["feed-stale"]);
+
+      act(() => {
+        result.current.navigateToFeed("feed-target");
+      });
+
+      expect(result.current.activeSummaryFilter).toBe("all");
+      expect(result.current.searchQuery).toBe("");
+      expect(result.current.selectedFeedId).toBe("feed-target");
+      expect(result.current.visibleRows.map((row) => row.feed.id)).toContain("feed-target");
+    });
+
+    it("keeps the active filter when the target row is already visible under it", () => {
+      const target = makeRow("feed-target", { labelKey: "stale_90d" });
+      const { result } = renderHook(() => useSubscriptionsIndexState([target], { initialSummaryFilter: "stale" }));
+
+      act(() => {
+        result.current.navigateToFeed("feed-target");
+      });
+
+      expect(result.current.activeSummaryFilter).toBe("stale");
+      expect(result.current.selectedFeedId).toBe("feed-target");
+    });
+
+    it("waits for the rows to be ready before applying the navigation", () => {
+      const target = makeRow("feed-target");
+      const { result, rerender } = renderHook(
+        ({ selectionReady }: { selectionReady: boolean }) => useSubscriptionsIndexState([target], { selectionReady }),
+        { initialProps: { selectionReady: false } },
+      );
+
+      act(() => {
+        result.current.navigateToFeed("feed-target");
+      });
+      expect(result.current.feedScrollRequest).toBeNull();
+
+      rerender({ selectionReady: true });
+
+      expect(result.current.selectedFeedId).toBe("feed-target");
+      expect(result.current.feedScrollRequest?.feedId).toBe("feed-target");
+    });
+
+    it("drops the navigation when the feed is not in the loaded rows", () => {
+      const row = makeRow("feed-only");
+      const { result } = renderHook(() => useSubscriptionsIndexState([row]));
+
+      act(() => {
+        result.current.navigateToFeed("feed-missing");
+      });
+
+      expect(result.current.feedScrollRequest).toBeNull();
+      expect(result.current.selectedFeedId).toBe("feed-only");
     });
   });
 });

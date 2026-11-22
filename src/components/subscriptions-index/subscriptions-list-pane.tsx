@@ -81,6 +81,7 @@ type SubscriptionsListPaneProps = {
   latestArticleLabels: SubscriptionsLatestArticleLabels;
   isGroupExpanded: (groupKey: string) => boolean;
   initialScrollTop?: number;
+  feedScrollRequest?: { feedId: string; sequence: number } | null;
   scrollRegionRef?: RefObject<HTMLDivElement | null>;
   workspaceScrollRef?: RefObject<HTMLDivElement | null>;
   viewportWidth?: number;
@@ -314,6 +315,7 @@ export function SubscriptionsListPane({
   latestArticleLabels,
   isGroupExpanded,
   initialScrollTop = 0,
+  feedScrollRequest = null,
   scrollRegionRef: providedScrollRegionRef,
   workspaceScrollRef,
   viewportWidth = 1024,
@@ -411,6 +413,29 @@ export function SubscriptionsListPane({
       commitPendingScrollTop();
     };
   }, [clearPendingScrollTopCommit, commitPendingScrollTop]);
+
+  // A feed deep link asks for its row to be scrolled into view once it is
+  // rendered. Declared after the scroll-restore effect so it wins within a
+  // commit, and keyed on the reset key so a later scroll restore (layout
+  // generation change) re-applies the scroll instead of stranding the row.
+  const handledFeedScrollRef = useRef<{ sequence: number; resetKey: number } | null>(null);
+  useEffect(() => {
+    if (!feedScrollRequest || !showRows || totalRowCount === 0) {
+      return;
+    }
+    const handled = handledFeedScrollRef.current;
+    if (handled?.sequence === feedScrollRequest.sequence && handled?.resetKey === scrollResetKey) {
+      return;
+    }
+    const rowButton = Array.from(
+      scrollRegionRef.current?.querySelectorAll<HTMLButtonElement>("[data-feed-id]") ?? [],
+    ).find((button) => button.dataset.feedId === feedScrollRequest.feedId);
+    if (!rowButton) {
+      return;
+    }
+    rowButton.scrollIntoView?.({ block: "nearest" });
+    handledFeedScrollRef.current = { sequence: feedScrollRequest.sequence, resetKey: scrollResetKey };
+  }, [feedScrollRequest, scrollResetKey, scrollRegionRef, showRows, totalRowCount]);
 
   const scheduleScrollTopCommit = useCallback(
     (scrollTop: number) => {

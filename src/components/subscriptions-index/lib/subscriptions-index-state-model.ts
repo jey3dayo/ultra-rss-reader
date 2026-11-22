@@ -97,6 +97,20 @@ export function toggleExpandedGroup(
   };
 }
 
+export function expandExpandedGroup(
+  expandedGroups: Record<SubscriptionsWorkspaceExpandedGroupKey, boolean>,
+  groupKey: string,
+): Record<SubscriptionsWorkspaceExpandedGroupKey, boolean> {
+  const expandedGroupKey = namespaceExpandedGroupKey(groupKey);
+  if (expandedGroups[expandedGroupKey] === true) {
+    return expandedGroups;
+  }
+  return {
+    ...expandedGroups,
+    [expandedGroupKey]: true,
+  };
+}
+
 export function resolveInitialListScrollState(params: {
   initialListScrollState?: SubscriptionsWorkspaceListScrollState;
   listLayoutGeneration: string;

@@ -82,6 +82,7 @@ type SubscriptionsIndexPageViewProps = {
   dateLocale: string;
   listScrollResetKey: number;
   listScrollTop: number;
+  feedScrollRequest?: { feedId: string; sequence: number } | null;
   scrollRegionRef: RefObject<HTMLDivElement | null>;
   workspaceScrollRef: RefObject<HTMLDivElement | null>;
   viewportWidth: number;
@@ -157,6 +158,7 @@ export function SubscriptionsIndexPageView({
   dateLocale,
   listScrollResetKey,
   listScrollTop,
+  feedScrollRequest,
   scrollRegionRef,
   workspaceScrollRef,
   viewportWidth,
@@ -229,6 +231,7 @@ export function SubscriptionsIndexPageView({
               isGroupExpanded={isGroupExpanded}
               scrollResetKey={listScrollResetKey}
               initialScrollTop={listScrollTop}
+              feedScrollRequest={feedScrollRequest}
               scrollRegionRef={scrollRegionRef}
               workspaceScrollRef={workspaceScrollRef}
               viewportWidth={viewportWidth}
