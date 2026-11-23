@@ -120,6 +120,13 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   );
   const [listScrollResetKey, setListScrollResetKey] = useState(0);
 
+  // A feed deep link lands on a specific row. The request is held until the
+  // rows are loaded (selectionReady), then applied once: the row is made
+  // visible, its group expanded, and the row selected with a scroll request.
+  const [pendingFeedNavigation, setPendingFeedNavigation] = useState<{ feedId: string; sequence: number } | null>(null);
+  const [feedScrollRequest, setFeedScrollRequest] = useState<{ feedId: string; sequence: number } | null>(null);
+  const feedNavigationSequenceRef = useRef(0);
+
   const resetListScrollState = useCallback(() => {
     setListScrollState({
       scrollTop: 0,
@@ -128,6 +135,10 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       ...(viewportWidth === undefined ? {} : { viewportWidth }),
     });
     setListScrollResetKey((current) => current + 1);
+    // A user-driven scroll reset (search, summary filter) ends any deep-link
+    // landing: the scroll request must not replay over the reset's
+    // scroll-to-top on later resets.
+    setFeedScrollRequest(null);
   }, [listLayoutGeneration, viewportHeight, viewportWidth]);
 
   const selectSummaryFilter = useCallback(
@@ -151,13 +162,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     },
     [resetListScrollState],
   );
-
-  // A feed deep link lands on a specific row. The request is held until the
-  // rows are loaded (selectionReady), then applied once: the row is made
-  // visible, its group expanded, and the row selected with a scroll request.
-  const [pendingFeedNavigation, setPendingFeedNavigation] = useState<{ feedId: string; sequence: number } | null>(null);
-  const [feedScrollRequest, setFeedScrollRequest] = useState<{ feedId: string; sequence: number } | null>(null);
-  const feedNavigationSequenceRef = useRef(0);
 
   const navigateToFeed = useCallback((feedId: string) => {
     feedNavigationSequenceRef.current += 1;
@@ -220,6 +224,14 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     }
   };
 
+  // The layout reset a feed navigation triggers itself (its filter/search
+  // reset changes the layout generation) must keep the scroll request: the
+  // list pane re-applies the scroll for that reset instead of stranding the
+  // row at the top. That reset fires in the commit the request appears or
+  // the one right after, so a request already seen by an earlier commit is
+  // settled — any later layout reset retires it rather than replaying it.
+  const feedScrollRequestSeenRef = useRef<number | null>(null);
+
   // react-doctor/no-self-updating-effect (accepted-risk): this effect reads
   // listScrollState to keep the reset condition pure and out of the
   // setListScrollState updater (see no-impure-state-updater fix history).
@@ -238,6 +250,10 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       return;
     }
 
+    if (feedScrollRequest !== null && feedScrollRequestSeenRef.current === feedScrollRequest.sequence) {
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (feed deep-link application), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
+      setFeedScrollRequest(null);
+    }
     setListScrollState({
       scrollTop: 0,
       layoutGeneration: listLayoutGeneration,
@@ -245,7 +261,13 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       ...(viewportWidth === undefined ? {} : { viewportWidth }),
     });
     setListScrollResetKey((currentResetKey) => currentResetKey + 1);
-  }, [listLayoutGeneration, listLayoutReady, listScrollState, viewportHeight, viewportWidth]);
+  }, [feedScrollRequest, listLayoutGeneration, listLayoutReady, listScrollState, viewportHeight, viewportWidth]);
+
+  // Declared after the layout effect so it records the request only once
+  // that commit's layout reset has had its chance to keep it.
+  useEffect(() => {
+    feedScrollRequestSeenRef.current = feedScrollRequest?.sequence ?? null;
+  }, [feedScrollRequest]);
 
   const selectedRow = findSelectedSubscriptionRow(visibleRows, selectedFeedId);
   const displayedFeedIds = useMemo(
@@ -260,6 +282,11 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
 
   useEffect(() => {
     if (options?.selectionReady === false) return;
+    // While a feed navigation is queued, the navigation effect above owns
+    // the selection: it applies in the same pass, and repairing here from
+    // this render's stale selectedRow would overwrite its target with the
+    // first visible row.
+    if (pendingFeedNavigation !== null) return;
     if (visibleRows.length === 0) {
       if (selectedFeedId !== null) {
         // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (derived-data selection repair), docs/react-doctor-warning-classification-300.md:374
@@ -278,7 +305,15 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
         }),
       );
     }
-  }, [selectedFeedId, selectedRow, visibleRows, displayedFeedIds, viewKey, options?.selectionReady]);
+  }, [
+    selectedFeedId,
+    selectedRow,
+    visibleRows,
+    displayedFeedIds,
+    viewKey,
+    options?.selectionReady,
+    pendingFeedNavigation,
+  ]);
 
   useEffect(() => {
     previousVisibleRowsRef.current = { feedIds: displayedFeedIds, viewKey };

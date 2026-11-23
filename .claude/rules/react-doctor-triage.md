@@ -395,6 +395,15 @@ Standing accepted risk:
   rows are ready the list legitimately shows its loading state, and the application is the
   first frame in which the target row can be shown at all. Reviewed 2026-11-22.
 
+  The layout-reset effect in the same hook retires that scroll request
+  (`setFeedScrollRequest(null)`) when a layout reset fires after the request was seen by an
+  earlier commit. That is the consumption half of the same one-shot transition: whether the
+  navigation has settled depends on the cross-commit reset history, so it cannot be derived
+  during render; there is no component to `key`; and the resets are driven by the caller's
+  query results and viewport, so no event inside this hook can retire the request instead.
+  Leaving the request set is the defect this guards against — the list pane would replay the
+  scroll over every later scroll-to-top reset. Reviewed 2026-11-23.
+
 - `use-subscriptions-feed-dialogs.ts` — the stale-target effect calls `setDeleteTargetFeed(null)`
   when the target feed's account is no longer selected and no delete is in flight. None of the
   three remedies reaches it: the target records a user's click on a specific feed, so no prop
