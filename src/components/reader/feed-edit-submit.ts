@@ -3,10 +3,25 @@ import { renameFeed } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
 import { invalidateFeedEditQueries } from "@/lib/query/query-invalidation";
-import type { FeedEditDisplayPreset, FeedEditTitleError, SubmitFeedEditsParams } from "./feed-edit-dialog.types";
+import type {
+  FeedEditDisplayPreset,
+  FeedEditStepOutcome,
+  FeedEditTitleError,
+  SubmitFeedEditsParams,
+} from "./feed-edit-dialog.types";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
 
 export type { SubmitFeedEditsParams } from "./feed-edit-dialog.types";
+
+export type SubmitFeedEditsResult = {
+  success: boolean;
+  /**
+   * Per-step outcomes, set only when some attempted steps succeeded and others
+   * failed. Null when everything succeeded, everything failed, or the save
+   * aborted before any step ran.
+   */
+  partialOutcomes: readonly FeedEditStepOutcome[] | null;
+};
 
 type FeedMutationEditorState<ExtraState extends object = object> = {
   title: string;
@@ -31,7 +46,7 @@ export async function submitFeedEdits({
   renameErrorMessage,
   updateFeedFolder,
   updateDisplaySettings,
-}: SubmitFeedEditsParams) {
+}: SubmitFeedEditsParams): Promise<SubmitFeedEditsResult> {
   const trimmed = normalizeRenameInput(title);
   const folderResult = await createFolderIfNeededResult({
     accountId: feed.account_id,
@@ -43,7 +58,7 @@ export async function submitFeedEdits({
 
   if (Result.isFailure(folderResult)) {
     reportError(createFolderErrorMessage(Result.unwrapError(folderResult)));
-    return false;
+    return { success: false, partialOutcomes: null };
   }
 
   const resolvedFolderId = Result.unwrap(folderResult);
@@ -87,5 +102,18 @@ export async function submitFeedEdits({
       (didUpdateDisplayMode && displaySettingsSucceeded),
   );
 
-  return renameSucceeded && folderMoveSucceeded && displaySettingsSucceeded;
+  const success = renameSucceeded && folderMoveSucceeded && displaySettingsSucceeded;
+  const outcomes: FeedEditStepOutcome[] = [];
+  if (didRename) {
+    outcomes.push({ step: "rename", succeeded: renameSucceeded });
+  }
+  if (didMoveFolder) {
+    outcomes.push({ step: "folder", succeeded: folderMoveSucceeded });
+  }
+  if (didUpdateDisplayMode) {
+    outcomes.push({ step: "display", succeeded: displaySettingsSucceeded });
+  }
+  const isPartial = outcomes.some((outcome) => outcome.succeeded) && outcomes.some((outcome) => !outcome.succeeded);
+
+  return { success, partialOutcomes: isPartial ? outcomes : null };
 }

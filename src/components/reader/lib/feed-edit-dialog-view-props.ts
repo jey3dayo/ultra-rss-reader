@@ -1,7 +1,34 @@
 import type { TFunction } from "i18next";
 import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type { FeedDialogSelectOption } from "../feed-dialog-form.types";
-import type { FeedEditDialogController } from "../feed-edit-dialog.types";
+import type { FeedEditDialogController, FeedEditSaveStep } from "../feed-edit-dialog.types";
+
+function buildSaveSummaryLines(
+  controller: FeedEditDialogController,
+  t: TFunction<"reader">,
+): readonly string[] | undefined {
+  const { saveSummary } = controller;
+  if (!saveSummary) {
+    return undefined;
+  }
+
+  const stepLabel = (step: FeedEditSaveStep): string => {
+    switch (step) {
+      case "rename":
+        return t("title");
+      case "folder":
+        return t("folder");
+      case "display":
+        return t("display_mode");
+    }
+  };
+
+  return [
+    t("partial_save_summary"),
+    t("partial_save_saved", { items: saveSummary.saved.map(stepLabel).join(" / ") }),
+    t("partial_save_remaining", { items: saveSummary.remaining.map(stepLabel).join(" / ") }),
+  ];
+}
 
 export type BuildFeedEditDialogViewPropsParams = {
   open: boolean;
@@ -38,6 +65,7 @@ export function buildFeedEditDialogViewProps({
     displayModeOptions,
     titleErrorMessage: controller.titleError ? t("title_required") : undefined,
     saveErrorMessages: controller.saveErrorMessages,
+    saveSummaryLines: buildSaveSummaryLines(controller, t),
     onOpenChange,
     onTitleChange: controller.setTitle,
     onDisplayModeChange: (value: string) => {

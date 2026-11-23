@@ -14,6 +14,7 @@ function createController(overrides: Partial<FeedEditDialogController> = {}): Fe
     displayPreset: "default",
     titleError: null,
     saveErrorMessages: [],
+    saveSummary: null,
     inputRef: createRef<HTMLInputElement>(),
     folders: [],
     setTitle: vi.fn(),
@@ -122,6 +123,31 @@ describe("useFeedEditDialogViewProps", () => {
 
     expect(props.titleErrorMessage).toBe(t("title_required"));
     expect(props.saveErrorMessages).toEqual(["Failed to rename: boom"]);
+    expect(props.saveSummaryLines).toBeUndefined();
+  });
+
+  it("builds summary lines from the partial save outcome with the field labels", () => {
+    const controller = createController({
+      saveErrorMessages: ["Failed to update display settings: locked"],
+      saveSummary: { saved: ["rename"], remaining: ["display"] },
+    });
+
+    const props = buildFeedEditDialogViewProps({
+      open: true,
+      feedSiteUrl: "",
+      feedUrl: "",
+      onOpenChange: vi.fn(),
+      folderLabelId: "folder-label",
+      controller,
+      t,
+      tc,
+    });
+
+    expect(props.saveSummaryLines).toEqual([
+      t("partial_save_summary"),
+      t("partial_save_saved", { items: t("title") }),
+      t("partial_save_remaining", { items: t("display_mode") }),
+    ]);
   });
 
   it("only accepts supported display preset values", () => {
