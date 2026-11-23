@@ -858,6 +858,65 @@ describe("useSubscriptionsIndexState", () => {
       expect(result.current.feedScrollRequest?.feedId).toBe("feed-target");
     });
 
+    it("keeps the queued target selection when readiness flips with several rows loaded", () => {
+      const first = makeRow("feed-alpha");
+      const target = makeRow("feed-target");
+      const { result, rerender } = renderHook(
+        ({ selectionReady }: { selectionReady: boolean }) =>
+          useSubscriptionsIndexState([first, target], { selectionReady }),
+        { initialProps: { selectionReady: false } },
+      );
+
+      act(() => {
+        result.current.navigateToFeed("feed-target");
+      });
+      rerender({ selectionReady: true });
+
+      expect(result.current.selectedFeedId).toBe("feed-target");
+      expect(result.current.feedScrollRequest?.feedId).toBe("feed-target");
+    });
+
+    it("retires the scroll request when the user changes the search after landing", () => {
+      const first = makeRow("feed-alpha");
+      const target = makeRow("feed-target");
+      const { result } = renderHook(() => useSubscriptionsIndexState([first, target]));
+
+      act(() => {
+        result.current.navigateToFeed("feed-target");
+      });
+      expect(result.current.feedScrollRequest?.feedId).toBe("feed-target");
+
+      act(() => {
+        result.current.setSearchQuery("feed-alpha");
+      });
+
+      expect(result.current.feedScrollRequest).toBeNull();
+    });
+
+    it("keeps the scroll request through the navigation's own layout reset but retires it on the next one", () => {
+      const target = makeRow("feed-target");
+      const stale = makeRow("feed-stale", { labelKey: "stale_90d" });
+      const { result, rerender } = renderHook(
+        ({ currentRows }: { currentRows: SubscriptionListRow[] }) =>
+          useSubscriptionsIndexState(currentRows, {
+            initialSummaryFilter: "stale",
+            initialSearchQuery: "feed-stale",
+          }),
+        { initialProps: { currentRows: [target, stale] } },
+      );
+
+      act(() => {
+        result.current.navigateToFeed("feed-target");
+      });
+      // Clearing the filter/search changes the layout generation, so the
+      // navigation's own scroll reset must not retire the request.
+      expect(result.current.feedScrollRequest?.feedId).toBe("feed-target");
+
+      rerender({ currentRows: [target] });
+
+      expect(result.current.feedScrollRequest).toBeNull();
+    });
+
     it("drops the navigation when the feed is not in the loaded rows", () => {
       const row = makeRow("feed-only");
       const { result } = renderHook(() => useSubscriptionsIndexState([row]));
