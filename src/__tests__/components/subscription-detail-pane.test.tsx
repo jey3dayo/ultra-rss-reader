@@ -50,6 +50,7 @@ const baseProps = {
   metrics,
   detailCandidate: null,
   folderLabel: "Folder",
+  folderNoneLabel: "No folder",
   latestArticleLabel: "Latest",
   latestArticleEmptyLabel: "No articles fetched",
   updateFrequencyLabel: "Update frequency",

@@ -96,6 +96,7 @@ type SubscriptionsIndexPageViewProps = {
   bulkSelection?: SubscriptionsBulkSelection;
   bulkRunStatus?: SubscriptionsBulkRunStatus | null;
   folderLabel: string;
+  folderNoneLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel: string;
   updateFrequencyLabel: string;
@@ -172,6 +173,7 @@ export function SubscriptionsIndexPageView({
   bulkSelection,
   bulkRunStatus,
   folderLabel,
+  folderNoneLabel,
   latestArticleLabel,
   latestArticleEmptyLabel,
   updateFrequencyLabel,
@@ -270,6 +272,7 @@ export function SubscriptionsIndexPageView({
               onBackToList={onBackToList}
               emptyLabel={detailEmptyLabel}
               folderLabel={folderLabel}
+              folderNoneLabel={folderNoneLabel}
               latestArticleLabel={latestArticleLabel}
               latestArticleEmptyLabel={latestArticleEmptyLabel}
               updateFrequencyLabel={updateFrequencyLabel}
