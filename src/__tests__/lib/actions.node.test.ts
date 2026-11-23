@@ -821,6 +821,7 @@ describe("isAppAction node contracts", () => {
       "set-filter-unread",
       "set-filter-all",
       "set-filter-starred",
+      "open-subscriptions-index",
       "open-settings",
     ]);
 

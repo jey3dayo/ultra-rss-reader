@@ -244,6 +244,11 @@ describe("buildShortcutsSettingsViewProps", () => {
             resetDisabled: true,
           },
           {
+            id: "open_subscriptions_index",
+            label: tReader("shortcuts.open_subscriptions_index"),
+            resetDisabled: true,
+          },
+          {
             id: "close_or_clear",
             label: tReader("shortcuts.close_or_clear"),
             resetDisabled: true,
