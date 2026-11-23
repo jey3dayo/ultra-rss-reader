@@ -191,6 +191,44 @@ describe("FeedEditDialogView", () => {
     expect(alert).toHaveTextContent("Failed to update folder: locked");
   });
 
+  it("shows the partial save summary in the same alert as the save errors", () => {
+    render(
+      <FeedEditDialogView
+        open={true}
+        title="Tech Blog"
+        saveErrorMessages={["Failed to update display settings: locked"]}
+        saveSummaryLines={["Only some changes were saved", "Saved: Title", "Not saved: Article display"]}
+        loading={false}
+        displayMode="standard"
+        displayModeOptions={[{ value: "standard", label: "Standard" }]}
+        onOpenChange={vi.fn()}
+        onTitleChange={vi.fn()}
+        onDisplayModeChange={vi.fn()}
+        urlFields={[]}
+        labels={{
+          title: "Edit Feed",
+          titleField: "Title",
+          displayMode: "Display Mode",
+          cancel: "Cancel",
+          save: "Save",
+          saving: "Saving",
+          unsubscribe: "Unsubscribe",
+          unsubscribeAction: "Unsubscribe…",
+          feedInformation: "Feed information",
+          unsubscribeDescription: "Articles from this feed will also be deleted.",
+        }}
+        onRequestUnsubscribe={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Only some changes were saved");
+    expect(alert).toHaveTextContent("Saved: Title");
+    expect(alert).toHaveTextContent("Not saved: Article display");
+    expect(alert).toHaveTextContent("Failed to update display settings: locked");
+  });
+
   it.each([
     { loading: true, expectedCalls: 0 },
     { loading: false, expectedCalls: 1 },

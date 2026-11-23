@@ -57,7 +57,10 @@ describe("submitFeedEdits", () => {
     const updateDisplaySettings = vi.fn(async () => true);
     setupTauriMocks(recorder.handler);
 
-    await expect(submitFeedEdits(createParams({ updateFeedFolder, updateDisplaySettings }))).resolves.toBe(true);
+    await expect(submitFeedEdits(createParams({ updateFeedFolder, updateDisplaySettings }))).resolves.toEqual({
+      success: true,
+      partialOutcomes: null,
+    });
 
     expect(recorder.calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
     expect(updateFeedFolder).not.toHaveBeenCalled();
@@ -79,7 +82,10 @@ describe("submitFeedEdits", () => {
     });
     setupTauriMocks(recorder.handler);
 
-    await expect(submitFeedEdits(createParams({ title: "Renamed", reportError }))).resolves.toBe(false);
+    await expect(submitFeedEdits(createParams({ title: "Renamed", reportError }))).resolves.toEqual({
+      success: false,
+      partialOutcomes: null,
+    });
 
     expect(recorder.calls).toContainEqual({
       cmd: "rename_feed",
@@ -93,9 +99,10 @@ describe("submitFeedEdits", () => {
     const updateDisplaySettings = vi.fn(async () => true);
     setupTauriMocks(recorder.handler);
 
-    await expect(submitFeedEdits(createParams({ displayPreset: "preview", updateDisplaySettings }))).resolves.toBe(
-      true,
-    );
+    await expect(submitFeedEdits(createParams({ displayPreset: "preview", updateDisplaySettings }))).resolves.toEqual({
+      success: true,
+      partialOutcomes: null,
+    });
 
     expect(updateDisplaySettings).toHaveBeenCalledWith(feed.id, "on", "on");
   });
@@ -118,7 +125,7 @@ describe("submitFeedEdits", () => {
           updateFeedFolder,
         }),
       ),
-    ).resolves.toBe(true);
+    ).resolves.toEqual({ success: true, partialOutcomes: null });
 
     expect(recorder.calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
     expect(updateFeedFolder).toHaveBeenCalledWith({
@@ -147,7 +154,7 @@ describe("submitFeedEdits", () => {
           updateFeedFolder,
         }),
       ),
-    ).resolves.toBe(true);
+    ).resolves.toEqual({ success: true, partialOutcomes: null });
 
     expect(updateFeedFolder).toHaveBeenCalledWith({
       feedId: feed.id,
@@ -155,7 +162,7 @@ describe("submitFeedEdits", () => {
     });
   });
 
-  it("returns false when only the folder move fails", async () => {
+  it("reports failure without partial outcomes when the only attempted step fails", async () => {
     const queryClient = createTestQueryClient();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
     const updateFeedFolder = vi.fn(async () => false);
@@ -173,7 +180,7 @@ describe("submitFeedEdits", () => {
           updateFeedFolder,
         }),
       ),
-    ).resolves.toBe(false);
+    ).resolves.toEqual({ success: false, partialOutcomes: null });
 
     expect(recorder.calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
     expect(updateFeedFolder).toHaveBeenCalledWith({
@@ -182,6 +189,37 @@ describe("submitFeedEdits", () => {
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: queryKeys.feeds.root,
+    });
+  });
+
+  it("reports per-step outcomes when some steps succeed and others fail", async () => {
+    const updateFeedFolder = vi.fn(async () => false);
+    recorder = createTauriMockCallRecorder((cmd) => (cmd === "rename_feed" ? null : undefined));
+    setupTauriMocks(recorder.handler);
+
+    await expect(
+      submitFeedEdits(
+        createParams({
+          title: "Renamed",
+          folderSelection: {
+            selectedFolderId: "folder-2",
+            isCreatingFolder: false,
+            newFolderName: "",
+          },
+          updateFeedFolder,
+        }),
+      ),
+    ).resolves.toEqual({
+      success: false,
+      partialOutcomes: [
+        { step: "rename", succeeded: true },
+        { step: "folder", succeeded: false },
+      ],
+    });
+
+    expect(recorder.calls).toContainEqual({
+      cmd: "rename_feed",
+      args: { feedId: feed.id, title: "Renamed" },
     });
   });
 });

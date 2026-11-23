@@ -17,6 +17,7 @@ import type {
   FeedEditDialogController,
   FeedEditDialogControllerParams,
   FeedEditDisplayPreset,
+  FeedEditSaveSummary,
   FeedEditTitleError,
 } from "../../feed-edit-dialog.types";
 import { type FeedEditorState, submitFeedEdits, validateFeedEditTitle } from "../../feed-edit-submit";
@@ -25,6 +26,7 @@ type FeedEditDialogState = FeedEditorState<{
   feedSnapshot: FeedDto;
   titleError: FeedEditTitleError | null;
   saveErrorMessages: readonly string[];
+  saveSummary: FeedEditSaveSummary | null;
 }>;
 
 type FeedEditDialogAction =
@@ -36,6 +38,7 @@ type FeedEditDialogAction =
   | { type: "start-save" }
   | { type: "finish-save" }
   | { type: "report-save-error"; message: string }
+  | { type: "report-partial-save"; summary: FeedEditSaveSummary }
   | { type: "clear-save-errors" };
 
 function createInitialFeedEditDialogState(feed: FeedDto): FeedEditDialogState {
@@ -46,6 +49,7 @@ function createInitialFeedEditDialogState(feed: FeedDto): FeedEditDialogState {
     feedSnapshot: feed,
     titleError: null,
     saveErrorMessages: [],
+    saveSummary: null,
   };
 }
 
@@ -56,19 +60,23 @@ function feedEditDialogReducer(state: FeedEditDialogState, action: FeedEditDialo
     case "sync-feed-snapshot":
       return state.feedSnapshot === action.feed ? state : { ...state, feedSnapshot: action.feed };
     case "set-title":
-      return { ...state, title: action.value, titleError: null, saveErrorMessages: [] };
+      return { ...state, title: action.value, titleError: null, saveErrorMessages: [], saveSummary: null };
     case "set-display-preset":
-      return { ...state, displayPreset: action.value, saveErrorMessages: [] };
+      return { ...state, displayPreset: action.value, saveErrorMessages: [], saveSummary: null };
     case "reject-title":
-      return { ...state, titleError: action.error, saveErrorMessages: [] };
+      return { ...state, titleError: action.error, saveErrorMessages: [], saveSummary: null };
     case "start-save":
-      return { ...state, loading: true, titleError: null, saveErrorMessages: [] };
+      return { ...state, loading: true, titleError: null, saveErrorMessages: [], saveSummary: null };
     case "finish-save":
       return { ...state, loading: false };
     case "report-save-error":
       return { ...state, saveErrorMessages: [...state.saveErrorMessages, action.message] };
+    case "report-partial-save":
+      return { ...state, saveSummary: action.summary };
     case "clear-save-errors":
-      return state.saveErrorMessages.length === 0 ? state : { ...state, saveErrorMessages: [] };
+      return state.saveErrorMessages.length === 0 && state.saveSummary === null
+        ? state
+        : { ...state, saveErrorMessages: [], saveSummary: null };
     default:
       return state;
   }
@@ -83,7 +91,7 @@ export function useFeedEditDialogController({
 }: FeedEditDialogControllerParams): FeedEditDialogController {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(feedEditDialogReducer, feed, createInitialFeedEditDialogState);
-  const { title, displayPreset, loading, feedSnapshot, titleError, saveErrorMessages } = state;
+  const { title, displayPreset, loading, feedSnapshot, titleError, saveErrorMessages, saveSummary } = state;
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     selectedFolderId,
@@ -160,7 +168,7 @@ export function useFeedEditDialogController({
 
       dispatch({ type: "start-save" });
       try {
-        const saved = await submitFeedEdits({
+        const result = await submitFeedEdits({
           feed: feedSnapshot,
           title,
           displayPreset,
@@ -195,7 +203,17 @@ export function useFeedEditDialogController({
             }),
         });
 
-        if (saved) {
+        if (result.partialOutcomes) {
+          dispatch({
+            type: "report-partial-save",
+            summary: {
+              saved: result.partialOutcomes.filter((outcome) => outcome.succeeded).map((outcome) => outcome.step),
+              remaining: result.partialOutcomes.filter((outcome) => !outcome.succeeded).map((outcome) => outcome.step),
+            },
+          });
+        }
+
+        if (result.success) {
           onOpenChange(false);
         }
       } finally {
@@ -212,6 +230,7 @@ export function useFeedEditDialogController({
     displayPreset,
     titleError,
     saveErrorMessages,
+    saveSummary,
     inputRef,
     folders,
     setTitle: (value) => dispatch({ type: "set-title", value }),

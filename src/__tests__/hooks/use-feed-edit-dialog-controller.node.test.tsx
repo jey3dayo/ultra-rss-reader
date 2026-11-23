@@ -30,9 +30,10 @@ function createOperationClaim() {
 const { copyTextToClipboardMock } = vi.hoisted(() => ({
   copyTextToClipboardMock: vi.fn(),
 }));
-const { createFolderMock, renameFeedMock } = vi.hoisted(() => ({
+const { createFolderMock, renameFeedMock, updateDisplaySettingsMock } = vi.hoisted(() => ({
   createFolderMock: vi.fn(),
   renameFeedMock: vi.fn(),
+  updateDisplaySettingsMock: vi.fn(),
 }));
 
 vi.mock("@/api/tauri-commands", async (importOriginal) => {
@@ -53,7 +54,7 @@ vi.mock("@/hooks/use-folders", () => ({
 }));
 
 vi.mock("@/hooks/use-update-feed-display-mode", () => ({
-  useUpdateFeedDisplaySettings: () => vi.fn(async () => true),
+  useUpdateFeedDisplaySettings: () => updateDisplaySettingsMock,
 }));
 
 vi.mock("@/hooks/use-update-feed-folder", () => ({
@@ -98,8 +99,10 @@ describe("useFeedEditDialogController copy action", () => {
     copyTextToClipboardMock.mockReset();
     createFolderMock.mockReset();
     renameFeedMock.mockReset();
+    updateDisplaySettingsMock.mockReset();
     createFolderMock.mockResolvedValue(Result.succeed({ id: "folder-new" }));
     renameFeedMock.mockResolvedValue(Result.succeed(null));
+    updateDisplaySettingsMock.mockResolvedValue(true);
     showToast = vi.fn();
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.setState({ showToast });
@@ -285,6 +288,28 @@ describe("useFeedEditDialogController copy action", () => {
       });
 
       expect(result.current.titleError).toBeNull();
+    });
+
+    it("summarizes which edits were saved when only some steps succeed", async () => {
+      updateDisplaySettingsMock.mockResolvedValue(false);
+      const onOpenChange = vi.fn();
+      const { result } = renderOpenController(onOpenChange);
+
+      act(() => {
+        result.current.setTitle("Renamed");
+        result.current.setDisplayPreset("preview");
+      });
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+
+      expect(result.current.saveSummary).toEqual({ saved: ["rename"], remaining: ["display"] });
+      expect(onOpenChange).not.toHaveBeenCalled();
+
+      act(() => {
+        result.current.setTitle("Renamed again");
+      });
+      expect(result.current.saveSummary).toBeNull();
     });
 
     it("keeps the dialog open and shows a rename failure in the dialog instead of a toast", async () => {

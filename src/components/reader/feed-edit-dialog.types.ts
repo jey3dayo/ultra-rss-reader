@@ -58,12 +58,25 @@ export type FeedEditDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+export type FeedEditSaveStep = "rename" | "folder" | "display";
+
+export type FeedEditStepOutcome = {
+  step: FeedEditSaveStep;
+  succeeded: boolean;
+};
+
+export type FeedEditSaveSummary = {
+  saved: readonly FeedEditSaveStep[];
+  remaining: readonly FeedEditSaveStep[];
+};
+
 export type FeedEditDialogController = {
   title: string;
   loading: boolean;
   displayPreset: FeedEditDisplayPreset;
   titleError: FeedEditTitleError | null;
   saveErrorMessages: readonly string[];
+  saveSummary: FeedEditSaveSummary | null;
   inputRef: RefObject<HTMLInputElement | null>;
   folders: FolderDto[] | undefined;
   setTitle: (value: string) => void;

@@ -37,6 +37,7 @@ type FeedEditDialogViewProps = {
   urlFields: FeedEditDialogUrlField[];
   titleErrorMessage?: string;
   saveErrorMessages?: readonly string[];
+  saveSummaryLines?: readonly string[];
   onOpenChange: (open: boolean) => void;
   onTitleChange: (value: string) => void;
   onDisplayModeChange: (value: string) => void;
@@ -85,13 +86,24 @@ function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loa
   );
 }
 
-function SaveErrorAlert({ messages }: { messages: readonly string[] }) {
+function SaveErrorAlert({
+  messages,
+  summaryLines = [],
+}: {
+  messages: readonly string[];
+  summaryLines?: readonly string[];
+}) {
   if (messages.length === 0) {
     return null;
   }
 
   return (
     <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" className="mt-3">
+      {summaryLines.map((line, index) => (
+        <p key={line} className={index === 0 ? "text-sm font-medium leading-[1.5]" : "text-sm leading-[1.5]"}>
+          {line}
+        </p>
+      ))}
       {messages.map((message) => (
         <p key={message} className="text-sm leading-[1.5]">
           {message}
@@ -110,6 +122,7 @@ export function FeedEditDialogView({
   urlFields,
   titleErrorMessage,
   saveErrorMessages = [],
+  saveSummaryLines,
   onOpenChange,
   onTitleChange,
   onDisplayModeChange,
@@ -178,7 +191,7 @@ export function FeedEditDialogView({
         </div>
       ) : null}
 
-      <SaveErrorAlert messages={saveErrorMessages} />
+      <SaveErrorAlert messages={saveErrorMessages} summaryLines={saveSummaryLines} />
 
       <details data-testid="feed-information" className="mt-3 border-t border-border/60 pt-2">
         <summary className="cursor-pointer select-none py-1 text-xs font-medium text-foreground-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
