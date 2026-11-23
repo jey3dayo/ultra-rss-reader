@@ -457,6 +457,7 @@ export function useSubscriptionsIndexViewProps({
     },
     dateLocale: i18n.language,
     folderLabel: t("folder"),
+    folderNoneLabel: t("meta_folder_none"),
     listScrollResetKey: state.listScrollResetKey,
     listScrollTop: state.listScrollTop,
     feedScrollRequest: state.feedScrollRequest,

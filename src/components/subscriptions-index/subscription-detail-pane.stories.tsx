@@ -195,6 +195,7 @@ const meta = {
     metrics: stale.metrics,
     detailCandidate: stale.detailCandidate,
     folderLabel: "Folder",
+    folderNoneLabel: "No folder",
     latestArticleLabel: "Latest article",
     latestArticleEmptyLabel: "No fetched articles",
     updateFrequencyLabel: "Update frequency",

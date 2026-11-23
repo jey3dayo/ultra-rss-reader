@@ -57,6 +57,7 @@ type SubscriptionDetailPaneProps = {
   metrics: SubscriptionDetailMetrics | null;
   detailCandidate: SubscriptionDetailCandidate | null;
   folderLabel: string;
+  folderNoneLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel?: string;
   updateFrequencyLabel: string;
@@ -171,6 +172,7 @@ type DetailMetricsInput = {
   metrics: SubscriptionDetailMetrics;
   dateLocale: string;
   folderLabel: string;
+  folderNoneLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel: string;
   updateFrequencyLabel: string;
@@ -187,6 +189,7 @@ function buildDetailMetrics({
   metrics,
   dateLocale,
   folderLabel,
+  folderNoneLabel,
   latestArticleLabel,
   latestArticleEmptyLabel,
   updateFrequencyLabel,
@@ -212,7 +215,6 @@ function buildDetailMetrics({
     formatUpdateFrequencyValue(metrics.recentArticleCount)
   );
   return [
-    { label: folderLabel, value: row.folderName ?? "—" },
     {
       label: latestArticleLabel,
       value: formatLatestArticleMetric(metrics.latestArticleAt, dateLocale, latestArticleEmptyLabel),
@@ -223,6 +225,7 @@ function buildDetailMetrics({
     },
     { label: unreadCountLabel, value: row.feed.unread_count },
     { label: starredCountLabel, value: metrics.starredCount },
+    { label: folderLabel, value: row.folderName ?? folderNoneLabel },
     { label: displayModeLabel, value: displayModeValue },
   ];
 }
@@ -476,6 +479,7 @@ export function SubscriptionDetailPane({
   metrics,
   detailCandidate,
   folderLabel,
+  folderNoneLabel,
   latestArticleLabel,
   latestArticleEmptyLabel = "—",
   updateFrequencyLabel,
@@ -602,6 +606,7 @@ export function SubscriptionDetailPane({
                   metrics,
                   dateLocale,
                   folderLabel,
+                  folderNoneLabel,
                   latestArticleLabel,
                   latestArticleEmptyLabel,
                   updateFrequencyLabel,
