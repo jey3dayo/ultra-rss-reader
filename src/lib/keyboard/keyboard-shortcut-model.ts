@@ -15,6 +15,7 @@ export const keyboardEvents = {
 export type KeyboardAction =
   | { type: "open-settings" }
   | { type: "open-command-palette" }
+  | { type: "open-subscriptions-index" }
   | { type: "open-shortcuts-help" }
   | { type: "restart-app" }
   | {
@@ -57,6 +58,7 @@ export type ShortcutActionId =
   | "search"
   | "close_or_clear"
   | "open_command_palette"
+  | "open_subscriptions_index"
   | "open_settings";
 
 export type ShortcutPreferenceKey = `shortcut_${ShortcutActionId}`;
@@ -93,6 +95,7 @@ export type ShortcutLabelKey =
   | "shortcuts.search"
   | "shortcuts.close_or_clear"
   | "shortcuts.open_command_palette"
+  | "shortcuts.open_subscriptions_index"
   | "shortcuts.open_settings";
 
 export type ShortcutCategoryKey =

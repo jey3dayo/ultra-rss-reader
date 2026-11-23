@@ -84,6 +84,7 @@ All bindings are customizable in Settings. Defaults:
 | `⌘1` / `⌘2` / `⌘3` | Unread / All / Starred | `u` | Focus sidebar |
 | `⌘K` | Command palette | `⌘\` | Toggle sidebar |
 | `Esc` | Close / clear | `⌘,` | Settings |
+| `i` | Subscriptions index | | |
 
 ## Tech Stack
 

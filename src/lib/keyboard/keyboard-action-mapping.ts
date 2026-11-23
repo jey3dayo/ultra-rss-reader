@@ -51,6 +51,7 @@ type KeyboardActionResolveContext = {
 const contextFreeActions: Partial<Record<ShortcutActionId, KeyboardAction>> = {
   open_settings: { type: "open-settings" },
   open_command_palette: { type: "open-command-palette" },
+  open_subscriptions_index: { type: "open-subscriptions-index" },
   show_unread: { type: "set-view-mode", mode: "unread" },
   show_all: { type: "set-view-mode", mode: "all" },
   show_starred: { type: "set-view-mode", mode: "starred" },

@@ -71,6 +71,7 @@ const ALLOWED_SHORTCUT_IDS: &[&str] = &[
     "cycle_filter",
     "search",
     "open_command_palette",
+    "open_subscriptions_index",
     "close_or_clear",
     "open_settings",
 ];

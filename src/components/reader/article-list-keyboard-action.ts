@@ -22,6 +22,9 @@ export function handleArticleListKeyboardAction({
     case "open-command-palette":
       executeAction("open-command-palette");
       break;
+    case "open-subscriptions-index":
+      executeAction("open-subscriptions-index");
+      break;
     case "open-shortcuts-help":
       useUiStore.getState().openShortcutsHelp();
       break;
