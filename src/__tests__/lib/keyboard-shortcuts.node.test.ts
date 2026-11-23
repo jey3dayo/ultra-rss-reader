@@ -18,6 +18,20 @@ describe("keyboard shortcut resolver", () => {
     vi.unstubAllEnvs();
   });
 
+  it("resolves i to open the subscriptions index", () => {
+    const result = resolveKeyboardAction({
+      key: "i",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "open-subscriptions-index" });
+  });
+
   it("opens settings on command comma even when an input is focused", () => {
     const result = resolveKeyboardAction({
       key: ",",
@@ -397,6 +411,7 @@ describe("keyboard shortcut resolver", () => {
       "cycle_filter",
       "search",
       "open_command_palette",
+      "open_subscriptions_index",
       "close_or_clear",
       "open_settings",
     ]);

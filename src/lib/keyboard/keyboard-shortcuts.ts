@@ -161,6 +161,12 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     defaultKey: "\u2318+k",
   },
   {
+    id: "open_subscriptions_index",
+    labelKey: "shortcuts.open_subscriptions_index",
+    categoryKey: "shortcuts.category_global",
+    defaultKey: "i",
+  },
+  {
     id: "close_or_clear",
     labelKey: "shortcuts.close_or_clear",
     categoryKey: "shortcuts.category_global",

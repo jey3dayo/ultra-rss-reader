@@ -95,6 +95,7 @@ Preference は UI state であると同時に local persisted data でもある�
 | `shortcut_cycle_filter` | shortcut definition | shortcutDefaults |
 | `shortcut_search` | shortcut definition | shortcutDefaults |
 | `shortcut_open_command_palette` | shortcut definition | shortcutDefaults |
+| `shortcut_open_subscriptions_index` | shortcut definition | shortcutDefaults |
 | `shortcut_close_or_clear` | shortcut definition | shortcutDefaults |
 | `shortcut_open_settings` | shortcut definition | shortcutDefaults |
 <!-- preference-allowlist:end -->

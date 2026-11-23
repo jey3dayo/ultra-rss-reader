@@ -136,6 +136,10 @@ describe("ShortcutsHelpModal", () => {
           "label": "Open command palette",
         },
         {
+          "binding": "i",
+          "label": "Open subscriptions index",
+        },
+        {
           "binding": "Escape",
           "label": "Close Web Preview / clear selection",
         },
