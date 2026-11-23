@@ -27,6 +27,7 @@ type FetchErrorLabels = {
   retry: string;
   retrying: string;
   editFeedUrl: string;
+  urlChangeGuidance?: string;
   reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => string;
   retryOutcome: (kind: FeedRetryOutcomeKind) => string;
 };
@@ -321,6 +322,14 @@ function FetchErrorDetailCard({
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-state-danger-foreground">{labels.heading}</h3>
         <p className="mt-1 text-sm leading-relaxed text-foreground">{labels.reason(errorKind)}</p>
+        {errorKind === "private_address_blocked" && labels.urlChangeGuidance ? (
+          <p
+            data-testid="subscriptions-fetch-error-url-guidance"
+            className="mt-1 text-sm leading-relaxed text-foreground-soft"
+          >
+            {labels.urlChangeGuidance}
+          </p>
+        ) : null}
         {formattedLastAttempt ? (
           <p className="mt-1 text-xs text-foreground-soft">
             {labels.lastAttempt}: {formattedLastAttempt}
@@ -497,7 +506,9 @@ export function SubscriptionDetailPane({
     copyDiagnosticId: "Copy diagnostic number",
     retry: "Retry",
     retrying: "Retrying",
-    editFeedUrl: "Review feed destination",
+    editFeedUrl: "Check feed settings",
+    urlChangeGuidance:
+      "The feed URL can't be changed in the app. To use a different URL, unsubscribe from the bottom of these details, then add the feed again with the correct URL.",
     reason: (kind) => kind,
     retryOutcome: (kind) => kind,
   },
