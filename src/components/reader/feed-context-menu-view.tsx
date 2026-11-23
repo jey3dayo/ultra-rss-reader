@@ -5,6 +5,7 @@ import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread
 
 type FeedContextMenuViewProps = {
   openSiteLabel: string;
+  openInSubscriptionsLabel: string;
   markAllReadLabel: string;
   markOldUnreadReadLabel: string;
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
@@ -14,6 +15,7 @@ type FeedContextMenuViewProps = {
   unsubscribeLabel: string;
   editLabel: string;
   onOpenSite: () => void;
+  onOpenInSubscriptions: () => void;
   onMarkAllRead: () => void;
   onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
   onMarkSameSiteFeedsRead?: () => void;
@@ -23,6 +25,7 @@ type FeedContextMenuViewProps = {
 
 export function FeedContextMenuView({
   openSiteLabel,
+  openInSubscriptionsLabel,
   markAllReadLabel,
   markOldUnreadReadLabel,
   oldUnreadDayLabel,
@@ -32,6 +35,7 @@ export function FeedContextMenuView({
   unsubscribeLabel,
   editLabel,
   onOpenSite,
+  onOpenInSubscriptions,
   onMarkAllRead,
   onMarkOldUnreadRead,
   onMarkSameSiteFeedsRead,
@@ -48,6 +52,13 @@ export function FeedContextMenuView({
             onClick={onEdit}
           >
             {editLabel}
+          </ContextMenu.Item>
+          <ContextMenu.Item
+            data-action-id={CONTEXT_MENU_ACTION_IDS.feedOpenInSubscriptionsIndex}
+            className={contextMenuStyles.item}
+            onClick={onOpenInSubscriptions}
+          >
+            {openInSubscriptionsLabel}
           </ContextMenu.Item>
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.feedOpenSite}

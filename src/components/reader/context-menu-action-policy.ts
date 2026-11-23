@@ -18,6 +18,7 @@ export const CONTEXT_MENU_ACTION_IDS = {
   feedMarkOldUnreadRead: "feed-mark-old-unread-read",
   feedMarkOldUnreadReadDays: "feed-mark-old-unread-read-days",
   feedMarkSameSiteFeedsRead: "feed-mark-same-site-feeds-read",
+  feedOpenInSubscriptionsIndex: "feed-open-in-subscriptions-index",
   feedOpenSite: "feed-open-site",
   feedSetDisplayPreset: "feed-set-display-preset",
   feedUnsubscribe: "feed-unsubscribe",

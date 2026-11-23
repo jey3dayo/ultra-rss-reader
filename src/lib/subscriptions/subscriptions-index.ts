@@ -266,6 +266,10 @@ export function resolveSubscriptionsInventoryHeading(params: {
   return filterOptions.find((option) => option.filterKey === activeSummaryFilter)?.label ?? defaultHeading;
 }
 
+export function resolveSubscriptionListGroupKey(folderId: string | null): string {
+  return folderId === null ? "subscription-list:0-sentinel:no-folder" : getSubscriptionFolderGroupKey(folderId);
+}
+
 export function buildSubscriptionListGroups(
   rows: SubscriptionListRow[],
   noFolderLabel: string,
@@ -273,8 +277,7 @@ export function buildSubscriptionListGroups(
   const groups = new Map<string, SubscriptionListGroup>();
 
   for (const row of rows) {
-    const key =
-      row.folderId === null ? "subscription-list:0-sentinel:no-folder" : getSubscriptionFolderGroupKey(row.folderId);
+    const key = resolveSubscriptionListGroupKey(row.folderId);
     const label = row.folderName ?? noFolderLabel;
     const existing = groups.get(key);
 

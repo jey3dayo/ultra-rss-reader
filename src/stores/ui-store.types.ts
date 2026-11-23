@@ -33,6 +33,7 @@ type ToastAnnouncement = {
 type SubscriptionsIndexNavigationRequest = Readonly<{
   accountId: string | null;
   summaryFilter: SubscriptionSummaryFilterKey;
+  feedId?: string;
   retryAction?: import("@/lib/ui/toast.types").ToastAction;
 }>;
 

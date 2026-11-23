@@ -93,6 +93,14 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     }
   }, [feed.site_url, feed.url]);
 
+  const handleOpenInSubscriptions = useCallback(() => {
+    useUiStore.getState().openSubscriptionsIndex(undefined, {
+      accountId: feed.account_id,
+      summaryFilter: "all",
+      feedId: feed.id,
+    });
+  }, [feed.account_id, feed.id]);
+
   const handleMarkAllRead = useCallback(() => {
     confirmMarkAllRead(
       buildFeedMarkAllReadConfirmation({
@@ -200,6 +208,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     <>
       <FeedContextMenuView
         openSiteLabel={t("open_site", { host: siteHost })}
+        openInSubscriptionsLabel={t("open_in_subscriptions_index")}
         markAllReadLabel={t("mark_all_as_read")}
         markOldUnreadReadLabel={t("mark_old_unread_read")}
         oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
@@ -211,6 +220,11 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         editLabel={t("edit_ellipsis")}
         hasUnreadArticles={feed.unread_count > 0}
         onOpenSite={createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.feedOpenSite, handleOpenSite, { showToast })}
+        onOpenInSubscriptions={createMenuActionHandler(
+          CONTEXT_MENU_ACTION_IDS.feedOpenInSubscriptionsIndex,
+          handleOpenInSubscriptions,
+          { showToast },
+        )}
         onMarkAllRead={handleMarkAllRead}
         onMarkOldUnreadRead={(days) => {
           createMenuActionHandler(

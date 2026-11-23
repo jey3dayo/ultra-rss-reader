@@ -24,6 +24,7 @@ const baseFeed: FeedTreePresenceFeedViewModel = {
 describe("FeedContextMenuView", () => {
   it("renders feed actions and delegates clicks", async () => {
     const onOpenSite = vi.fn();
+    const onOpenInSubscriptions = vi.fn();
     const onMarkAllRead = vi.fn();
     const onMarkOldUnreadRead = vi.fn();
     const onUnsubscribe = vi.fn();
@@ -33,12 +34,14 @@ describe("FeedContextMenuView", () => {
       <ContextMenu.Root open>
         <FeedContextMenuView
           openSiteLabel="Open site"
+          openInSubscriptionsLabel="Open in Subscriptions"
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={onOpenSite}
+          onOpenInSubscriptions={onOpenInSubscriptions}
           onMarkAllRead={onMarkAllRead}
           onMarkOldUnreadRead={onMarkOldUnreadRead}
           onUnsubscribe={onUnsubscribe}
@@ -64,12 +67,17 @@ describe("FeedContextMenuView", () => {
     );
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Open site" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Open in Subscriptions" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit…" }));
 
     expect(screen.getByRole("menuitem", { name: "Edit…" })).toHaveAttribute("data-action-id", "feed-edit");
     expect(screen.getByRole("menuitem", { name: "Open site" })).toHaveAttribute("data-action-id", "feed-open-site");
+    expect(screen.getByRole("menuitem", { name: "Open in Subscriptions" })).toHaveAttribute(
+      "data-action-id",
+      "feed-open-in-subscriptions-index",
+    );
     expect(screen.getByRole("menuitem", { name: "Mark all as read" })).toHaveAttribute(
       "data-action-id",
       "feed-mark-all-read",
@@ -84,6 +92,7 @@ describe("FeedContextMenuView", () => {
       "feed-unsubscribe",
     );
     expect(onOpenSite).toHaveBeenCalledTimes(1);
+    expect(onOpenInSubscriptions).toHaveBeenCalledTimes(1);
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     expect(onUnsubscribe).toHaveBeenCalledTimes(1);
     expect(onEdit).toHaveBeenCalledTimes(1);
@@ -97,12 +106,14 @@ describe("FeedContextMenuView", () => {
       <ContextMenu.Root open>
         <FeedContextMenuView
           openSiteLabel="Open site"
+          openInSubscriptionsLabel="Open in Subscriptions"
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={vi.fn()}
+          onOpenInSubscriptions={vi.fn()}
           onMarkAllRead={vi.fn()}
           onMarkOldUnreadRead={onMarkOldUnreadRead}
           onUnsubscribe={vi.fn()}
@@ -127,12 +138,14 @@ describe("FeedContextMenuView", () => {
       <ContextMenu.Root open>
         <FeedContextMenuView
           openSiteLabel="Open site"
+          openInSubscriptionsLabel="Open in Subscriptions"
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={vi.fn()}
+          onOpenInSubscriptions={vi.fn()}
           onMarkAllRead={vi.fn()}
           onMarkOldUnreadRead={vi.fn()}
           onUnsubscribe={vi.fn()}
@@ -143,7 +156,14 @@ describe("FeedContextMenuView", () => {
 
     const actionItems = screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
 
-    expect(actionItems).toEqual(["Edit…", "Open site", "Mark all as read", "Mark old unread as read", "Unsubscribe…"]);
+    expect(actionItems).toEqual([
+      "Edit…",
+      "Open in Subscriptions",
+      "Open site",
+      "Mark all as read",
+      "Mark old unread as read",
+      "Unsubscribe…",
+    ]);
     expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
   });
 
@@ -154,6 +174,7 @@ describe("FeedContextMenuView", () => {
       <ContextMenu.Root open>
         <FeedContextMenuView
           openSiteLabel="Open site"
+          openInSubscriptionsLabel="Open in Subscriptions"
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
@@ -161,6 +182,7 @@ describe("FeedContextMenuView", () => {
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={vi.fn()}
+          onOpenInSubscriptions={vi.fn()}
           onMarkAllRead={onMarkAllRead}
           onMarkOldUnreadRead={vi.fn()}
           onUnsubscribe={vi.fn()}

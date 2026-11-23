@@ -997,6 +997,38 @@ describe("SubscriptionsIndexPage", () => {
     expect(listScrollRegion).toHaveProperty("scrollTop", 18);
   });
 
+  it("lands on the requested feed from a feed navigation request", async () => {
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      subscriptionsWorkspace: {
+        kind: "index",
+        accountId: "acc-1",
+        returnState: {
+          accountId: "acc-1",
+          activeSummaryFilter: "all",
+          selectedFeedId: "feed-1",
+          expandedGroups: {
+            "group:subscription-list:1-folder:folder-2": false,
+          },
+          listScrollTop: {
+            scrollTop: 0,
+            layoutGeneration: "feed-1\nfeed-2\nfeed-3",
+            viewportHeight: window.innerHeight,
+          },
+          searchQuery: "",
+        },
+        navigationRequest: { accountId: "acc-1", summaryFilter: "all", feedId: "feed-2" },
+      },
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    expect(await within(detailPane).findByRole("heading", { name: "Fresh Feed" })).toBeInTheDocument();
+    expect(await screen.findByTestId("subscriptions-folder-row-folder-2")).toHaveAttribute("aria-expanded", "true");
+    expect(useUiStore.getState().subscriptionsWorkspace?.navigationRequest).toBeUndefined();
+  });
+
   it("drops the restored list scroll when the window is resized after mount", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));

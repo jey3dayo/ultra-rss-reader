@@ -190,6 +190,7 @@
   "failed_to_add_feed": "フィードの追加に失敗しました: {{message}}",
   "feed_added_folder_failed": "フィードは追加されましたが、フォルダの割り当てに失敗しました: {{message}}",
   "open_site": "{{host}} を開く",
+  "open_in_subscriptions_index": "購読一覧で開く",
   "unsubscribe": "購読解除",
   "unsubscribe_ellipsis": "購読解除…",
   "edit_ellipsis": "編集…",

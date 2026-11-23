@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addFeedIdToSet,
   buildListLayoutGeneration,
+  expandExpandedGroup,
   findSelectedSubscriptionRow,
   removeFeedIdFromSet,
   removeFeedIdsFromSet,
@@ -17,6 +18,7 @@ import { resolveExistingKeptFeedIds, resolveHiddenKeptFeedIds } from "@/lib/subs
 import {
   buildSubscriptionListGroups,
   buildVisibleSubscriptionRows,
+  resolveSubscriptionListGroupKey,
   resolveSubscriptionSortKey,
 } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
@@ -149,6 +151,54 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     },
     [resetListScrollState],
   );
+
+  // A feed deep link lands on a specific row. The request is held until the
+  // rows are loaded (selectionReady), then applied once: the row is made
+  // visible, its group expanded, and the row selected with a scroll request.
+  const [pendingFeedNavigation, setPendingFeedNavigation] = useState<{ feedId: string; sequence: number } | null>(null);
+  const [feedScrollRequest, setFeedScrollRequest] = useState<{ feedId: string; sequence: number } | null>(null);
+  const feedNavigationSequenceRef = useRef(0);
+
+  const navigateToFeed = useCallback((feedId: string) => {
+    feedNavigationSequenceRef.current += 1;
+    setPendingFeedNavigation({ feedId, sequence: feedNavigationSequenceRef.current });
+  }, []);
+
+  useEffect(() => {
+    if (!pendingFeedNavigation || options?.selectionReady === false) {
+      return;
+    }
+    const targetRow = rows.find((row) => row.feed.id === pendingFeedNavigation.feedId);
+    if (!targetRow) {
+      // Rows are loaded and the feed is not in this account; drop the request
+      // and let the regular selection repair pick the visible selection.
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (feed deep-link application), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
+      setPendingFeedNavigation(null);
+      return;
+    }
+    const targetVisible = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter,
+      keptFeedIds,
+      showKept,
+      searchQuery,
+      sortKey: resolveSubscriptionSortKey(activeSummaryFilter),
+    }).some((row) => row.feed.id === targetRow.feed.id);
+    if (!targetVisible) {
+      // Same recovery as the empty state: clear the search and show all
+      // subscriptions so the target row exists in the list.
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (feed deep-link application), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
+      setActiveSummaryFilter("all");
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (feed deep-link application), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
+      setSearchQuery("");
+    }
+    setExpandedGroups((current) => expandExpandedGroup(current, resolveSubscriptionListGroupKey(targetRow.folderId)));
+    setStoredCheckedFeedIds(clearCheckedFeedIds);
+    setSelectedFeedId(targetRow.feed.id);
+    setFeedScrollRequest({ feedId: targetRow.feed.id, sequence: pendingFeedNavigation.sequence });
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (feed deep-link application), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
+    setPendingFeedNavigation(null);
+  }, [pendingFeedNavigation, rows, activeSummaryFilter, keptFeedIds, showKept, searchQuery, options?.selectionReady]);
 
   const updateSearchQuery = useCallback(
     (query: string) => {
@@ -324,6 +374,8 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       }
     },
     navigateToSummaryFilter,
+    navigateToFeed,
+    feedScrollRequest,
     toggleGroup: (groupKey: string) => setExpandedGroups((current) => toggleExpandedGroup(current, groupKey)),
   };
 }

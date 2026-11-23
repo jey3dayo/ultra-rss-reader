@@ -79,6 +79,7 @@ function resolveSubscriptionsRowsPending(params: {
 type IndexHandle = {
   captureState: () => SubscriptionsWorkspaceReturnState;
   navigate: (filter: SubscriptionSummaryFilterKey) => void;
+  navigateToFeed: (feedId: string) => void;
   hasOpenDialog: boolean;
 };
 
@@ -126,7 +127,13 @@ export function SubscriptionsIndexPage() {
       switchAccount(request.accountId, true);
       return;
     }
-    current.navigate(request.summaryFilter);
+    // A feed deep link takes precedence over the summary filter: the landing
+    // filter is decided by whether the target row is visible under it.
+    if (request.feedId) {
+      current.navigateToFeed(request.feedId);
+    } else {
+      current.navigate(request.summaryFilter);
+    }
     useUiStore.getState().consumeSubscriptionsNavigationRequest(request);
   }, [request, accountId, t, switchAccount]);
 
@@ -389,6 +396,7 @@ function SubscriptionsIndexPageForAccount({
   useImperativeHandle(ref, () => ({
     captureState: viewProps.captureState,
     navigate: viewProps.navigateToSummaryFilter,
+    navigateToFeed: viewProps.navigateToFeed,
     hasOpenDialog,
   }));
   useSubscriptionsIndexEscape(
