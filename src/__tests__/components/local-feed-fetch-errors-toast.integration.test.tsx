@@ -266,7 +266,7 @@ describe("fetch error toast navigation", () => {
     expect(useUiStore.getState().selectedAccountId).toBe("acc-a");
     expect(useUiStore.getState().subscriptionsWorkspace?.accountId).toBe("acc-b");
     await user.click(screen.getByRole("button", { name: /B Error Feed/ }));
-    await user.click(screen.getByRole("button", { name: "取得先を確認" }));
+    await user.click(screen.getByRole("button", { name: "フィード設定を確認" }));
     let dialog = await screen.findByRole("dialog", { name: "フィードを編集" });
     const retryAction = createFetchErrorsToastAction("acc-a", "取得エラーを表示");
     act(() => retryAction?.onClick());
@@ -283,7 +283,7 @@ describe("fetch error toast navigation", () => {
     showFetchErrorsAction("acc-b");
     await clickFetchErrorsAction(user);
     await user.click(await screen.findByRole("button", { name: /B Error Feed/ }));
-    await user.click(screen.getByRole("button", { name: "取得先を確認" }));
+    await user.click(screen.getByRole("button", { name: "フィード設定を確認" }));
     dialog = await screen.findByRole("dialog", { name: "フィードを編集" });
     const titleInput = within(dialog).getByDisplayValue("B Error Feed");
     await user.clear(titleInput);

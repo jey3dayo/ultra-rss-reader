@@ -45,6 +45,7 @@ type SubscriptionsIndexPageViewProps = {
     retry: string;
     retrying: string;
     editFeedUrl: string;
+    urlChangeGuidance?: string;
     reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => string;
     retryOutcome: (kind: FeedRetryOutcomeKind) => string;
   };

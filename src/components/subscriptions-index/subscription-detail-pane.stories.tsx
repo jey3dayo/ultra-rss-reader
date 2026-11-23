@@ -277,11 +277,13 @@ export const FetchError: Story = {
       copyDiagnosticId: "診断番号をコピー",
       retry: "再取得",
       retrying: "再取得中",
-      editFeedUrl: "取得先を確認",
+      editFeedUrl: "フィード設定を確認",
+      urlChangeGuidance:
+        "フィードURLはアプリ内で変更できません。URLを変える場合は、この詳細の下部から購読を解除し、正しいURLでフィードを追加し直してください。",
       reason: (kind) =>
         ({
           private_address_blocked: "安全のため、ローカルネットワークへのアクセスをブロックしました。",
-          validation: "フィードのURLまたは設定を確認してください。",
+          validation: "フィードの設定を確認してください。",
           network: "通信に失敗しました。時間をおいて再試行してください。",
           parse: "フィードの形式を読み取れませんでした。",
           persistence: "データの保存に失敗しました。",

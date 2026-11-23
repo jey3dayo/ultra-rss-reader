@@ -367,6 +367,7 @@ export function useSubscriptionsIndexViewProps({
         }
       },
       editFeedUrl: t("detail_fetch_error_edit_feed_url"),
+      urlChangeGuidance: t("detail_fetch_error_url_change_guidance"),
       reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => t(`fetch_error_reason_${kind}`),
     },
     selectedRetryOutcome: state.selectedRow ? retryOutcomeFor(state.selectedRow.feed.id) : null,

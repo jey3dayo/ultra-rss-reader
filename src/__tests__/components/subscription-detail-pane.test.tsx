@@ -104,7 +104,8 @@ describe("SubscriptionDetailPane", () => {
           copyDiagnosticId: "Copy diagnostic number",
           retry: "Retry",
           retrying: "Retrying",
-          editFeedUrl: "Review feed destination",
+          editFeedUrl: "Check feed settings",
+          urlChangeGuidance: "The feed URL can't be changed in the app. Unsubscribe below, then add it again.",
           reason: () => "Access to a local address was blocked.",
           retryOutcome: (kind) => `outcome:${kind}`,
         }}
@@ -117,14 +118,47 @@ describe("SubscriptionDetailPane", () => {
     expect(screen.getByTestId("subscriptions-fetch-error-detail")).toHaveTextContent(
       "Access to a local address was blocked.",
     );
+    expect(screen.getByTestId("subscriptions-fetch-error-url-guidance")).toHaveTextContent(
+      "The feed URL can't be changed in the app. Unsubscribe below, then add it again.",
+    );
     expect(screen.getByText(/Last failed: Apr 4, \d{2}:\d{2}/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     fireEvent.click(screen.getByRole("button", { name: "Copy diagnostic number" }));
-    fireEvent.click(screen.getByRole("button", { name: "Review feed destination" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check feed settings" }));
 
     expect(onRetryFeed).toHaveBeenCalledWith("feed-1");
     expect(onCopyDiagnosticId).toHaveBeenCalledWith("b52e8e15-b8c0-46d3-9949-44a6e5aab0b1");
     expect(onEditFeed).toHaveBeenCalledOnce();
+  });
+
+  it("omits the URL change guidance and settings action for other fetch errors", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "Fetch error",
+          lastAttempt: "Last failed",
+          copyDiagnosticId: "Copy diagnostic number",
+          retry: "Retry",
+          retrying: "Retrying",
+          editFeedUrl: "Check feed settings",
+          urlChangeGuidance: "The feed URL can't be changed in the app. Unsubscribe below, then add it again.",
+          reason: () => "Communication failed.",
+          retryOutcome: (kind) => `outcome:${kind}`,
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId("subscriptions-fetch-error-url-guidance")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check feed settings" })).not.toBeInTheDocument();
   });
 
   it("omits an invalid last-attempt timestamp instead of rendering it as raw text", () => {
@@ -145,7 +179,7 @@ describe("SubscriptionDetailPane", () => {
           copyDiagnosticId: "Copy diagnostic number",
           retry: "Retry",
           retrying: "Retrying",
-          editFeedUrl: "Review feed destination",
+          editFeedUrl: "Check feed settings",
           reason: () => "Communication failed.",
           retryOutcome: (kind) => `outcome:${kind}`,
         }}
@@ -180,7 +214,7 @@ describe("SubscriptionDetailPane", () => {
           copyDiagnosticId: "診断番号をコピー",
           retry: "再取得",
           retrying: "再取得中",
-          editFeedUrl: "取得先を確認",
+          editFeedUrl: "フィード設定を確認",
           reason: () => "通信に失敗しました。",
           retryOutcome: (kind) => `outcome:${kind}`,
         }}
@@ -216,7 +250,7 @@ describe("SubscriptionDetailPane", () => {
           copyDiagnosticId: "診断番号をコピー",
           retry: "再取得",
           retrying: "再取得中",
-          editFeedUrl: "取得先を確認",
+          editFeedUrl: "フィード設定を確認",
           reason: () => "通信に失敗しました。",
           retryOutcome: (kind) => `outcome:${kind}`,
         }}
@@ -252,7 +286,7 @@ describe("SubscriptionDetailPane", () => {
           copyDiagnosticId: "診断番号をコピー",
           retry: "再取得",
           retrying: "再取得中",
-          editFeedUrl: "取得先を確認",
+          editFeedUrl: "フィード設定を確認",
           reason: () => "通信に失敗しました。",
           retryOutcome: (kind) => `outcome:${kind}`,
         }}
@@ -498,7 +532,7 @@ describe("SubscriptionDetailPane", () => {
           copyDiagnosticId: "Copy diagnostic number",
           retry: "Retry",
           retrying: "Retrying",
-          editFeedUrl: "Review feed destination",
+          editFeedUrl: "Check feed settings",
           reason: () => "Communication failed.",
           retryOutcome: (kind) => `outcome:${kind}`,
         }}
@@ -531,7 +565,7 @@ describe("SubscriptionDetailPane", () => {
           copyDiagnosticId: "Copy diagnostic number",
           retry: "Retry",
           retrying: "Retrying",
-          editFeedUrl: "Review feed destination",
+          editFeedUrl: "Check feed settings",
           reason: () => "Communication failed.",
           retryOutcome: (kind) => `outcome:${kind}`,
         }}
@@ -556,7 +590,7 @@ describe("SubscriptionDetailPane", () => {
       copyDiagnosticId: "診断番号をコピー",
       retry: "再取得",
       retrying: "再取得中",
-      editFeedUrl: "取得先を確認",
+      editFeedUrl: "フィード設定を確認",
       reason: () => "通信に失敗しました。",
       retryOutcome: (kind: string) => `outcome:${kind}`,
     };
