@@ -10,7 +10,7 @@ type WorkspaceManagementActionButtonProps = Omit<ComponentProps<typeof Button>, 
 };
 
 const workspaceManagementActionIntentClassName: Record<WorkspaceManagementActionButtonProps["intent"], string> = {
-  edit: "bg-surface-1/88 text-foreground-soft hover:bg-surface-2 hover:text-foreground",
+  edit: "border border-border bg-surface-2/85 text-foreground-soft hover:bg-surface-2 hover:text-foreground",
   delete: "bg-state-danger-surface text-state-danger-foreground hover:bg-state-danger-surface-hover",
 };
 
