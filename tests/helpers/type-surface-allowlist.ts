@@ -34,7 +34,6 @@ export const remainingTypeSurfaceAllowlist = [
   remainingTypeSurface("src/components/reader/feed-dialog-form.types.ts", [
     "FeedDialogControllerFolderSelectProps",
     "FeedDialogFolderSelectionParams",
-    "FeedDialogReadonlyFieldProps",
   ]),
   remainingTypeSurface("src/components/reader/feed-edit-dialog.types.ts", [
     "FeedEditDialogProps",

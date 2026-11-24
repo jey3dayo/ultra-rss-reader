@@ -24,6 +24,7 @@ export * from "@/components/shared/exception-palettes";
 export * from "@/components/shared/feed-detail-card";
 export * from "@/components/shared/feed-detail-panel";
 export * from "@/components/shared/feed-favicon";
+export * from "@/components/shared/feed-url-row";
 export * from "@/components/shared/form-action-buttons";
 export * from "@/components/shared/form-dialog-shell";
 export * from "@/components/shared/gradient-switch";

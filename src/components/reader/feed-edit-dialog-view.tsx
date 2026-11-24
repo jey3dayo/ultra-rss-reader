@@ -1,10 +1,8 @@
-import { Copy } from "lucide-react";
 import type { RefObject } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import {
-  AppTooltip,
-  Button,
   DeleteButton,
+  FeedUrlRow,
   FormDialogShell,
   LabeledControlRow,
   LabeledInputRow,
@@ -62,36 +60,6 @@ const FEED_EDIT_INPUT_CLASS_NAME = "min-h-10 bg-surface-1/78 shadow-none";
 const FEED_EDIT_SELECT_CLASS_NAME =
   "min-h-10 w-full bg-surface-1/78 shadow-none sm:w-[17rem] sm:justify-self-end lg:w-[17rem] lg:justify-self-end";
 const FEED_EDIT_SELECT_POPUP_CLASS_NAME = "w-[var(--anchor-width)]";
-
-function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loading: boolean }) {
-  const canCopy = field.value.trim().length > 0;
-
-  return (
-    <div className="py-1.5">
-      <div className="flex min-h-6 items-center gap-2">
-        <span className="select-none font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]">
-          {field.label}
-        </span>
-        {field.copyLabel && field.onCopy ? (
-          <AppTooltip label={field.copyLabel}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onClick={field.onCopy}
-              disabled={loading || !canCopy}
-              aria-label={field.copyLabel}
-              className="ml-auto size-7 shrink-0 border-0 bg-transparent text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground"
-            >
-              <Copy className="size-3.5" aria-hidden="true" />
-            </Button>
-          </AppTooltip>
-        ) : null}
-      </div>
-      {canCopy ? <p className="mt-0.5 break-all text-xs leading-5 text-foreground-soft">{field.value}</p> : null}
-    </div>
-  );
-}
 
 function SaveErrorAlert({
   messages,
@@ -219,9 +187,9 @@ export function FeedEditDialogView({
         <summary className="cursor-pointer select-none py-1 text-xs font-medium text-foreground-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
           {labels.feedInformation}
         </summary>
-        <div className="pt-1">
-          {urlFields.map((field) => (
-            <ReadonlyUrlRow key={field.key} field={field} loading={loading} />
+        <div className="grid gap-2 pt-1">
+          {urlFields.map(({ key, ...field }) => (
+            <FeedUrlRow key={key} {...field} disabled={loading} />
           ))}
         </div>
       </details>

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Globe, Rss } from "lucide-react";
 import { fn } from "storybook/test";
 import { FeedEditDialogView } from "./feed-edit-dialog-view";
 
@@ -19,6 +20,7 @@ const meta = {
     urlFields: [
       {
         key: "website-url",
+        icon: Globe,
         label: "Website URL",
         value: "https://example.com",
         copyLabel: "Copy Website URL",
@@ -26,6 +28,7 @@ const meta = {
       },
       {
         key: "feed-url",
+        icon: Rss,
         label: "Feed URL",
         value: "https://example.com/feed.xml",
         copyLabel: "Copy Feed URL",
@@ -107,6 +110,7 @@ export const Japanese: Story = {
     urlFields: [
       {
         key: "website-url",
+        icon: Globe,
         label: "サイトURL",
         value: "https://example.com",
         copyLabel: "サイトURLをコピー",
@@ -114,9 +118,10 @@ export const Japanese: Story = {
       },
       {
         key: "feed-url",
-        label: "フィードのURL",
+        icon: Rss,
+        label: "フィードURL",
         value: "https://example.com/rss.xml",
-        copyLabel: "フィードのURLをコピー",
+        copyLabel: "フィードURLをコピー",
         onCopy: fn(),
       },
     ],

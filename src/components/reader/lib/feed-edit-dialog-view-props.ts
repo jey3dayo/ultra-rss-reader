@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+import { Globe, Rss } from "lucide-react";
 import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type { FeedDialogSelectOption } from "../feed-dialog-form.types";
 import type { FeedEditDialogController, FeedEditSaveStep } from "../feed-edit-dialog.types";
@@ -87,6 +88,7 @@ export function buildFeedEditDialogViewProps({
         key: "website-url",
         label: t("website_url"),
         value: feedSiteUrl,
+        icon: Globe,
         copyLabel: t("copy_website_url"),
         onCopy: () => {
           void controller.handleCopy(feedSiteUrl);
@@ -99,6 +101,7 @@ export function buildFeedEditDialogViewProps({
               key: "feed-url",
               label: t("feed_url"),
               value: feedUrl,
+              icon: Rss,
               copyLabel: t("copy_feed_url"),
               onCopy: () => {
                 void controller.handleCopy(feedUrl);

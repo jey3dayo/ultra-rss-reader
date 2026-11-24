@@ -92,6 +92,7 @@ const requiredSharedStoryExportsByFilePath = {
   "/src/components/shared/destructive-confirm-dialog-view.stories.tsx": ["Default", "LongCopy", "Pending", "WithError"],
   "/src/components/shared/destructive-dialog-footer.stories.tsx": ["Default", "LongConfirmLabel", "Pending"],
   "/src/components/shared/edit-name-dialog-view.stories.tsx": ["FolderRename", "Loading"],
+  "/src/components/shared/feed-url-row.stories.tsx": ["Disabled", "EmptyValue", "LinkedLabel", "PlainLabel"],
   "/src/components/shared/form-action-buttons.stories.tsx": ["Default", "Disabled", "Loading", "LongLocalizedLabels"],
   "/src/components/shared/gradient-switch.stories.tsx": [
     "Disabled",

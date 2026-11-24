@@ -162,13 +162,9 @@ function buildDetailLinks(
             href: contentUrlHref,
             label: contentUrlLabel,
             icon: Globe,
-            ...(contentUrlDetail
-              ? {
-                  detailText: contentUrlDetail.text,
-                  onCopyDetail: contentUrlDetail.onCopy,
-                  copyDetailLabel: contentUrlDetail.copyLabel,
-                }
-              : {}),
+            value: contentUrlDetail?.text,
+            copyLabel: contentUrlDetail?.copyLabel,
+            onCopy: contentUrlDetail?.onCopy,
           },
         ]
       : []),
@@ -178,13 +174,9 @@ function buildDetailLinks(
             href: feedUrlHref,
             label: feedUrlLabel,
             icon: Rss,
-            ...(feedUrlDetail
-              ? {
-                  detailText: feedUrlDetail.text,
-                  onCopyDetail: feedUrlDetail.onCopy,
-                  copyDetailLabel: feedUrlDetail.copyLabel,
-                }
-              : {}),
+            value: feedUrlDetail?.text,
+            copyLabel: feedUrlDetail?.copyLabel,
+            onCopy: feedUrlDetail?.onCopy,
           },
         ]
       : []),

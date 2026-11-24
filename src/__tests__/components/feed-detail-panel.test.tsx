@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { Globe, Rss } from "lucide-react";
 import { describe, expect, it } from "vitest";
 import { FeedDetailPanel } from "@/design-system";
 
@@ -20,7 +21,7 @@ describe("FeedDetailPanel", () => {
           { label: "フォルダ", value: "Work" },
           { label: "表示", value: "既定の表示" },
         ]}
-        links={[{ href: "https://example.com/help", label: "Help" }]}
+        links={[{ href: "https://example.com/help", label: "Help", icon: Globe }]}
         recentArticlesHeading="最近の記事"
         recentArticles={[
           {
@@ -182,7 +183,7 @@ describe("FeedDetailPanel", () => {
       <FeedDetailPanel
         title="Example Feed"
         metrics={[{ label: "フォルダ", value: "Work" }]}
-        links={[{ href: "https://example.com/rss.xml", label: "公式サイト" }]}
+        links={[{ href: "https://example.com/rss.xml", label: "公式サイト", icon: Rss }]}
         recentArticlesHeading="最近の記事"
         recentArticles={[]}
       />,

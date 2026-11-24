@@ -1,7 +1,8 @@
 import { cn } from "cn";
-import { Copy, ExternalLink, List, type LucideIcon } from "lucide-react";
+import { ExternalLink, List } from "lucide-react";
 import type { ReactNode } from "react";
 import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
+import { FeedUrlRow, type FeedUrlRowProps } from "@/components/shared/feed-url-row";
 import { LabelChip } from "@/components/shared/label-chip";
 import { Link } from "@/components/shared/link";
 import { SurfaceCard } from "@/components/shared/surface-card";
@@ -11,14 +12,7 @@ import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
 type FeedDetailTone = "neutral" | "low" | "medium" | "high";
 type FeedDetailAccentTone = "unread" | "starred";
 
-type FeedDetailLink = {
-  href: string;
-  label: string;
-  icon?: LucideIcon;
-  detailText?: string;
-  onCopyDetail?: () => void;
-  copyDetailLabel?: string;
-};
+type FeedDetailLink = FeedUrlRowProps;
 
 type FeedDetailArticle = {
   id: string;
@@ -327,37 +321,10 @@ function FeedDetailLinks({ links }: { links: FeedDetailLink[] }) {
   }
 
   return (
-    <div className="grid gap-2 text-sm">
-      {links.map((link) => {
-        const LinkIcon = link.icon ?? ExternalLink;
-        return (
-          <div key={link.href}>
-            <div className="flex min-w-0 items-center gap-1.5">
-              <Link variant="detail" href={link.href} target="_blank" rel="noreferrer" className="min-w-0">
-                <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
-                <span className="underline decoration-border underline-offset-4">{link.label}</span>
-              </Link>
-              {link.detailText && link.onCopyDetail && link.copyDetailLabel ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={link.copyDetailLabel}
-                  className="ml-auto size-7 shrink-0 text-foreground-soft hover:text-foreground"
-                  onClick={link.onCopyDetail}
-                >
-                  <Copy className="size-3.5" aria-hidden="true" />
-                </Button>
-              ) : null}
-            </div>
-            {link.detailText ? (
-              <div className="mt-1 min-w-0 pl-5">
-                <span className="break-all text-xs leading-5 text-foreground-soft">{link.detailText}</span>
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
+    <div className="grid gap-2">
+      {links.map((link) => (
+        <FeedUrlRow key={link.href ?? link.label} {...link} />
+      ))}
     </div>
   );
 }

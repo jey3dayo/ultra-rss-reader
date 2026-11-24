@@ -206,7 +206,7 @@ const meta = {
     reasonHeading: "Review reason",
     recentArticlesHeading: "Recent articles",
     feedUrlLabel: "Open RSS feed",
-    contentUrlLabel: "Content URL",
+    contentUrlLabel: "Website URL",
     displayModeLabel: "Display mode",
     displayModeValue: "Default",
     dateLocale: "en-US",

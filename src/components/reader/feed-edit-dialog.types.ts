@@ -1,16 +1,13 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { RefObject } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { FeedUrlRowProps } from "@/design-system";
 import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/articles/article-display";
-import type {
-  FeedDialogControllerFolderSelectProps,
-  FeedDialogFolderSelectionParams,
-  FeedDialogReadonlyFieldProps,
-} from "./feed-dialog-form.types";
+import type { FeedDialogControllerFolderSelectProps, FeedDialogFolderSelectionParams } from "./feed-dialog-form.types";
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
 export type FeedEditTitleError = "required";
-export type FeedEditDialogUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
+export type FeedEditDialogUrlField = FeedUrlRowProps & { key: string };
 
 type FeedEditErrorLike = {
   message: string;

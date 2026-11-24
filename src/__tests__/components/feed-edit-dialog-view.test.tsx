@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Globe, Rss } from "lucide-react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { FeedEditDialogView } from "@/components/reader/feed-edit-dialog-view";
@@ -34,6 +35,7 @@ describe("FeedEditDialogView", () => {
         urlFields={[
           {
             key: "site-url",
+            icon: Globe,
             label: "Website URL",
             value: "https://example.com",
             copyLabel: "Copy Website URL",
@@ -41,6 +43,7 @@ describe("FeedEditDialogView", () => {
           },
           {
             key: "feed-url",
+            icon: Rss,
             label: "Feed URL",
             value: "https://example.com/feed.xml",
             copyLabel: "Copy Feed URL",
