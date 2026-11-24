@@ -42,6 +42,12 @@ describe("localizeUserVisibleAppErrorMessage", () => {
     ["Only http:// and https:// URLs are supported", "http:// または https:// の URL のみ使用できます"],
     ["Article URLs must not include credentials", "記事の URL にユーザー名やパスワードを含めることはできません"],
     ["Invalid clipboard text", "コピーできないテキストです"],
+    [
+      "Requests to private/loopback addresses are not allowed",
+      "プライベート / ループバックアドレスの URL は使用できません",
+    ],
+    ["URLs with embedded credentials are not allowed", "URL にユーザー名やパスワードを含めることはできません"],
+    ["URLs must include a host", "URL にホストが含まれていません"],
   ])("localizes the frontend-owned message %j in ja and keeps English in en", async (message, japanese) => {
     const originalLanguage = i18n.language;
     try {
@@ -51,6 +57,25 @@ describe("localizeUserVisibleAppErrorMessage", () => {
 
       await i18n.changeLanguage("en");
       expect(localizeUserVisibleAppErrorMessage(message)).toBe(message);
+    } finally {
+      await i18n.changeLanguage(originalLanguage);
+    }
+  });
+
+  it("localizes a known message wrapped in the command validation prefix", async () => {
+    const wrapped = "Command validation failed: url: Requests to private/loopback addresses are not allowed";
+    const originalLanguage = i18n.language;
+    try {
+      await i18n.changeLanguage("ja");
+      expect(isLocalizableUserVisibleAppErrorMessage(wrapped)).toBe(true);
+      expect(localizeUserVisibleAppErrorMessage(wrapped)).toBe(
+        "プライベート / ループバックアドレスの URL は使用できません",
+      );
+
+      await i18n.changeLanguage("en");
+      expect(localizeUserVisibleAppErrorMessage(wrapped)).toBe(
+        "Requests to private/loopback addresses are not allowed",
+      );
     } finally {
       await i18n.changeLanguage(originalLanguage);
     }

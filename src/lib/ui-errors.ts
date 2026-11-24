@@ -4,6 +4,9 @@ export type SchemaParseErrorSurface = "user-facing" | "diagnostics";
 
 export const RESPONSE_VALIDATION_MESSAGE = "Response validation failed. See diagnostics for details.";
 export const UNSUPPORTED_HTTP_URL_MESSAGE = "Only http:// and https:// URLs are supported";
+export const PRIVATE_OR_LOOPBACK_URL_MESSAGE = "Requests to private/loopback addresses are not allowed";
+export const EMBEDDED_CREDENTIALS_URL_MESSAGE = "URLs with embedded credentials are not allowed";
+export const MISSING_HOST_URL_MESSAGE = "URLs must include a host";
 export const ARTICLE_URL_CREDENTIALS_MESSAGE = "Article URLs must not include credentials";
 export const INVALID_CLIPBOARD_TEXT_MESSAGE = "Invalid clipboard text";
 
