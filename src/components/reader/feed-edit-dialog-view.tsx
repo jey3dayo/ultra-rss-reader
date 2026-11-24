@@ -189,7 +189,7 @@ export function FeedEditDialogView({
         </summary>
         <div className="grid gap-2 pt-1">
           {urlFields.map(({ key, ...field }) => (
-            <FeedUrlRow key={key} {...field} disabled={loading} />
+            <FeedUrlRow key={key} {...field} disabled={loading || field.disabled} />
           ))}
         </div>
       </details>

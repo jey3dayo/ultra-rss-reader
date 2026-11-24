@@ -205,7 +205,7 @@ const meta = {
     starredCountLabel: "Starred",
     reasonHeading: "Review reason",
     recentArticlesHeading: "Recent articles",
-    feedUrlLabel: "Open RSS feed",
+    feedUrlLabel: "Feed URL",
     contentUrlLabel: "Website URL",
     displayModeLabel: "Display mode",
     displayModeValue: "Default",
