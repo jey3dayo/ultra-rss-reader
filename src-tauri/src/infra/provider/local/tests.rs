@@ -1338,7 +1338,7 @@ async fn create_subscription_returns_network_error_for_http_status_failure() {
 }
 
 #[tokio::test]
-async fn create_subscription_rejects_loopback_feed_url_before_http_request() {
+async fn create_subscription_accepts_loopback_feed_url() {
     let mut server = mockito::Server::new_async().await;
     let mock = server
         .mock("GET", "/feed.xml")
@@ -1349,13 +1349,13 @@ async fn create_subscription_rejects_loopback_feed_url_before_http_request() {
     let feed_url = format!("{}/feed.xml", server.url());
 
     let provider = LocalProvider::new();
-    let error = provider
+    let subscription = provider
         .create_subscription(&feed_url, None)
         .await
-        .expect_err("loopback feed URL should be rejected before request");
+        .expect("loopback feed URL the user entered should be accepted");
 
-    assert!(matches!(error, DomainError::Validation(_)));
-    assert!(!mock.matched_async().await);
+    assert_eq!(subscription.remote_id, feed_url);
+    mock.assert_async().await;
 }
 
 #[tokio::test]
