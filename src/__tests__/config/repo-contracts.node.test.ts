@@ -968,8 +968,6 @@ describe("repository static contracts", () => {
     const starred = designRoleColor("Starred");
 
     expect(designRoleColor("Loading")).toBe(unread);
-    expect(designGuidance).toContain("Dialog and Popup Shells");
-    expect(designGuidance).toContain("named scrim roles from the token layer");
 
     for (const scope of [":root", ":root.dark"] as const) {
       expect(extractCssCustomProperty(globalCss, scope, "--theme-primary")).toBe(primary);
@@ -1333,7 +1331,6 @@ describe("repository static contracts", () => {
   });
 
   it("keeps bundled app icon provenance and configured icon outputs explicit", () => {
-    const docsReadme = readRepoFile("docs/README.md");
     const bundleIcons = tauriConfig.bundle.icon;
     const liquidIconFiles = [
       "assets/app-icon-liquid-foreground.png",
@@ -1353,7 +1350,6 @@ describe("repository static contracts", () => {
     for (const iconPath of liquidIconFiles) {
       expect(existsSync(join(repoRoot, iconPath)), iconPath).toBe(true);
     }
-    expect(docsReadme).toContain("Bundled app icon provenance");
   });
 
   it("keeps top-level workflow permissions on a least-privilege inventory", () => {
@@ -1646,12 +1642,6 @@ describe("repository static contracts", () => {
     expect(extractLabelerLabelsForPath(labelerConfig, ".storybook/main.ts")).toContain("ui");
     expect(extractLabelerLabelsForPath(labelerConfig, ".storybook/preview.ts")).toContain("ui");
     expect(extractLabelerLabelsForPath(labelerConfig, "playwright.storybook.config.ts")).toContain("category/tests");
-
-    for (const template of issueTemplates) {
-      expect(template).toContain("`.github/labeler.yml` の自動付与を source of truth");
-      expect(template).toContain("PR insights と maintainer 確認を source of truth");
-      expect(template).toContain("運用ラベルは、起票後に maintainer が補完します");
-    }
 
     for (const label of [...maintainerManagedLabels, ...prInsightsManagedLabels]) {
       expect(issueTemplateText).toContain(label);

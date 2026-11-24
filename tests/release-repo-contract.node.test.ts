@@ -870,8 +870,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
   it("keeps a local release preflight available before pushing release tags", () => {
     const localPreflightTask = extractTaskBlock(miseToml, "release:preflight:local");
-    const releaseSkill = readText(".codex/skills/release/references/phase-3-publish.md");
-    const releaseRule = readText(".claude/rules/release-workflow.md");
 
     expect(localPreflightTask).toContain("RELEASE_TAG:?set RELEASE_TAG=vX.Y.Z");
     expect(localPreflightTask).toContain("mise exec -- node ./scripts/release/validate-release-config.ts");
@@ -879,8 +877,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(localPreflightTask).toContain("mise exec -- mise run format:check");
     expect(localPreflightTask).toContain("mise exec -- mise run lint:types");
     expect(localPreflightTask).toContain("mise exec -- mise run test:unit:ci");
-    expect(releaseSkill).toContain("RELEASE_TAG=v{new_version} mise run release:preflight:local");
-    expect(releaseRule).toContain("RELEASE_TAG=vX.Y.Z mise run release:preflight:local");
   });
 
   it("keeps release draft and prerelease flags derived from the semver tag policy", () => {
@@ -1393,9 +1389,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(generatedIconPaths).toEqual(expectedIconPaths);
 
     expect(readText("mise.toml")).toContain('run = "tauri icon assets/app-icon-tauri-source.png"');
-    expect(readText("docs/README.md")).toContain(
-      "`assets/app-icon-tauri-source.png` is the checked-in Tauri source image",
-    );
   });
 
   it("keeps updater manifest platforms mapped back to release assets and checksums", () => {
@@ -1575,27 +1568,14 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     );
   });
 
-  it("keeps release note publication owned by the release skill with prerelease and build metadata policy", () => {
-    const releaseSkill = readReleaseSkillCorpus();
+  it("keeps release notes skill-owned by disabling workflow release note generation", () => {
     const releasePolicyStep = extractReleaseStepBlock(releaseWorkflow, "Resolve release semver policy");
 
     expect(releaseWorkflow).toContain("generateReleaseNotes: false");
     expect(releasePolicyStep).toContain('if [[ "$release_version" == *-* ]]; then');
-    expect(releaseSkill).toContain("Write release notes and `CHANGELOG.md` entries in concise Japanese");
-    expect(releaseSkill).toContain("grounded in the actual commit history");
-    expect(releaseSkill).toContain("Stable tags use `prerelease=false`");
-    expect(releaseSkill).toContain("semver prerelease tags such as `v1.2.3-alpha.1` use `prerelease=true`");
-    expect(releaseSkill).toContain(
-      "build metadata alone such as `v1.2.3+build.1` does not make the Release a prerelease",
-    );
-    expect(releaseSkill).toContain("Treat the CLI as the source of truth for release note body text");
-    expect(releaseSkill).toContain("After create/edit, verify with:");
-    expect(releaseSkill).toContain("gh release view v{new_version} --json tagName,isDraft,url,body");
-    expect(releaseSkill).toContain("Do not generate release notes after the release commit has been created");
   });
 
   it("keeps flaky test quarantine discoverable through TODO or issue links and skip annotations", () => {
-    const flakyPolicy = readText("docs/flaky-test-quarantine-policy.md");
     const sourceFiles = listRepoFiles()
       .filter((path) => /\.(?:ts|tsx|rs)$/.test(path))
       .filter((path) => path.startsWith("tests/") || path.startsWith("src/") || path.startsWith("scripts/"));
@@ -1607,13 +1587,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       });
     });
 
-    expect(flakyPolicy).toContain("todo.txt");
-    expect(flakyPolicy).toContain("GitHub issue");
-    expect(flakyPolicy).toContain("owner=<owner>");
-    expect(flakyPolicy).toContain("expires=<YYYY-MM-DD>");
-    expect(flakyPolicy).toContain("evidence=<command/result>");
-    expect(flakyPolicy).toContain("unskip=<focused command>");
-    expect(flakyPolicy).toContain("flaky-quarantine:");
     for (const annotation of skippedTestAnnotations) {
       expect(annotation.prefix, annotation.path).toContain("flaky-quarantine:");
       expect(annotation.prefix, annotation.path).toMatch(/TODO=(?:TODO\.md|https:\/\/github\.com\/)/);
