@@ -47,6 +47,7 @@ function SelectPopup({ className, children, ...props }: SelectPopupProps) {
         data-slot="select-positioner"
         className={APP_STACKING_CLASS_NAMES.popup}
         sideOffset={8}
+        alignItemWithTrigger={false}
       >
         <SelectPrimitive.Popup
           data-slot="select-popup"
