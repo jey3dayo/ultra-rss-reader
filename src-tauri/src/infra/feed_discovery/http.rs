@@ -1,6 +1,8 @@
+use std::net::IpAddr;
 use std::sync::Arc;
 
 use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::url_policy::{is_private_host, validate_user_provided_feed_url};
 use crate::infra::provider::http_defaults;
 
 use super::{
@@ -24,6 +26,10 @@ pub(crate) fn discovery_http_client_builder() -> reqwest::ClientBuilder {
 pub(crate) fn discovery_http_client_builder_for_url(
     url: &reqwest::Url,
 ) -> DomainResult<reqwest::ClientBuilder> {
+    if url.host_str().is_some_and(is_private_host) {
+        return discovery_http_client_builder_for_user_selected_url(url);
+    }
+
     let resolved_addresses = validate_and_resolve_discovery_request_url(url)?;
     let Some(host) = url.host_str() else {
         return Ok(discovery_http_client_builder());
@@ -38,6 +44,32 @@ pub(crate) fn discovery_http_client_builder_for_url(
     Ok(discovery_http_client_builder()
         .dns_resolver(Arc::new(resolver))
         .resolve_to_addrs(host, &resolved_addresses))
+}
+
+/// Builds the discovery client for a feed URL whose host is private or
+/// local-network: the user explicitly entered the URL, so the host is exempt
+/// from the public-address filter (the same treatment as a user-provided
+/// server endpoint). Redirects may only stay on that initial host; hops to
+/// any other host go through the normal public validation.
+fn discovery_http_client_builder_for_user_selected_url(
+    url: &reqwest::Url,
+) -> DomainResult<reqwest::ClientBuilder> {
+    validate_user_provided_feed_url(url)?;
+    let host = url.host_str().unwrap_or_default();
+    let resolver = validated_public_dns_resolver();
+    if host.parse::<IpAddr>().is_err() {
+        resolver.seed_user_selected_host(host)?;
+    }
+
+    Ok(http_defaults::http_client_builder()
+        .user_agent(DISCOVERY_USER_AGENT_POLICY)
+        .dns_resolver(Arc::new(resolver))
+        .redirect(
+            http_defaults::provider_redirect_policy_for_initial_private_host(
+                Some(host.to_owned()),
+                validate_discovery_url,
+            ),
+        ))
 }
 
 pub(crate) fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {

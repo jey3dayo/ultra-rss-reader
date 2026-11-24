@@ -30,13 +30,13 @@ const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
     </channel>
     </rss>"#;
 
-fn local_provider_allowing_private_feed_urls() -> LocalProvider {
-    LocalProvider::new_allowing_private_feed_urls_for_tests()
+fn local_provider() -> LocalProvider {
+    LocalProvider::new()
 }
 
 #[tokio::test]
 async fn local_client_build_failure_is_returned_to_provider_operation() {
-    let mut provider = local_provider_allowing_private_feed_urls();
+    let mut provider = local_provider();
     provider.http_client = Err(DomainError::Network(
         "provider client build failed".to_string(),
     ));
@@ -125,7 +125,7 @@ async fn pull_entries_fetches_and_parses() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/feed.xml", server.url()),
     });
@@ -158,7 +158,7 @@ async fn pull_entries_uses_redirect_final_url_as_entry_source() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let result = provider
         .pull_entries(
             PullScope::Feed(FeedIdentifier::Local {
@@ -280,7 +280,7 @@ async fn local_provider_limits_concurrent_feed_requests_per_instance() {
         }
     });
 
-    let provider = Arc::new(local_provider_allowing_private_feed_urls());
+    let provider = Arc::new(local_provider());
     let feed_url = format!("http://{address}/feed.xml");
     let first_provider = Arc::clone(&provider);
     let second_provider = Arc::clone(&provider);
@@ -324,7 +324,7 @@ async fn local_provider_limits_concurrent_feed_requests_per_instance() {
 
 #[tokio::test]
 async fn local_provider_keeps_sync_and_discovery_request_limits_separate() {
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let _sync_permit = provider
         .acquire_sync_request_permit()
         .await
@@ -364,7 +364,7 @@ async fn pull_entries_parses_json_feed_body() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let feed_url = format!("{}/feed.json", server.url());
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: feed_url.clone(),
@@ -403,7 +403,7 @@ async fn pull_entries_sends_conditional_headers_and_returns_response_validators(
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/feed.xml", server.url()),
     });
@@ -449,7 +449,7 @@ async fn pull_entries_persists_bounded_validators_and_ignores_vary() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/feed.xml", server.url()),
     });
@@ -480,7 +480,7 @@ async fn pull_entries_handles_not_modified_without_reparsing_feed() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/feed.xml", server.url()),
     });
@@ -516,7 +516,7 @@ async fn pull_entries_returns_auth_error_for_unauthorized_status() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/private.xml", server.url()),
     });
@@ -540,7 +540,7 @@ async fn pull_entries_returns_rate_limit_error_for_too_many_requests_status() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/rate-limited.xml", server.url()),
     });
@@ -565,7 +565,7 @@ async fn pull_entries_preserves_retry_after_for_rate_limit_status() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/rate-limited.xml", server.url()),
     });
@@ -597,7 +597,7 @@ async fn pull_entries_rejects_oversized_feed_body_before_parse() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/oversized.xml", server.url()),
     });
@@ -627,7 +627,7 @@ async fn pull_entries_applies_body_limit_when_content_encoding_is_present() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/oversized-encoded.xml", server.url()),
     });
@@ -667,7 +667,7 @@ async fn pull_entries_applies_body_limit_after_gzip_decoding() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/oversized-gzip.xml", server.url()),
     });
@@ -698,7 +698,7 @@ async fn pull_entries_classifies_short_content_length_body_as_network_error() {
     ))
     .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: server.url("/feed.xml"),
     });
@@ -727,7 +727,7 @@ async fn pull_entries_classifies_premature_chunked_body_eof_as_network_error() {
     ))
     .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: server.url("/feed.xml"),
     });
@@ -795,7 +795,7 @@ async fn pull_entries_uses_304_response_validators_when_present() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/feed.xml", server.url()),
     });
@@ -856,17 +856,17 @@ async fn validate_feed_url_returns_resolved_addresses_to_pin_in_production_mode(
 }
 
 #[tokio::test]
-async fn validate_feed_url_skips_pinning_addresses_in_private_allowed_mode() {
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+async fn validate_feed_url_skips_pinning_addresses_for_private_hosts() {
+    let provider = LocalProvider::new();
 
     let (_url, resolved_addrs) = provider
         .validate_feed_url("http://localhost/feed.xml")
         .await
-        .expect("private feed URL should be allowed in the test bypass mode");
+        .expect("user-entered private feed URL should be allowed");
 
     assert!(
         resolved_addrs.is_empty(),
-        "test bypass mode should not resolve or pin addresses"
+        "private feed hosts should not resolve or pin addresses"
     );
 }
 
@@ -879,7 +879,7 @@ async fn pull_entries_rejects_non_local_scope() {
 }
 
 #[tokio::test]
-async fn pull_entries_rejects_loopback_feed_url_before_http_request() {
+async fn pull_entries_fetches_loopback_feed_url() {
     let mut server = mockito::Server::new_async().await;
     let mock = server
         .mock("GET", "/feed.xml")
@@ -892,13 +892,13 @@ async fn pull_entries_rejects_loopback_feed_url_before_http_request() {
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: format!("{}/feed.xml", server.url()),
     });
-    let error = provider
+    let result = provider
         .pull_entries(scope, None)
         .await
-        .expect_err("loopback feed URL should be rejected before request");
+        .expect("user-entered loopback feed URL should be fetched");
 
-    assert!(matches!(error, DomainError::Validation(_)));
-    assert!(!mock.matched_async().await);
+    assert_eq!(result.entries.len(), 1);
+    mock.assert_async().await;
 }
 
 #[test]
@@ -1099,7 +1099,7 @@ async fn create_subscription_uses_feed_url_when_feed_title_and_site_link_are_mis
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.remote_id, feed_url);
@@ -1132,7 +1132,7 @@ async fn create_subscription_uses_feed_url_when_site_link_is_blank() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.title, "Blank Site Link Feed");
@@ -1152,7 +1152,7 @@ async fn create_subscription_sends_local_provider_user_agent() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     provider.create_subscription(&feed_url, None).await.unwrap();
 
     mock.assert_async().await;
@@ -1183,7 +1183,7 @@ async fn create_subscription_retains_feed_metadata_when_items_are_incomplete() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.remote_id, feed_url);
@@ -1217,7 +1217,7 @@ async fn create_subscription_prefers_atom_alternate_html_link_over_self_feed_lin
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.site_url, "https://example.com/");
@@ -1279,7 +1279,7 @@ async fn create_subscription_resolves_scheme_relative_site_links_against_feed_ur
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.site_url, "http://example.com/home");
@@ -1309,7 +1309,7 @@ async fn create_subscription_falls_back_to_feed_url_when_site_link_is_invalid_af
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.site_url, feed_url);
@@ -1327,7 +1327,7 @@ async fn create_subscription_returns_network_error_for_http_status_failure() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1369,7 +1369,7 @@ async fn create_subscription_rejects_credential_feed_url_before_http_request() {
         .await;
     let feed_url = server.url().replacen("http://", "http://alice:secret@", 1) + "/feed.xml";
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1393,7 +1393,7 @@ async fn create_subscription_returns_auth_error_for_unauthorized_status() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1414,7 +1414,7 @@ async fn create_subscription_returns_rate_limit_error_for_too_many_requests_stat
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1436,7 +1436,7 @@ async fn create_subscription_preserves_retry_after_for_rate_limit_status() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1464,7 +1464,7 @@ async fn create_subscription_returns_parse_error_for_html_success_response() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1519,7 +1519,7 @@ async fn feed_parser_boundary_sniffs_supported_content_type_fallbacks() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
 
     for url in [
         application_xml_url,
@@ -1561,7 +1561,7 @@ async fn feed_parser_boundary_rejects_text_plain_and_json_feed_without_explicit_
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
 
     let text_plain_error = provider
         .create_subscription(&text_plain_url, None)
@@ -1642,7 +1642,7 @@ async fn feed_parser_boundary_handles_charset_bom_and_xml_declaration_corpus() {
         );
     }
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     for ((_, _, expected_title), feed_url) in corpus.iter().zip(feed_urls.iter()) {
         let subscription = provider.create_subscription(feed_url, None).await.unwrap();
         assert_eq!(subscription.title, *expected_title);
@@ -1670,7 +1670,7 @@ async fn feed_parser_boundary_falls_back_to_feed_url_when_invalid_bytes_drop_tit
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     // feed-rs >=2.4 drops the invalid-byte title entirely (None instead of
@@ -1705,7 +1705,7 @@ async fn feed_parser_boundary_rejects_nested_entity_doctype() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1738,7 +1738,7 @@ async fn feed_parser_boundary_rejects_external_entity_doctype() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let error = provider
         .create_subscription(&feed_url, None)
         .await
@@ -1765,7 +1765,7 @@ async fn feed_parser_boundary_accepts_large_text_node_with_response_size_cap() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.title.len(), large_title.len());
@@ -1803,7 +1803,7 @@ async fn pull_entries_smoke_parses_many_large_entries_under_body_cap() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let result = provider
         .pull_entries(
             PullScope::Feed(FeedIdentifier::Local {
@@ -1849,7 +1849,7 @@ async fn create_subscription_copies_feed_icon_url() {
         .create_async()
         .await;
 
-    let provider = local_provider_allowing_private_feed_urls();
+    let provider = local_provider();
     let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
     assert_eq!(subscription.title, "Atom Feed");

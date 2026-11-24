@@ -1,6 +1,10 @@
 import * as v from "valibot";
 import { type HostPrivacyPolicy, isHostBlockedByPolicy } from "@/lib/runtime/host-privacy";
-import { PRIVATE_OR_LOOPBACK_URL_MESSAGE, UNSUPPORTED_HTTP_URL_MESSAGE } from "@/lib/ui-errors";
+import {
+  EMBEDDED_CREDENTIALS_URL_MESSAGE,
+  PRIVATE_OR_LOOPBACK_URL_MESSAGE,
+  UNSUPPORTED_HTTP_URL_MESSAGE,
+} from "@/lib/ui-errors";
 import { controlCharPattern, READING_LIST_URL_MAX_BYTES, textEncoder, whitespacePattern } from "./shared";
 
 export function hasHttpUrlCredentials(value: string): boolean {
@@ -71,6 +75,17 @@ export const userNavigationUrlSchema = v.pipe(
 export const automaticRequestUrlSchema = v.pipe(
   httpUrlSchema,
   v.check((url) => !hasBlockedHttpHost(url, "automaticRequest"), PRIVATE_OR_LOOPBACK_URL_MESSAGE),
+);
+
+/**
+ * Feed URLs the user types into the add-feed flow. Like user-provided server
+ * URLs, private and loopback hosts are allowed because a self-hosted feed on
+ * the local network is a supported target. Credentials stay rejected, and the
+ * backend re-validates with the same policy before fetching.
+ */
+export const userProvidedFeedUrlSchema = v.pipe(
+  httpUrlSchema,
+  v.check((url) => !hasHttpUrlCredentials(url), EMBEDDED_CREDENTIALS_URL_MESSAGE),
 );
 
 export const safariReadingListUrlSchema = v.pipe(

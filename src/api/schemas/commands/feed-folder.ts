@@ -2,15 +2,15 @@ import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
 import { FeedDisplayModeSchema } from "../feed";
 import { feedTitleSchema, folderNameSchema, nonBlankTrimmedIdSchema, nullableBlankStringToNullSchema } from "./shared";
-import { automaticRequestUrlSchema } from "./url";
+import { userProvidedFeedUrlSchema } from "./url";
 
 export const listFoldersArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const listFeedsArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const syncFeedArgs = s.object({ feedId: nonBlankTrimmedIdSchema });
-export const discoverFeedsArgs = s.object({ url: automaticRequestUrlSchema });
+export const discoverFeedsArgs = s.object({ url: userProvidedFeedUrlSchema });
 export const addLocalFeedArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
-  url: automaticRequestUrlSchema,
+  url: userProvidedFeedUrlSchema,
 });
 export const createFolderArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,

@@ -74,6 +74,17 @@ pub fn validate_user_provided_server_url(url: &reqwest::Url) -> DomainResult<()>
     Ok(())
 }
 
+/// Validates a feed URL explicitly entered by the user.
+///
+/// Private and local-network hosts are intentionally allowed here because a
+/// self-hosted feed on the user's own network is a supported target, the same
+/// reasoning as [`validate_user_provided_server_url`]. Callers that process
+/// untrusted or content-derived URLs must use
+/// [`validate_public_http_url`] instead.
+pub fn validate_user_provided_feed_url(url: &reqwest::Url) -> DomainResult<()> {
+    validate_user_provided_server_url(url)
+}
+
 pub fn has_url_credentials(url: &reqwest::Url) -> bool {
     !url.username().is_empty() || url.password().is_some()
 }
@@ -187,6 +198,28 @@ mod tests {
         ] {
             let url = reqwest::Url::parse(raw_url).unwrap();
             assert!(validate_user_provided_server_url(&url).is_ok(), "{raw_url}");
+        }
+    }
+
+    #[test]
+    fn user_provided_feed_url_policy_allows_private_endpoints() {
+        for raw_url in [
+            "http://192.168.1.1/rss",
+            "http://localhost:8080/feed.xml",
+            "http://127.0.0.1/feed.xml",
+            "https://nas.local/feed.xml",
+            "https://example.com/feed.xml",
+        ] {
+            let url = reqwest::Url::parse(raw_url).unwrap();
+            assert!(validate_user_provided_feed_url(&url).is_ok(), "{raw_url}");
+        }
+
+        for raw_url in [
+            "https://alice@example.com/feed.xml",
+            "ftp://example.com/feed.xml",
+        ] {
+            let url = reqwest::Url::parse(raw_url).unwrap();
+            assert!(validate_user_provided_feed_url(&url).is_err(), "{raw_url}");
         }
     }
 

@@ -15,14 +15,8 @@ use crate::service::local_account_sync::{
     LocalAccountSyncImportReport,
 };
 
-#[cfg(not(test))]
 pub(crate) fn local_provider() -> LocalProvider {
     LocalProvider::new()
-}
-
-#[cfg(test)]
-pub(crate) fn local_provider() -> LocalProvider {
-    LocalProvider::new_allowing_private_feed_urls_for_tests()
 }
 
 pub(crate) fn local_feed_sync_warning(feed: &Feed, error: &AppError) -> ProviderSyncWarning {
