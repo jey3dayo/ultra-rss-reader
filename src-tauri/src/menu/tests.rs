@@ -244,9 +244,21 @@ fn sync_all_native_accelerator_is_explicitly_owned_by_menu() {
 }
 
 #[test]
-fn fullscreen_native_accelerator_is_f11_outside_macos() {
-    assert_eq!(fullscreen_menu_accelerator(true), "Ctrl+CmdOrCtrl+F");
-    assert_eq!(fullscreen_menu_accelerator(false), "F11");
+fn fullscreen_native_accelerator_is_macos_only() {
+    assert_eq!(fullscreen_menu_accelerator(true), Some("Ctrl+CmdOrCtrl+F"));
+    assert_eq!(fullscreen_menu_accelerator(false), None);
+}
+
+#[test]
+fn fullscreen_menu_label_hints_f11_outside_macos() {
+    assert_eq!(
+        fullscreen_menu_label("Toggle fullscreen", true),
+        "Toggle fullscreen"
+    );
+    assert_eq!(
+        fullscreen_menu_label("Toggle fullscreen", false),
+        "Toggle fullscreen\tF11"
+    );
 }
 
 #[test]
