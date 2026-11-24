@@ -7,15 +7,19 @@ use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
-use crate::domain::provider::{FeedIdentifier, ProviderKind};
+use crate::domain::provider::{FeedIdentifier, ProviderKind, RemoteEntry};
 use crate::domain::types::{AccountId, FeedId};
+use crate::domain::url_policy::validate_user_provided_feed_url;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
+use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::keyring_store::CredentialLookupMode;
 use crate::infra::provider::traits::FeedProvider;
 use crate::repository::account::AccountRepository;
+use crate::repository::article::{ArticleMutationRepository, ArticleReadRepository, Pagination};
 use crate::repository::feed::FeedRepository;
+use crate::service::article_materializer::article_from_remote_entry;
 
 use super::{lock_db, validate_feed_title};
 
@@ -221,5 +225,118 @@ pub(crate) fn rename_feed_in_db(
     let title = validate_feed_title(&title)?;
     let repo = SqliteFeedRepository::new(db.writer());
     repo.rename(&FeedId(feed_id), &title)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_feed_url(
+    state: State<'_, AppState>,
+    feed_id: String,
+    url: String,
+) -> Result<(), AppError> {
+    update_feed_url_with_boundary(&state.db, state.syncing.as_ref(), feed_id, url)
+}
+
+pub(crate) fn update_feed_url_with_boundary(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+    url: String,
+) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
+    let feed_id_typed = FeedId(feed_id.clone());
+    let feed = {
+        let db = lock_db(db)?;
+        load_feed_for_delete(&db, &feed_id_typed)?
+    };
+    let account = {
+        let db = lock_db(db)?;
+        load_delete_feed_account(&db, &feed.account_id)?
+    };
+    if !matches!(account.kind, ProviderKind::Local) {
+        return Err(AppError::UserVisible {
+            message: "Feed URL can only be changed for local feeds".into(),
+        });
+    }
+    let url = normalize_feed_url_input(&url)?;
+    let db = lock_db(db)?;
+    update_feed_url_in_db(&db, &feed, &url)
+}
+
+fn normalize_feed_url_input(url: &str) -> Result<String, AppError> {
+    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| AppError::UserVisible {
+        message: "Feed URL must be a valid URL".into(),
+    })?;
+    validate_user_provided_feed_url(&parsed)?;
+    Ok(parsed.to_string())
+}
+
+pub(crate) fn update_feed_url_in_db(
+    db: &DbManager,
+    feed: &Feed,
+    url: &str,
+) -> Result<(), AppError> {
+    let feed_repo = SqliteFeedRepository::new(db.reader());
+    for existing in [
+        feed_repo.find_by_url(&feed.account_id, url)?,
+        feed_repo.find_by_remote_id(&feed.account_id, url)?,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if existing.id != feed.id {
+            return Err(AppError::UserVisible {
+                message: "Feed URL is already subscribed".into(),
+            });
+        }
+    }
+
+    // Article IDs derive from the feed URL, so re-key the feed's articles to
+    // the IDs the materializer will produce for the same entries fetched
+    // from the new URL. Otherwise the next sync would insert them again as
+    // unread duplicates.
+    let article_repo = SqliteArticleRepository::new(db.reader());
+    let mut id_pairs = Vec::new();
+    let mut moved_feed = feed.clone();
+    moved_feed.url = url.to_string();
+    moved_feed.remote_id = Some(url.to_string());
+    let mut offset = 0;
+    loop {
+        let page = article_repo.find_by_feed(&feed.id, &Pagination { offset, limit: 500 })?;
+        let page_len = page.len();
+        for article in page {
+            let entry = RemoteEntry {
+                id: article.remote_id.clone(),
+                source_feed_id: FeedIdentifier::Local {
+                    feed_url: url.to_string(),
+                },
+                title: article.title.clone(),
+                content: article.content_raw.clone(),
+                summary: article.summary.clone(),
+                url: article.url.clone(),
+                published_at: Some(article.published_at),
+                updated_at: None,
+                thumbnail: article.thumbnail.clone(),
+                author: article.author.clone(),
+                is_read: Some(article.is_read),
+                is_starred: Some(article.is_starred),
+            };
+            let new_id = article_from_remote_entry(&feed.account_id, &moved_feed, &entry).id;
+            if new_id != article.id {
+                id_pairs.push((article.id, new_id));
+            }
+        }
+        if page_len < 500 {
+            break;
+        }
+        offset += page_len;
+    }
+
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    feed_repo.update_url(&feed.id, url)?;
+    if !id_pairs.is_empty() {
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        article_repo.reassign_ids(&id_pairs)?;
+    }
     Ok(())
 }

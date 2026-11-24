@@ -259,6 +259,7 @@ mod tests {
             "update_connection_verification",
             "update_unread_count",
             "update_folder",
+            "update_url",
             "update_display_settings",
             "update_scope",
             "update_sanitized",
@@ -277,6 +278,7 @@ mod tests {
             "mark_as_starred",
             "purge_old_read",
             "apply_remote_state",
+            "reassign_ids",
             "tag_article",
             "untag_article",
         ];

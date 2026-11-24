@@ -10,6 +10,9 @@ const tc = i18n.getFixedT("en", "common");
 function createController(overrides: Partial<FeedEditDialogController> = {}): FeedEditDialogController {
   return {
     title: "Daily Feed",
+    feedUrl: "https://example.com/feed.xml",
+    feedUrlEditable: false,
+    setFeedUrl: vi.fn(),
     loading: false,
     displayPreset: "default",
     titleError: null,

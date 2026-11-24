@@ -224,6 +224,7 @@
   "display_mode_preview": "本文 + Webプレビュー",
   "display_mode_default": "既定の表示",
   "failed_to_rename": "名前の変更に失敗しました: {{message}}",
+  "failed_to_update_feed_url": "フィードURLの変更に失敗しました: {{message}}",
   "failed_to_update_folder": "フォルダの更新に失敗しました: {{message}}",
   "failed_to_update_display_settings": "表示設定の更新に失敗しました: {{message}}",
   "partial_save_summary": "一部の変更のみ保存されました",

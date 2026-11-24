@@ -329,6 +329,7 @@ pub fn run() {
             commands::feed_commands::add_local_feed,
             commands::feed_commands::delete_feed,
             commands::feed_commands::rename_feed,
+            commands::feed_commands::update_feed_url,
             commands::feed_commands::update_feed_folder,
             commands::feed_commands::update_feed_display_settings,
             commands::feed_commands::discover_feeds,

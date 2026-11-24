@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { renameFeed } from "@/api/tauri-commands";
+import { renameFeed, updateFeedUrl } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
 import { invalidateFeedEditQueries } from "@/lib/query/query-invalidation";
@@ -38,12 +38,14 @@ export function validateFeedEditTitle(title: string): FeedEditTitleError | null 
 export async function submitFeedEdits({
   feed,
   title,
+  feedUrl,
   displayPreset,
   folderSelection,
   queryClient,
   reportError,
   createFolderErrorMessage,
   renameErrorMessage,
+  updateUrlErrorMessage,
   updateFeedFolder,
   updateDisplaySettings,
 }: SubmitFeedEditsParams): Promise<SubmitFeedEditsResult> {
@@ -63,10 +65,13 @@ export async function submitFeedEdits({
 
   const resolvedFolderId = Result.unwrap(folderResult);
   const didRename = trimmed !== feed.title;
+  const trimmedFeedUrl = feedUrl?.trim() ?? null;
+  const didUpdateUrl = trimmedFeedUrl !== null && trimmedFeedUrl !== feed.url;
   const didMoveFolder = resolvedFolderId !== feed.folder_id;
   const currentDisplayPreset = resolveFeedDisplayPreset(feed);
   const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
   let renameSucceeded = true;
+  let urlSucceeded = true;
   let folderMoveSucceeded = true;
   let displaySettingsSucceeded = true;
 
@@ -79,6 +84,19 @@ export async function submitFeedEdits({
       Result.inspectError((error) => {
         renameSucceeded = false;
         reportError(renameErrorMessage(error));
+      }),
+    );
+  }
+
+  if (didUpdateUrl) {
+    Result.pipe(
+      await updateFeedUrl(feed.id, trimmedFeedUrl),
+      Result.inspect(() => {
+        urlSucceeded = true;
+      }),
+      Result.inspectError((error) => {
+        urlSucceeded = false;
+        reportError(updateUrlErrorMessage(error));
       }),
     );
   }
@@ -99,13 +117,17 @@ export async function submitFeedEdits({
     queryClient,
     (didMoveFolder && folderMoveSucceeded) ||
       (didRename && renameSucceeded) ||
+      (didUpdateUrl && urlSucceeded) ||
       (didUpdateDisplayMode && displaySettingsSucceeded),
   );
 
-  const success = renameSucceeded && folderMoveSucceeded && displaySettingsSucceeded;
+  const success = renameSucceeded && urlSucceeded && folderMoveSucceeded && displaySettingsSucceeded;
   const outcomes: FeedEditStepOutcome[] = [];
   if (didRename) {
     outcomes.push({ step: "rename", succeeded: renameSucceeded });
+  }
+  if (didUpdateUrl) {
+    outcomes.push({ step: "url", succeeded: urlSucceeded });
   }
   if (didMoveFolder) {
     outcomes.push({ step: "folder", succeeded: folderMoveSucceeded });

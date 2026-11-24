@@ -25,6 +25,10 @@ export const renameFeedArgs = s.object({
   feedId: nonBlankTrimmedIdSchema,
   title: feedTitleSchema,
 });
+export const updateFeedUrlArgs = s.object({
+  feedId: nonBlankTrimmedIdSchema,
+  url: userProvidedFeedUrlSchema,
+});
 export const updateFeedFolderArgs = s.object({
   feedId: nonBlankTrimmedIdSchema,
   folderId: nullableBlankStringToNullSchema,

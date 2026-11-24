@@ -20,6 +20,11 @@ pub trait FeedRepository {
     /// local account sync.
     fn discard_failed_subscription(&self, feed_id: &FeedId) -> DomainResult<()>;
     fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()>;
+    /// Points a local feed at a new URL, keeping its identity. The local
+    /// remote_id is the URL, so both move together. Callers must re-key the
+    /// feed's articles to the new URL as well (article IDs derive from it);
+    /// see `update_feed_url`.
+    fn update_url(&self, feed_id: &FeedId, url: &str) -> DomainResult<()>;
     fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()>;
     fn update_display_settings(
         &self,

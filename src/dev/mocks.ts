@@ -1258,6 +1258,16 @@ export function setupDevMocks(): RestoreDevMocks {
         return null;
       }
 
+      case "update_feed_url": {
+        const { feedId, url } = parseBrowserMockArgs("update_feed_url", rawIpcPayload);
+        const urlFeed = mockFeeds.find((f) => f.id === feedId);
+        if (urlFeed) {
+          urlFeed.url = url;
+          urlFeed.remote_id = url;
+        }
+        return null;
+      }
+
       case "update_feed_display_settings": {
         const { feedId, readerMode, webPreviewMode } = parseBrowserMockArgs(
           "update_feed_display_settings",

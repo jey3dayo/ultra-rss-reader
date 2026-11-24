@@ -57,6 +57,7 @@ import {
   syncFeedArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
+  updateFeedUrlArgs,
 } from "./feed-folder";
 import {
   addToReadingListArgs,
@@ -138,6 +139,7 @@ export const commandArgsSchemas = {
   create_folder: createFolderArgs,
   delete_feed: deleteFeedArgs,
   rename_feed: renameFeedArgs,
+  update_feed_url: updateFeedUrlArgs,
   rename_folder: renameFolderArgs,
   reorder_folders: reorderFoldersArgs,
   reset_folder_order: resetFolderOrderArgs,

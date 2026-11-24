@@ -110,6 +110,21 @@ pub(super) fn insert_test_feed(db: &DbManager, account_id: &AccountId) -> FeedId
     id
 }
 
+pub(super) fn insert_test_feed_with_url(
+    db: &DbManager,
+    account_id: &AccountId,
+    url: &str,
+) -> FeedId {
+    let id = FeedId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO feeds (id, account_id, title, url, remote_id) VALUES (?1, ?2, ?3, ?4, ?4)",
+            params![id.0, account_id.0, "Feed", url],
+        )
+        .unwrap();
+    id
+}
+
 pub(super) fn insert_remote_test_feed(
     db: &DbManager,
     account_id: &AccountId,

@@ -290,6 +290,17 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         Ok(())
     }
 
+    fn update_url(&self, feed_id: &FeedId, url: &str) -> DomainResult<()> {
+        let affected_rows = self.conn.execute(
+            "UPDATE feeds SET url = ?1, remote_id = ?1 WHERE id = ?2",
+            params![url, feed_id.0],
+        )?;
+        if affected_rows == 0 {
+            return Err(DomainError::Validation("feed not found".to_string()));
+        }
+        Ok(())
+    }
+
     fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()> {
         let affected_rows = self.conn.execute(
             "UPDATE feeds

@@ -25,6 +25,7 @@ import {
   resetFolderOrderArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
+  updateFeedUrlArgs,
 } from "@/api/schemas";
 import { safeInvoke } from "./runtime";
 
@@ -99,6 +100,9 @@ export const deleteFeed = (feedId: string) =>
 
 export const renameFeed = (feedId: string, title: string) =>
   safeInvoke("rename_feed", { response: NullResponseSchema, args: renameFeedArgs }, { feedId, title });
+
+export const updateFeedUrl = (feedId: string, url: string) =>
+  safeInvoke("update_feed_url", { response: NullResponseSchema, args: updateFeedUrlArgs }, { feedId, url });
 
 export const updateFeedFolder = (feedId: string, folderId: string | null) =>
   safeInvoke("update_feed_folder", { response: NullResponseSchema, args: updateFeedFolderArgs }, { feedId, folderId });

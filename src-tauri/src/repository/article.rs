@@ -164,6 +164,9 @@ pub trait ArticleHistoryRepository {
 
 pub trait ArticleMutationRepository {
     fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
+    /// Moves articles to new IDs, keeping their tag and view-history links.
+    /// Used when a feed's article ID derivation inputs change (feed URL).
+    fn reassign_ids(&self, pairs: &[(ArticleId, ArticleId)]) -> DomainResult<()>;
     fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
     fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;
     fn mark_muted_unread_as_read(

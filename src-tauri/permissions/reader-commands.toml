@@ -19,6 +19,7 @@ commands.allow = [
   "delete_feed",
   "rename_feed",
   "update_feed_folder",
+  "update_feed_url",
   "update_feed_display_settings",
   "discover_feeds",
   "trigger_sync",

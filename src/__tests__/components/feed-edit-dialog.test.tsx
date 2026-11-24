@@ -488,7 +488,7 @@ describe("FeedEditDialog", () => {
       }
     });
 
-    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
+    render(<FeedEditDialog feed={sampleFeeds[1]} open={true} onOpenChange={vi.fn()} />, {
       wrapper: createQueryWrapper().wrapper,
     });
 
@@ -501,7 +501,7 @@ describe("FeedEditDialog", () => {
     });
     expect(calls).toContainEqual({
       cmd: "copy_to_clipboard",
-      args: { text: "https://example.com/feed.xml" },
+      args: { text: "https://example.com/news.xml" },
     });
   });
 

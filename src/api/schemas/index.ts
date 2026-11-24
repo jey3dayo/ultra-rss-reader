@@ -115,6 +115,7 @@ export {
   updateAccountSyncArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
+  updateFeedUrlArgs,
   updateMuteKeywordArgs,
 } from "./commands";
 export {
