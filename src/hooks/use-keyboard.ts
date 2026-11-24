@@ -339,6 +339,18 @@ export function useKeyboard() {
         return;
       }
 
+      // F11 is advertised by the View menu, but the native menu accelerator does not
+      // reach the app while the webview has focus on Windows, so the key is handled
+      // here instead. The native accelerator is kept on macOS only (Cmd+Ctrl+F).
+      if (e.key === "F11" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        if (!e.repeat) {
+          e.preventDefault();
+          executeAction("toggle-fullscreen");
+          emitDebugInputTrace(`window-key ${e.key} -> toggle-fullscreen`);
+        }
+        return;
+      }
+
       const action = resolveKeyboardAction({
         key: e.key,
         metaKey: e.metaKey,

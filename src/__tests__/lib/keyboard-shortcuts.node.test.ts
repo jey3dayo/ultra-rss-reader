@@ -732,6 +732,17 @@ describe("keyboard shortcut resolver", () => {
     });
   });
 
+  it("reserves F11 for fullscreen so it cannot be rebound to another action", () => {
+    expect(getShortcutConflict("toggle_star", "F11", {})).toEqual({
+      type: "native_menu",
+    });
+    expect(
+      buildKeyToActionMap({
+        shortcut_toggle_star: "F11",
+      }).get("F11"),
+    ).toBeUndefined();
+  });
+
   it("reports the fixed settings shortcut as native menu owned for other custom shortcuts", () => {
     expect(getShortcutConflict("open_command_palette", "⌘,", {})).toEqual({
       type: "native_menu",
