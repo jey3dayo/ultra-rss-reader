@@ -227,8 +227,9 @@ export type ShortcutConflict =
     };
 
 const platformSettingsShortcut = "\u2318+,";
-// F11 is reserved for fullscreen: the View menu advertises it and use-keyboard
-// dispatches toggle-fullscreen for it, so it must not be rebound to another action.
+// F11 is reserved for fullscreen: the View menu advertises it, and it is
+// dispatched by the native menu (macOS/Linux) or by use-keyboard (Windows),
+// so it must not be rebound to another action.
 const nativeMenuOwnedShortcuts = new Set(["\u2318+r", platformSettingsShortcut, "F11"]);
 const renamedShortcutPreferenceEntries = [
   ["shortcut_view_in_browser", "shortcut_open_in_app_browser"],
