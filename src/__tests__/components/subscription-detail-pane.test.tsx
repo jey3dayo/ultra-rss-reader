@@ -425,7 +425,9 @@ describe("SubscriptionDetailPane", () => {
       "justify-center",
       "rounded-md",
       "min-h-11",
-      "bg-surface-1/88",
+      "border",
+      "border-border",
+      "bg-surface-2/85",
       "text-foreground-soft",
     );
     expect(screen.getByRole("button", { name: "Remove" })).toHaveClass(
