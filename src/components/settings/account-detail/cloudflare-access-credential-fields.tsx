@@ -202,6 +202,7 @@ function CloudflareAccessSecretEditor({
         placeholder={clientSecret.placeholder}
         ariaDescribedBy={section.hasSavedSecret ? descriptionId : undefined}
         labelClassName={labelClassName}
+        controlClassName="sm:max-w-none"
         inputClassName={changedInputClassName(clientSecret.changed)}
         labelAccessory={changedLabelAccessory(clientSecret.changed, section.changedFieldLabel)}
         disabled={disabled}
@@ -219,10 +220,7 @@ function CloudflareAccessSecretEditor({
       {section.hasSavedSecret ? (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(180px,220px)_minmax(0,1fr)] lg:gap-x-8">
           <span aria-hidden="true" className="hidden lg:block" />
-          <p
-            id={descriptionId}
-            className="w-full text-sm leading-[1.5] text-foreground-soft sm:max-w-[30rem] lg:ml-auto lg:mr-2"
-          >
+          <p id={descriptionId} className="w-full text-sm leading-[1.5] text-foreground-soft">
             {section.secretDescription}
           </p>
         </div>
@@ -253,7 +251,7 @@ function CloudflareAccessSavedSecret({
 }) {
   return (
     <LabeledControlRow label={section.clientSecret.label} labelClassName={labelClassName}>
-      <div className="flex w-full items-center justify-between gap-3 sm:max-w-[30rem]">
+      <div className="flex w-full items-center justify-between gap-3">
         <span className="flex items-center gap-3 text-sm text-foreground-soft">
           <span>{section.secretSavedLabel}</span>
           <span aria-hidden="true" className="font-mono tracking-[0.2em]">
@@ -320,7 +318,8 @@ function CloudflareAccessInputRows({ section, disabled, labelClassName }: Cloudf
         onBlur={!disabled ? clientId.onBlur : undefined}
         placeholder={clientId.placeholder}
         labelClassName={labelClassName}
-        inputClassName={changedInputClassName(clientId.changed)}
+        controlClassName="sm:max-w-none"
+        inputClassName={cn(changedInputClassName(clientId.changed), "font-mono text-[13px]")}
         labelAccessory={changedLabelAccessory(clientId.changed, section.changedFieldLabel)}
         disabled={disabled}
         errorText={validationError === "client_id_required" ? section.clientIdError : undefined}

@@ -119,6 +119,7 @@ export function AccountCredentialsSectionView({
           onChange={onServerUrlChange}
           onBlur={!disabled ? onServerUrlBlur : undefined}
           labelClassName={labelColumnClassName}
+          controlClassName="sm:max-w-none"
           inputClassName={inputClass("serverUrl")}
           labelAccessory={accessory("serverUrl")}
           errorText={serverUrlErrorText}
@@ -146,6 +147,7 @@ export function AccountCredentialsSectionView({
           onBlur={!disabled ? row.onBlur : undefined}
           placeholder={row.placeholder}
           labelClassName={labelColumnClassName}
+          controlClassName="sm:max-w-none"
           inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
           disabled={disabled}
         />
@@ -158,6 +160,7 @@ export function AccountCredentialsSectionView({
         onChange={onUsernameChange}
         onBlur={!disabled ? onUsernameBlur : undefined}
         labelClassName={labelColumnClassName}
+        controlClassName="sm:max-w-none"
         inputClassName={inputClass("username")}
         labelAccessory={accessory("username")}
         disabled={disabled}
@@ -172,6 +175,7 @@ export function AccountCredentialsSectionView({
         onBlur={!disabled ? onPasswordBlur : undefined}
         placeholder={passwordPlaceholder}
         labelClassName={labelColumnClassName}
+        controlClassName="sm:max-w-none"
         inputClassName={inputClass("password")}
         labelAccessory={accessory("password")}
         disabled={disabled}
@@ -185,7 +189,7 @@ export function AccountCredentialsSectionView({
         />
       )}
       {onOpenCredentialStorage && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
           <SettingsActionButton size="compact" disabled={disabled} onClick={onOpenCredentialStorage}>
             {storageSettingsLabel}
           </SettingsActionButton>
