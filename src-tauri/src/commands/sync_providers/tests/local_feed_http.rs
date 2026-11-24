@@ -18,7 +18,7 @@ async fn sync_local_feed_initial_fetch_saves_articles_and_validators() {
 
     let db = test_db();
     let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
 
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
@@ -80,7 +80,7 @@ async fn sync_local_feed_saves_validators_under_requested_and_redirect_final_sco
 
     let db = test_db();
     let (account, feed) = insert_local_account_and_feed(&db, &requested_feed_url);
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
 
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
@@ -134,7 +134,7 @@ async fn sync_local_feed_keeps_http_validators_in_sync_state_not_feed_http_cache
 
     let db = test_db();
     let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
 
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
@@ -187,7 +187,7 @@ async fn sync_local_feed_returns_post_write_integrity_error() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error = sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .expect_err("post-write integrity failures should be returned");
@@ -275,7 +275,7 @@ async fn sync_local_feed_rolls_back_articles_when_sync_state_save_fails() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error = sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .expect_err("sync_state failure should roll back article writes");
@@ -378,7 +378,7 @@ async fn sync_local_feed_updates_validators_and_article_on_200_response() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .unwrap();
@@ -429,7 +429,7 @@ async fn sync_local_feed_preserves_weak_etag_and_drops_invalid_last_modified() {
 
     let db = test_db();
     let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
 
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
@@ -484,7 +484,7 @@ async fn sync_local_feed_drops_invalid_saved_validators_before_request() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .unwrap();
@@ -526,7 +526,7 @@ async fn sync_local_feed_persists_safe_failure_status_and_preserves_last_success
             .expect("prior sync state should save");
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error = sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .expect_err("HTTP failure should be returned after its status is saved");
@@ -613,7 +613,7 @@ async fn sync_local_feed_returns_persistence_error_when_failure_status_cannot_be
             .expect("status persistence trigger should install");
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error = sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .expect_err("status persistence errors should propagate");
@@ -687,7 +687,7 @@ async fn sync_local_feed_records_article_commit_failure_without_replacing_saved_
             .expect("article commit failure trigger should install");
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error = sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .expect_err("article commit failure should be returned after recording diagnostics");
@@ -790,7 +790,7 @@ async fn sync_local_feed_commit_failure_logs_safely_when_status_save_also_fails(
                 .expect("commit and status failure triggers should install");
         }
 
-        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let provider = LocalProvider::new();
         let error = sync_local_feed(&db, &provider, &account.id, &feed)
             .await
             .expect_err("both commit and status persistence failures should propagate");
@@ -864,7 +864,7 @@ async fn sync_local_feed_failure_log_correlates_safe_reason_with_persisted_diagn
             .await;
         let db = test_db();
         let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
-        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let provider = LocalProvider::new();
         sync_local_feed(&db, &provider, &account.id, &feed)
             .await
             .expect_err("failed fetch should produce a persisted status");
@@ -971,7 +971,7 @@ async fn sync_local_feed_skips_upsert_when_server_returns_not_modified() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .unwrap();
@@ -1113,7 +1113,7 @@ async fn sync_local_feed_repairs_mute_and_unread_count_on_not_modified() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .unwrap();
@@ -1195,7 +1195,7 @@ async fn sync_local_feed_clears_validators_when_server_does_not_support_them() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     sync_local_feed(&db, &provider, &account.id, &feed)
         .await
         .unwrap();

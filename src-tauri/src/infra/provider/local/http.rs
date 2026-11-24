@@ -1,10 +1,10 @@
 use reqwest::header::{ETAG, LAST_MODIFIED};
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{
-    CREDENTIAL_URL_VALIDATION_MESSAGE, PRIVATE_URL_VALIDATION_MESSAGE,
+    is_private_host, CREDENTIAL_URL_VALIDATION_MESSAGE, PRIVATE_URL_VALIDATION_MESSAGE,
     UNSUPPORTED_URL_VALIDATION_MESSAGE,
 };
 #[cfg(test)]
@@ -32,11 +32,9 @@ pub(super) enum FeedResponseContentType {
 }
 
 impl LocalProvider {
-    pub(super) fn build_http_client(
-        allow_private_feed_urls: bool,
-    ) -> DomainResult<reqwest::Client> {
+    pub(super) fn build_http_client() -> DomainResult<reqwest::Client> {
         http_defaults::build_http_client(
-            http_client_builder().redirect(Self::redirect_policy(allow_private_feed_urls)),
+            http_client_builder().redirect(Self::redirect_policy(false)),
         )
     }
 
@@ -88,12 +86,26 @@ impl LocalProvider {
         ) -> DomainResult<()>,
     ) -> DomainResult<reqwest::Client> {
         let shared_client = self.http_client()?;
-        if self.allow_private_feed_urls {
-            return Ok(shared_client.clone());
-        }
         let Some(host) = url.host_str() else {
             return Ok(shared_client.clone());
         };
+        if is_private_host(host) {
+            // The user explicitly entered this feed URL, so its private or
+            // local-network host is a user-selected endpoint: exempt it from
+            // the public-address filter and keep redirects on the same host.
+            if host.parse::<IpAddr>().is_err() {
+                resolver.seed_user_selected_host(host)?;
+            }
+            let builder = http_client_builder()
+                .dns_resolver(Arc::new(resolver))
+                .redirect(
+                    http_defaults::provider_redirect_policy_for_initial_private_host(
+                        Some(host.to_owned()),
+                        validate_discovery_url,
+                    ),
+                );
+            return http_defaults::build_http_client(builder);
+        }
         if !resolved_addrs.is_empty() {
             seed_resolver(&resolver, host, resolved_addrs)?;
         }

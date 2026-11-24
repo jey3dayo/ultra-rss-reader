@@ -13,7 +13,7 @@ use super::http_defaults;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 use crate::domain::url_policy::{
-    validate_http_url_without_credentials, UNSUPPORTED_URL_VALIDATION_MESSAGE,
+    is_private_host, validate_user_provided_feed_url, UNSUPPORTED_URL_VALIDATION_MESSAGE,
 };
 use crate::infra::feed_discovery::resolve_validated_public_addrs_async;
 
@@ -30,7 +30,6 @@ pub struct LocalProvider {
     // Keep setup failures for legacy infallible constructors so the first
     // provider operation returns the error instead of silently using a default client.
     http_client: Result<reqwest::Client, DomainError>,
-    allow_private_feed_urls: bool,
     sync_request_permits: Arc<Semaphore>,
     discovery_request_permits: Arc<Semaphore>,
 }
@@ -43,13 +42,8 @@ impl Default for LocalProvider {
 
 impl LocalProvider {
     pub fn new() -> Self {
-        Self::with_private_feed_url_policy(false)
-    }
-
-    fn with_private_feed_url_policy(allow_private_feed_urls: bool) -> Self {
         Self {
-            http_client: Self::build_http_client(allow_private_feed_urls),
-            allow_private_feed_urls,
+            http_client: Self::build_http_client(),
             sync_request_permits: Arc::new(Semaphore::new(
                 LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT,
             )),
@@ -59,19 +53,9 @@ impl LocalProvider {
         }
     }
 
-    #[doc(hidden)]
-    pub fn new_allowing_private_feed_urls_for_tests() -> Self {
-        Self::with_private_feed_url_policy(true)
-    }
-
     pub fn try_new() -> DomainResult<Self> {
-        Self::try_with_private_feed_url_policy(false)
-    }
-
-    fn try_with_private_feed_url_policy(allow_private_feed_urls: bool) -> DomainResult<Self> {
         Ok(Self {
-            http_client: Ok(Self::build_http_client(allow_private_feed_urls)?),
-            allow_private_feed_urls,
+            http_client: Ok(Self::build_http_client()?),
             sync_request_permits: Arc::new(Semaphore::new(
                 LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT,
             )),
@@ -88,12 +72,15 @@ impl LocalProvider {
         let url = reqwest::Url::parse(feed_url)
             .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
 
-        // Test/bypass mode neither resolves against DNS nor pins the connection,
-        // so it returns no addresses. Production resolves the host and returns the
-        // validated public addresses so the fetch can be pinned to them, closing
-        // the DNS-rebinding window between validation and connect.
-        let resolved_addrs = if self.allow_private_feed_urls {
-            validate_http_url_without_credentials(&url)?;
+        // Feed URLs were explicitly entered by the user, so a private or
+        // local-network host is a supported target: it neither resolves
+        // against DNS nor pins the connection, and the fetch client treats
+        // the host as a user-selected endpoint. Public hosts resolve and
+        // return the validated public addresses so the fetch can be pinned
+        // to them, closing the DNS-rebinding window between validation and
+        // connect.
+        let resolved_addrs = if url.host_str().is_some_and(is_private_host) {
+            validate_user_provided_feed_url(&url)?;
             Vec::new()
         } else {
             resolve_validated_public_addrs_async(&url).await?

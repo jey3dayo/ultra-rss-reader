@@ -350,7 +350,7 @@ describe("command args validation parity", () => {
     ).toThrow();
   });
 
-  it("aligns feed discovery and add URL schemas with browser/open HTTP URL schemas", () => {
+  it("applies the user-provided host policy to feed discovery and add URL schemas", () => {
     const cases = [
       {
         label: "uppercase scheme",
@@ -373,11 +373,42 @@ describe("command args validation parity", () => {
       { label: "ftp URL", input: "ftp://example.com/feed.xml", valid: false },
       { label: "mailto URL", input: "mailto:reader@example.com", valid: false },
       { label: "newline URL", input: "https://example.com/\nfeed.xml", valid: false },
-      { label: "mixed-case localhost", input: "http://LOCALHOST./feed.xml", valid: false },
-      { label: "private IPv4", input: "http://192.168.1.2/feed.xml", valid: false },
+      {
+        label: "mixed-case localhost",
+        input: "http://LOCALHOST./feed.xml",
+        valid: false,
+        feedValid: true,
+        feedExpected: "http://LOCALHOST./feed.xml",
+      },
+      {
+        label: "private IPv4",
+        input: "http://192.168.1.2/feed.xml",
+        valid: false,
+        feedValid: true,
+        feedExpected: "http://192.168.1.2/feed.xml",
+      },
       { label: "IPv6 zone identifier", input: "http://[fe80::1%25en0]/feed.xml", valid: false },
-      { label: "IPv4-mapped loopback", input: "http://[::ffff:7f00:1]/feed.xml", valid: false },
-      { label: "IPv4-mapped RFC1918", input: "http://[::ffff:172.16.0.1]/feed.xml", valid: false },
+      {
+        label: "IPv4-mapped loopback",
+        input: "http://[::ffff:7f00:1]/feed.xml",
+        valid: false,
+        feedValid: true,
+        feedExpected: "http://[::ffff:7f00:1]/feed.xml",
+      },
+      {
+        label: "IPv4-mapped RFC1918",
+        input: "http://[::ffff:172.16.0.1]/feed.xml",
+        valid: false,
+        feedValid: true,
+        feedExpected: "http://[::ffff:172.16.0.1]/feed.xml",
+      },
+      {
+        label: "embedded credentials",
+        input: "https://user:pass@example.com/feed.xml",
+        expected: "https://user:pass@example.com/feed.xml",
+        valid: true,
+        feedValid: false,
+      },
       {
         label: "Unicode IDNA public URL",
         input: "https://例え.テスト/feed.xml",
@@ -390,39 +421,55 @@ describe("command args validation parity", () => {
         expected: "https://xn--r8jz45g.xn--zckzah/feed.xml",
         valid: true,
       },
-    ] satisfies Array<{ label: string; input: string; expected?: string; valid: boolean }>;
+    ] satisfies Array<{
+      label: string;
+      input: string;
+      expected?: string;
+      valid: boolean;
+      feedValid?: boolean;
+      feedExpected?: string;
+    }>;
 
-    for (const { input, expected, valid } of cases) {
-      const parsers = [
+    for (const { input, expected, valid, feedValid, feedExpected } of cases) {
+      const browserParse = () => parse(openInBrowserArgs, { url: input });
+      if (valid) {
+        expect(browserParse().url).toBe(expected);
+      } else {
+        expect(browserParse).toThrow();
+      }
+
+      const feedParsers = [
         () => parse(discoverFeedsArgs, { url: input }),
         () => parse(addLocalFeedArgs, { accountId: "acc-1", url: input }),
-        () => parse(openInBrowserArgs, { url: input }),
       ];
-
-      for (const parse of parsers) {
-        if (valid) {
-          expect(parse().url).toBe(expected);
+      for (const feedParse of feedParsers) {
+        if (feedValid ?? valid) {
+          expect(feedParse().url).toBe(feedExpected ?? expected);
         } else {
-          expect(parse).toThrow();
+          expect(feedParse).toThrow();
         }
       }
     }
   });
 
-  it("lets users open LAN-style hosts but blocks them for automatic requests (host privacy policy)", () => {
+  it("lets users open LAN-style hosts and use them as feed URLs but blocks them for automatic requests (host privacy policy)", () => {
     const lanUrls = ["http://nas.local/", "http://100.64.0.1/"];
 
     for (const url of lanUrls) {
       expect(parse(openInBrowserArgs, { url }).url).toBe(url);
       expect(parse(addToReadingListArgs, { url }).url).toBe(url);
-      expect(() => parse(discoverFeedsArgs, { url })).toThrow();
-      expect(() => parse(addLocalFeedArgs, { accountId: "acc-1", url })).toThrow();
+      expect(parse(discoverFeedsArgs, { url }).url).toBe(url);
+      expect(parse(addLocalFeedArgs, { accountId: "acc-1", url }).url).toBe(url);
       expect(() => parse(checkBrowserEmbedSupportArgs, { url })).toThrow();
     }
 
-    for (const schema of [openInBrowserArgs, addToReadingListArgs, discoverFeedsArgs]) {
+    for (const schema of [openInBrowserArgs, addToReadingListArgs]) {
       expect(() => parse(schema, { url: "http://app.localhost/" })).toThrow();
     }
+    expect(parse(discoverFeedsArgs, { url: "http://app.localhost/" }).url).toBe("http://app.localhost/");
+    expect(parse(addLocalFeedArgs, { accountId: "acc-1", url: "http://app.localhost/" }).url).toBe(
+      "http://app.localhost/",
+    );
   });
 
   it("keeps external opener URL schema aligned with the Tauri capability scope", () => {

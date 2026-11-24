@@ -294,7 +294,7 @@ async fn add_local_feed_rejects_account_kind_drift_after_fetch() {
         insert_test_account(&db_guard, "Primary")
     };
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let add_db = Arc::clone(&db);
     let add_account_id = account_id.0.clone();
     let add_task = tokio::spawn(async move {
@@ -382,7 +382,7 @@ async fn add_local_feed_returns_unread_count_recalculation_errors() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error = add_local_feed_with_provider(&db, account_id.0, feed_url, &provider)
         .await
         .expect_err("final unread count recalculation failure should be returned");
@@ -426,7 +426,7 @@ async fn add_local_feed_rolls_back_persisted_feed_when_initial_sync_fails() {
             .unwrap();
     }
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error =
         add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
             .await
@@ -501,7 +501,7 @@ async fn add_local_feed_uses_create_fetch_for_metadata_and_pull_fetch_for_articl
         insert_test_account(&db_guard, "Primary")
     };
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let feed = add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
         .await
         .unwrap();
@@ -572,7 +572,7 @@ async fn add_local_feed_rejects_duplicate_url_without_deleting_existing_feed() {
         account_id
     };
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error =
         add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
             .await
@@ -642,7 +642,7 @@ async fn add_local_feed_duplicate_race_does_not_roll_back_existing_feed() {
         account_id
     };
 
-    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let provider = LocalProvider::new();
     let error =
         add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
             .await
