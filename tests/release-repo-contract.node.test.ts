@@ -2359,7 +2359,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       expect(shortcutActionIds.has(shortcutActionId)).toBe(true);
     }
     expect(keyboardShortcutsSource).toContain(
-      'const nativeMenuOwnedShortcuts = new Set(["\\u2318+r", platformSettingsShortcut])',
+      'const nativeMenuOwnedShortcuts = new Set(["\\u2318+r", platformSettingsShortcut, "F11"])',
     );
     expect(nativeMenuActions.get("accounts-sync")).toBe("sync-all");
   });

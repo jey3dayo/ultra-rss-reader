@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows で F11 キーを押してもフルスクリーンが切り替わらなかった問題を直しました（メニューからの切り替えは従来どおり動作します）。あわせて、F11 を他のショートカットへ割り当て直せないようにしました。 (#809)
+
 ## [0.67.38] - 2026-11-24
 
 ### Fixed

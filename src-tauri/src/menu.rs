@@ -87,11 +87,28 @@ fn is_toggle_check_menu_item(menu_id: &str) -> bool {
     )
 }
 
-fn fullscreen_menu_accelerator(is_macos: bool) -> &'static str {
+fn fullscreen_menu_accelerator(is_macos: bool, is_windows: bool) -> Option<&'static str> {
     if is_macos {
-        "Ctrl+CmdOrCtrl+F"
+        Some("Ctrl+CmdOrCtrl+F")
+    } else if is_windows {
+        // On Windows the native accelerator never reaches the app while the
+        // webview has focus, so F11 is dispatched by the frontend keyboard
+        // handler instead of the menu.
+        None
     } else {
-        "F11"
+        // GTK resolves menu accelerators before the focused widget, so the
+        // native F11 accelerator works on Linux and is kept.
+        Some("F11")
+    }
+}
+
+fn fullscreen_menu_label(label: &str, is_windows: bool) -> String {
+    if is_windows {
+        // Display-only hint, same mechanism as the item-menu shortcut hints:
+        // the key itself is handled by the frontend (see use-keyboard).
+        format!("{label}\tF11")
+    } else {
+        label.to_string()
     }
 }
 
@@ -262,8 +279,16 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
         CheckMenuItemBuilder::with_id(VIEW_GROUP_BY_FEED_MENU_ID, labels.group_by_feed)
             .checked(group_by_feed_checked)
             .build(app)?;
-    let view_fullscreen = MenuItemBuilder::with_id(VIEW_FULLSCREEN_MENU_ID, labels.full_screen)
-        .accelerator(fullscreen_menu_accelerator(cfg!(target_os = "macos")))
+    let is_windows = cfg!(target_os = "windows");
+    let view_fullscreen_builder = MenuItemBuilder::with_id(
+        VIEW_FULLSCREEN_MENU_ID,
+        fullscreen_menu_label(labels.full_screen, is_windows),
+    );
+    let view_fullscreen =
+        match fullscreen_menu_accelerator(cfg!(target_os = "macos"), is_windows) {
+            Some(accelerator) => view_fullscreen_builder.accelerator(accelerator),
+            None => view_fullscreen_builder,
+        }
         .build(app)?;
 
     let view_submenu = SubmenuBuilder::new(app, labels.view_menu)
