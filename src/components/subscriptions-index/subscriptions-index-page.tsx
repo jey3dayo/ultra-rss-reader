@@ -320,6 +320,12 @@ function SubscriptionsIndexPageForAccount({
         onError: () => showToast({ message: t("detail_feed_url_copy_failed"), severity: "error", persistent: true }),
       });
     },
+    onCopyContentUrl: (url) => {
+      void copyValueToClipboard(url, {
+        onSuccess: () => showToast(t("detail_content_url_copied")),
+        onError: () => showToast({ message: t("detail_content_url_copy_failed"), severity: "error", persistent: true }),
+      });
+    },
     setDeleteTargetFeed,
     setEditTargetFeed,
     onRequestBulkUnsubscribe: () => {

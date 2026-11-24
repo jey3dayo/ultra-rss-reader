@@ -88,6 +88,8 @@ type SubscriptionDetailPaneProps = {
   onCopyDiagnosticId?: (diagnosticId: string) => void;
   copyFeedUrlLabel?: string;
   onCopyFeedUrl?: (feedUrl: string) => void;
+  copyContentUrlLabel?: string;
+  onCopyContentUrl?: (url: string) => void;
   backToListLabel?: string;
   onBackToList?: () => void;
 };
@@ -115,15 +117,15 @@ function resolveShowReviewContext(
   return !(hasFetchError || hasRemoteFetchFailure) || (row !== null && row.status.labelKey !== "normal");
 }
 
-function buildFeedUrlDetail(
-  row: SubscriptionListRow | null,
-  onCopyFeedUrl: ((feedUrl: string) => void) | undefined,
-  copyFeedUrlLabel: string | undefined,
+function buildUrlDetail(
+  url: string | null,
+  onCopy: ((url: string) => void) | undefined,
+  copyLabel: string | undefined,
 ): FeedUrlDetail | null {
-  if (!row || !onCopyFeedUrl || !copyFeedUrlLabel) {
+  if (!url || !onCopy || !copyLabel) {
     return null;
   }
-  return { text: row.feed.url, onCopy: () => onCopyFeedUrl(row.feed.url), copyLabel: copyFeedUrlLabel };
+  return { text: url, onCopy: () => onCopy(url), copyLabel };
 }
 
 function SubscriptionDetailBackToList({ label, onBackToList }: { label: string; onBackToList: () => void }) {
@@ -143,10 +145,24 @@ function buildDetailLinks(
   feedUrlLabel: string,
   contentUrlLabel: string,
   feedUrlDetail: FeedUrlDetail | null,
+  contentUrlDetail: FeedUrlDetail | null,
 ) {
   return [
     ...(contentUrlHref && contentUrlHref !== feedUrlHref
-      ? [{ href: contentUrlHref, label: contentUrlLabel, icon: Globe }]
+      ? [
+          {
+            href: contentUrlHref,
+            label: contentUrlLabel,
+            icon: Globe,
+            ...(contentUrlDetail
+              ? {
+                  detailText: contentUrlDetail.text,
+                  onCopyDetail: contentUrlDetail.onCopy,
+                  copyDetailLabel: contentUrlDetail.copyLabel,
+                }
+              : {}),
+          },
+        ]
       : []),
     ...(feedUrlHref
       ? [
@@ -523,6 +539,8 @@ export function SubscriptionDetailPane({
   onCopyDiagnosticId = () => undefined,
   copyFeedUrlLabel,
   onCopyFeedUrl,
+  copyContentUrlLabel,
+  onCopyContentUrl,
   backToListLabel,
   onBackToList,
 }: SubscriptionDetailPaneProps) {
@@ -536,7 +554,8 @@ export function SubscriptionDetailPane({
   const showReviewContext = resolveShowReviewContext(hasFetchError, hasRemoteFetchFailure, row);
   const formattedLastAttempt = formatOptionalDateTime(fetchError?.last_attempt_at, dateLocale);
   const formattedLastSuccess = formatOptionalDateTime(fetchError?.last_success_at, dateLocale);
-  const feedUrlDetail = buildFeedUrlDetail(row, onCopyFeedUrl, copyFeedUrlLabel);
+  const feedUrlDetail = buildUrlDetail(row?.feed.url ?? null, onCopyFeedUrl, copyFeedUrlLabel);
+  const contentUrlDetail = buildUrlDetail(contentUrlHref, onCopyContentUrl, copyContentUrlLabel);
 
   return (
     <section
@@ -617,7 +636,14 @@ export function SubscriptionDetailPane({
                   displayModeLabel,
                   displayModeValue,
                 })}
-                links={buildDetailLinks(feedUrlHref, contentUrlHref, feedUrlLabel, contentUrlLabel, feedUrlDetail)}
+                links={buildDetailLinks(
+                  feedUrlHref,
+                  contentUrlHref,
+                  feedUrlLabel,
+                  contentUrlLabel,
+                  feedUrlDetail,
+                  contentUrlDetail,
+                )}
                 recentArticlesHeading={recentArticlesHeading}
                 recentArticles={buildRecentArticles(metrics.previewArticles, dateLocale)}
               />
