@@ -5,7 +5,7 @@ import { AppTooltip } from "@/components/ui/tooltip";
 
 export type FeedUrlRowProps = {
   label: string;
-  value: string;
+  value?: string;
   icon: LucideIcon;
   href?: string | null;
   copyLabel?: string;
@@ -13,7 +13,15 @@ export type FeedUrlRowProps = {
   disabled?: boolean;
 };
 
-export function FeedUrlRow({ label, value, icon: Icon, href, copyLabel, onCopy, disabled = false }: FeedUrlRowProps) {
+export function FeedUrlRow({
+  label,
+  value = "",
+  icon: Icon,
+  href,
+  copyLabel,
+  onCopy,
+  disabled = false,
+}: FeedUrlRowProps) {
   const canCopy = value.trim().length > 0;
 
   return (
