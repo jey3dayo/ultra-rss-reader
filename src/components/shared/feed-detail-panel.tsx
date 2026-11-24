@@ -332,25 +332,27 @@ function FeedDetailLinks({ links }: { links: FeedDetailLink[] }) {
         const LinkIcon = link.icon ?? ExternalLink;
         return (
           <div key={link.href}>
-            <Link variant="detail" href={link.href} target="_blank" rel="noreferrer">
-              <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
-              <span className="underline decoration-border underline-offset-4">{link.label}</span>
-            </Link>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Link variant="detail" href={link.href} target="_blank" rel="noreferrer" className="min-w-0">
+                <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
+                <span className="underline decoration-border underline-offset-4">{link.label}</span>
+              </Link>
+              {link.detailText && link.onCopyDetail && link.copyDetailLabel ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={link.copyDetailLabel}
+                  className="ml-auto size-7 shrink-0 text-foreground-soft hover:text-foreground"
+                  onClick={link.onCopyDetail}
+                >
+                  <Copy className="size-3.5" aria-hidden="true" />
+                </Button>
+              ) : null}
+            </div>
             {link.detailText ? (
-              <div className="mt-1 flex min-w-0 items-start gap-1.5 pl-5">
-                <span className="min-w-0 break-all text-xs leading-5 text-foreground-soft">{link.detailText}</span>
-                {link.onCopyDetail && link.copyDetailLabel ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={link.copyDetailLabel}
-                    className="shrink-0 text-foreground-soft hover:text-foreground"
-                    onClick={link.onCopyDetail}
-                  >
-                    <Copy className="size-3.5" aria-hidden="true" />
-                  </Button>
-                ) : null}
+              <div className="mt-1 min-w-0 pl-5">
+                <span className="break-all text-xs leading-5 text-foreground-soft">{link.detailText}</span>
               </div>
             ) : null}
           </div>

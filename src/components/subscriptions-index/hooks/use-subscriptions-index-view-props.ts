@@ -84,6 +84,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   isRetryingFeed: (feedId: string) => boolean;
   onCopyDiagnosticId: (diagnosticId: string) => void;
   onCopyFeedUrl: (feedUrl: string) => void;
+  onCopyContentUrl: (url: string) => void;
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
   onRequestBulkUnsubscribe: () => void;
@@ -122,6 +123,7 @@ export function useSubscriptionsIndexViewProps({
   isRetryingFeed,
   onCopyDiagnosticId,
   onCopyFeedUrl,
+  onCopyContentUrl,
   setDeleteTargetFeed,
   setEditTargetFeed,
   onRequestBulkUnsubscribe,
@@ -379,6 +381,8 @@ export function useSubscriptionsIndexViewProps({
     onCopyDiagnosticId,
     onCopyFeedUrl,
     copyFeedUrlLabel: t("detail_feed_url_copy"),
+    onCopyContentUrl,
+    copyContentUrlLabel: t("detail_content_url_copy"),
     backToListLabel: t("detail_back_to_list"),
     onBackToList: () => {
       const heading = listHeadingRef.current;

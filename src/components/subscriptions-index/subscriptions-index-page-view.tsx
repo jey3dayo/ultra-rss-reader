@@ -62,6 +62,8 @@ type SubscriptionsIndexPageViewProps = {
   onCopyDiagnosticId: (diagnosticId: string) => void;
   copyFeedUrlLabel: string;
   onCopyFeedUrl: (feedUrl: string) => void;
+  copyContentUrlLabel: string;
+  onCopyContentUrl: (url: string) => void;
   backToListLabel: string;
   onBackToList: () => void;
   emptyLabel: string;
@@ -139,6 +141,8 @@ export function SubscriptionsIndexPageView({
   onCopyDiagnosticId,
   copyFeedUrlLabel,
   onCopyFeedUrl,
+  copyContentUrlLabel,
+  onCopyContentUrl,
   backToListLabel,
   onBackToList,
   emptyLabel,
@@ -268,6 +272,8 @@ export function SubscriptionsIndexPageView({
               onCopyDiagnosticId={onCopyDiagnosticId}
               copyFeedUrlLabel={copyFeedUrlLabel}
               onCopyFeedUrl={onCopyFeedUrl}
+              copyContentUrlLabel={copyContentUrlLabel}
+              onCopyContentUrl={onCopyContentUrl}
               backToListLabel={backToListLabel}
               onBackToList={onBackToList}
               emptyLabel={detailEmptyLabel}
