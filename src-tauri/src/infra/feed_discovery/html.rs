@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use super::DiscoveredFeed;
+use crate::domain::url_policy::{is_private_host, validate_user_provided_feed_url};
 
 /// Extract feed URLs from HTML `<link>` tags using simple string parsing.
 ///
@@ -197,6 +198,25 @@ pub(crate) fn resolve_url(base: &str, href: &str) -> String {
 pub(crate) fn resolve_feed_candidate_url(base: &str, href: &str) -> Option<String> {
     let resolved_url = resolve_url(base, href);
     let parsed_url = reqwest::Url::parse(&resolved_url).ok()?;
-    super::validate_discovery_url(&parsed_url).ok()?;
-    Some(parsed_url.to_string())
+    if super::validate_discovery_url(&parsed_url).is_ok() {
+        return Some(parsed_url.to_string());
+    }
+    // A page the user opened on a private host may advertise its feed on that
+    // same host; candidates pointing anywhere else stay rejected.
+    let base_url = reqwest::Url::parse(base).ok()?;
+    let same_private_host = base_url.host_str().is_some_and(is_private_host)
+        && parsed_url.host_str().is_some_and(|host| {
+            base_url
+                .host_str()
+                .is_some_and(|base_host| same_host_name(base_host, host))
+        });
+    if same_private_host && validate_user_provided_feed_url(&parsed_url).is_ok() {
+        return Some(parsed_url.to_string());
+    }
+    None
+}
+
+fn same_host_name(left: &str, right: &str) -> bool {
+    left.trim_end_matches('.')
+        .eq_ignore_ascii_case(right.trim_end_matches('.'))
 }

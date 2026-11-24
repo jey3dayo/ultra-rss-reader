@@ -409,7 +409,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
 
     let local_feed_mock = server
         .mock("GET", "/feed.xml")
-        .expect(0)
+        .expect(1)
         .with_status(200)
         .with_header("Content-Type", "application/rss+xml")
         .with_body(format!(
@@ -538,7 +538,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
             .find_by_feed(&feed_id, &Pagination::default())
             .unwrap();
         assert_eq!(articles.len(), 1);
-        assert_eq!(articles[0].title, "Original Local Article");
+        assert_eq!(articles[0].title, "Updated Local Article");
         assert!(articles[0].is_read);
 
         let unread = article_repo.count_unread_by_account(&account_id).unwrap();

@@ -881,7 +881,7 @@ async fn sync_greader_account_turns_account_level_skips_into_warnings() {
         .await;
     let local_failure_mock = server
         .mock("GET", "/local-broken.xml")
-        .expect(0)
+        .expect(1)
         .with_status(500)
         .with_body("server error")
         .create_async()

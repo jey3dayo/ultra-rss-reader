@@ -779,23 +779,8 @@ fn extract_feed_links_skips_private_and_credential_bearing_fixture_corpus() {
 }
 
 #[test]
-fn discover_feeds_rejects_private_and_unsupported_initial_urls_before_network() {
+fn discover_feeds_rejects_unsupported_initial_urls_before_network() {
     let runtime = tokio::runtime::Runtime::new().unwrap();
-
-    for url in [
-        "http://localhost/feed.xml",
-        "http://127.0.0.1/feed.xml",
-        "http://10.0.0.2/feed.xml",
-    ] {
-        let error = runtime
-            .block_on(discover_feeds(url))
-            .expect_err("private initial discovery URL should be rejected");
-
-        assert!(matches!(
-            error,
-            DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE
-        ));
-    }
 
     for url in ["file:///tmp/feed.xml", "mailto:feed@example.com"] {
         let error = runtime
@@ -807,6 +792,68 @@ fn discover_feeds_rejects_private_and_unsupported_initial_urls_before_network() 
             DomainError::Validation(message) if message == UNSUPPORTED_URL_VALIDATION_MESSAGE
         ));
     }
+}
+
+fn serve_once(response: &'static str) -> (u16, std::thread::JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("test server should bind");
+    let port = listener
+        .local_addr()
+        .expect("test server should expose local address")
+        .port();
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("client should connect");
+        let mut request = [0_u8; 2048];
+        let _ = stream.read(&mut request);
+        stream
+            .write_all(response.as_bytes())
+            .expect("test server should write response");
+    });
+    (port, server)
+}
+
+#[test]
+fn discover_feeds_finds_feed_at_user_entered_private_url() {
+    let body = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Local RSS</title></channel></rss>"#;
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/rss+xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let response: &'static str = Box::leak(response.into_boxed_str());
+    let (port, server) = serve_once(response);
+
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let url = format!("http://127.0.0.1:{port}/feed.xml");
+    let feeds = runtime
+        .block_on(discover_feeds(&url))
+        .expect("user-entered private feed URL should be discovered");
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].url, url);
+    server.join().expect("test server should finish");
+}
+
+#[test]
+fn discover_feeds_keeps_same_host_candidates_from_private_pages() {
+    let body = r#"<html><head><link rel="alternate" type="application/rss+xml" title="Local Feed" href="/feed.xml"></head><body></body></html>"#;
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let response: &'static str = Box::leak(response.into_boxed_str());
+    let (port, server) = serve_once(response);
+
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let feeds = runtime
+        .block_on(discover_feeds(&format!("http://localhost:{port}/")))
+        .expect("user-entered private page should be discovered");
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].url, format!("http://localhost:{port}/feed.xml"));
+    assert_eq!(feeds[0].title, "Local Feed");
+    server.join().expect("test server should finish");
 }
 
 #[test]
