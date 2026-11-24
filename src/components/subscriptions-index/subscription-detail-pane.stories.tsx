@@ -279,8 +279,7 @@ export const FetchError: Story = {
       retry: "再取得",
       retrying: "再取得中",
       editFeedUrl: "フィード設定を確認",
-      urlChangeGuidance:
-        "フィードURLはアプリ内で変更できません。URLを変える場合は、この詳細の下部から購読を解除し、正しいURLでフィードを追加し直してください。",
+      urlChangeGuidance: "フィードURLは「フィード設定を確認」から変更できます。",
       reason: (kind) =>
         ({
           private_address_blocked: "安全のため、ローカルネットワークへのアクセスをブロックしました。",
