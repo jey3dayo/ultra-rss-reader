@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use crate::menu_i18n::{labels, ResolvedMenuLanguage};
 
 use super::{
-    fullscreen_menu_accelerator, is_check_for_updates_menu_available, is_group_by_feed_checked,
-    is_reading_list_menu_available, is_sort_unread_checked, is_toggle_check_menu_item,
-    item_menu_label, item_menu_shortcut_hint, menu_action_emit_failure_diagnostic,
-    native_menu_accelerator, redact_menu_id_for_diagnostics, resolve_menu_action,
-    should_emit_unknown_menu_id_diagnostic_once, should_rollback_check_toggle_after_emit,
-    unknown_menu_id_diagnostic, unknown_menu_id_once_set, MENU_ACTION_EVENT,
+    fullscreen_menu_accelerator, fullscreen_menu_label, is_check_for_updates_menu_available,
+    is_group_by_feed_checked, is_reading_list_menu_available, is_sort_unread_checked,
+    is_toggle_check_menu_item, item_menu_label, item_menu_shortcut_hint,
+    menu_action_emit_failure_diagnostic, native_menu_accelerator, redact_menu_id_for_diagnostics,
+    resolve_menu_action, should_emit_unknown_menu_id_diagnostic_once,
+    should_rollback_check_toggle_after_emit, unknown_menu_id_diagnostic, unknown_menu_id_once_set,
+    MENU_ACTION_EVENT,
 };
 
 #[test]
