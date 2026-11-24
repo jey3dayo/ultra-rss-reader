@@ -294,6 +294,29 @@ impl ArticleMutationRepository for SqliteArticleRepository<'_> {
         Ok(())
     }
 
+    fn reassign_ids(&self, pairs: &[(ArticleId, ArticleId)]) -> DomainResult<()> {
+        if pairs.is_empty() {
+            return Ok(());
+        }
+        let tx = self.conn.unchecked_transaction()?;
+        for (old_id, new_id) in pairs {
+            tx.execute(
+                "UPDATE article_tags SET article_id = ?1 WHERE article_id = ?2",
+                params![new_id.0, old_id.0],
+            )?;
+            tx.execute(
+                "UPDATE article_view_history SET article_id = ?1 WHERE article_id = ?2",
+                params![new_id.0, old_id.0],
+            )?;
+            tx.execute(
+                "UPDATE articles SET id = ?1 WHERE id = ?2",
+                params![new_id.0, old_id.0],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()> {
         let affected_rows = self.conn.execute(
             "UPDATE articles SET is_read = ?1 WHERE id = ?2",
