@@ -23,12 +23,15 @@ type FeedEditFolderSelectionParams = FeedDialogFolderSelectionParams & {
 export type SubmitFeedEditsParams = {
   feed: FeedDto;
   title: string;
+  /** Edited feed URL for local feeds; null when the URL is not editable (provider feeds). */
+  feedUrl: string | null;
   displayPreset: FeedEditDisplayPreset;
   folderSelection: FeedEditFolderSelectionParams;
   queryClient: QueryClient;
   reportError: (message: string) => void;
   createFolderErrorMessage: (error: FeedEditErrorLike) => string;
   renameErrorMessage: (error: FeedEditErrorLike) => string;
+  updateUrlErrorMessage: (error: FeedEditErrorLike) => string;
   updateFeedFolder: (args: { feedId: string; folderId: string | null }) => Promise<boolean>;
   updateDisplaySettings: (
     feedId: string,
@@ -41,6 +44,8 @@ export type FeedEditDialogControllerParams = {
   feed: FeedDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** True when the feed belongs to a local account, so its URL can be replaced in place. */
+  feedUrlEditable: boolean;
   /**
    * Claims the shared save/unsubscribe operation slot. Returns false when another
    * operation is already in flight, or when the feed's account is no longer the
@@ -58,7 +63,7 @@ export type FeedEditDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export type FeedEditSaveStep = "rename" | "folder" | "display";
+export type FeedEditSaveStep = "rename" | "url" | "folder" | "display";
 
 export type FeedEditStepOutcome = {
   step: FeedEditSaveStep;
@@ -72,6 +77,8 @@ export type FeedEditSaveSummary = {
 
 export type FeedEditDialogController = {
   title: string;
+  feedUrl: string;
+  feedUrlEditable: boolean;
   loading: boolean;
   displayPreset: FeedEditDisplayPreset;
   titleError: FeedEditTitleError | null;
@@ -80,6 +87,7 @@ export type FeedEditDialogController = {
   inputRef: RefObject<HTMLInputElement | null>;
   folders: FolderDto[] | undefined;
   setTitle: (value: string) => void;
+  setFeedUrl: (value: string) => void;
   setDisplayPreset: (value: FeedEditDisplayPreset) => void;
   handleCopy: (value: string) => Promise<void>;
   handleSubmit: () => Promise<void>;

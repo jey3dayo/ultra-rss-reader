@@ -144,6 +144,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "add_local_feed"
         | "delete_feed"
         | "rename_feed"
+        | "update_feed_url"
         | "rename_folder"
         | "update_feed_folder"
         | "trigger_sync"

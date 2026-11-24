@@ -130,6 +130,7 @@ describe("useFeedEditDialogController copy action", () => {
           feed: sampleFeeds[0],
           open: true,
           onOpenChange: vi.fn(),
+          feedUrlEditable: false,
           ...createOperationClaim(),
         }),
       { wrapper },
@@ -155,6 +156,7 @@ describe("useFeedEditDialogController copy action", () => {
           feed: sampleFeeds[0],
           open: true,
           onOpenChange: vi.fn(),
+          feedUrlEditable: false,
           ...createOperationClaim(),
         }),
       { wrapper },
@@ -176,6 +178,7 @@ describe("useFeedEditDialogController copy action", () => {
           feed: sampleFeeds[0],
           open: true,
           onOpenChange,
+          feedUrlEditable: false,
           ...createOperationClaim(),
         }),
       { wrapper },
@@ -201,7 +204,12 @@ describe("useFeedEditDialogController copy action", () => {
       const { wrapper } = createQueryWrapper();
       return renderHook(
         (props: { feed: FeedDto; open: boolean }) =>
-          useFeedEditDialogController({ ...props, onOpenChange: vi.fn(), ...createOperationClaim() }),
+          useFeedEditDialogController({
+            ...props,
+            onOpenChange: vi.fn(),
+            feedUrlEditable: false,
+            ...createOperationClaim(),
+          }),
         { wrapper, initialProps },
       );
     }
@@ -264,7 +272,13 @@ describe("useFeedEditDialogController copy action", () => {
       const { wrapper } = createQueryWrapper();
       return renderHook(
         () =>
-          useFeedEditDialogController({ feed: sampleFeeds[0], open: true, onOpenChange, ...createOperationClaim() }),
+          useFeedEditDialogController({
+            feed: sampleFeeds[0],
+            open: true,
+            onOpenChange,
+            feedUrlEditable: false,
+            ...createOperationClaim(),
+          }),
         { wrapper },
       );
     }

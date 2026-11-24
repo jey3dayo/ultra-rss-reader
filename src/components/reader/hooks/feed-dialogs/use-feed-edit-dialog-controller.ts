@@ -23,6 +23,7 @@ import type {
 import { type FeedEditorState, submitFeedEdits, validateFeedEditTitle } from "../../feed-edit-submit";
 
 type FeedEditDialogState = FeedEditorState<{
+  feedUrl: string;
   feedSnapshot: FeedDto;
   titleError: FeedEditTitleError | null;
   saveErrorMessages: readonly string[];
@@ -33,6 +34,7 @@ type FeedEditDialogAction =
   | { type: "reset"; feed: FeedDto }
   | { type: "sync-feed-snapshot"; feed: FeedDto }
   | { type: "set-title"; value: string }
+  | { type: "set-feed-url"; value: string }
   | { type: "set-display-preset"; value: FeedEditDisplayPreset }
   | { type: "reject-title"; error: FeedEditTitleError }
   | { type: "start-save" }
@@ -44,6 +46,7 @@ type FeedEditDialogAction =
 function createInitialFeedEditDialogState(feed: FeedDto): FeedEditDialogState {
   return {
     title: feed.title,
+    feedUrl: feed.url,
     displayPreset: resolveFeedDisplayPreset(feed),
     loading: false,
     feedSnapshot: feed,
@@ -61,6 +64,8 @@ function feedEditDialogReducer(state: FeedEditDialogState, action: FeedEditDialo
       return state.feedSnapshot === action.feed ? state : { ...state, feedSnapshot: action.feed };
     case "set-title":
       return { ...state, title: action.value, titleError: null, saveErrorMessages: [], saveSummary: null };
+    case "set-feed-url":
+      return { ...state, feedUrl: action.value, saveErrorMessages: [], saveSummary: null };
     case "set-display-preset":
       return { ...state, displayPreset: action.value, saveErrorMessages: [], saveSummary: null };
     case "reject-title":
@@ -88,10 +93,11 @@ export function useFeedEditDialogController({
   onOpenChange,
   claimOperation,
   releaseOperation,
+  feedUrlEditable,
 }: FeedEditDialogControllerParams): FeedEditDialogController {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(feedEditDialogReducer, feed, createInitialFeedEditDialogState);
-  const { title, displayPreset, loading, feedSnapshot, titleError, saveErrorMessages, saveSummary } = state;
+  const { title, feedUrl, displayPreset, loading, feedSnapshot, titleError, saveErrorMessages, saveSummary } = state;
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     selectedFolderId,
@@ -171,6 +177,7 @@ export function useFeedEditDialogController({
         const result = await submitFeedEdits({
           feed: feedSnapshot,
           title,
+          feedUrl: feedUrlEditable ? feedUrl : null,
           displayPreset,
           folderSelection,
           queryClient: qc,
@@ -179,6 +186,8 @@ export function useFeedEditDialogController({
             t("failed_to_create_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }),
           renameErrorMessage: (error) =>
             t("failed_to_rename", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+          updateUrlErrorMessage: (error) =>
+            t("failed_to_update_feed_url", { message: localizeUserVisibleAppErrorMessage(error.message) }),
           updateFeedFolder: ({ feedId, folderId }) =>
             updateFeedFolderMutation
               .mutateAsync(
@@ -226,6 +235,8 @@ export function useFeedEditDialogController({
 
   return {
     title,
+    feedUrl,
+    feedUrlEditable,
     loading,
     displayPreset,
     titleError,
@@ -234,6 +245,7 @@ export function useFeedEditDialogController({
     inputRef,
     folders,
     setTitle: (value) => dispatch({ type: "set-title", value }),
+    setFeedUrl: (value) => dispatch({ type: "set-feed-url", value }),
     setDisplayPreset: (value) => dispatch({ type: "set-display-preset", value }),
     handleCopy,
     handleSubmit,

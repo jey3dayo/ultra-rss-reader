@@ -34,6 +34,12 @@ type FeedEditDialogViewProps = {
   loading: boolean;
   displayMode: string;
   displayModeOptions: FeedDialogSelectOption[];
+  /** Editable feed URL row, present only for local feeds whose URL can be replaced. */
+  feedUrlField?: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+  };
   urlFields: FeedEditDialogUrlField[];
   titleErrorMessage?: string;
   saveErrorMessages?: readonly string[];
@@ -120,6 +126,7 @@ export function FeedEditDialogView({
   loading,
   displayMode,
   displayModeOptions,
+  feedUrlField,
   urlFields,
   titleErrorMessage,
   saveErrorMessages = [],
@@ -169,6 +176,20 @@ export function FeedEditDialogView({
         disabled={loading}
         errorText={titleErrorMessage}
       />
+
+      {feedUrlField ? (
+        <LabeledInputRow
+          label={feedUrlField.label}
+          name="feed-url"
+          type="text"
+          value={feedUrlField.value}
+          onChange={feedUrlField.onChange}
+          rowClassName={FEED_EDIT_ROW_CLASS_NAME}
+          controlClassName={FEED_EDIT_CONTROL_CLASS_NAME}
+          inputClassName={FEED_EDIT_INPUT_CLASS_NAME}
+          disabled={loading}
+        />
+      ) : null}
 
       <LabeledSelectRow
         label={labels.displayMode}

@@ -18,8 +18,9 @@ mod folders;
 
 pub use feed_add::{__cmd__add_local_feed, __tauri_command_name_add_local_feed, add_local_feed};
 pub use feed_mutations::{
-    __cmd__delete_feed, __cmd__rename_feed, __tauri_command_name_delete_feed,
-    __tauri_command_name_rename_feed, delete_feed, rename_feed,
+    __cmd__delete_feed, __cmd__rename_feed, __cmd__update_feed_url,
+    __tauri_command_name_delete_feed, __tauri_command_name_rename_feed,
+    __tauri_command_name_update_feed_url, delete_feed, rename_feed, update_feed_url,
 };
 pub use folders::{
     __cmd__create_folder, __cmd__rename_folder, __cmd__reorder_folders, __cmd__reset_folder_order,
@@ -164,7 +165,7 @@ pub(super) use feed_add::{
 pub(super) use feed_mutations::{
     delete_feed_in_db, delete_feed_with_provider_sync_boundary,
     delete_feed_with_remote_sync_boundary, delete_feed_with_sync_boundary, rename_feed_in_db,
-    rename_feed_with_remote_sync_boundary,
+    rename_feed_with_remote_sync_boundary, update_feed_url_in_db, update_feed_url_with_boundary,
 };
 pub(super) use feed_mutations::{load_delete_feed_account, load_feed_for_delete};
 #[cfg(test)]

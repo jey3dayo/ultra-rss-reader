@@ -16,6 +16,8 @@ function buildSaveSummaryLines(
     switch (step) {
       case "rename":
         return t("title");
+      case "url":
+        return t("feed_url");
       case "folder":
         return t("folder");
       case "display":
@@ -73,6 +75,13 @@ export function buildFeedEditDialogViewProps({
         controller.setDisplayPreset(value);
       }
     },
+    feedUrlField: controller.feedUrlEditable
+      ? {
+          label: t("feed_url"),
+          value: controller.feedUrl,
+          onChange: controller.setFeedUrl,
+        }
+      : undefined,
     urlFields: [
       {
         key: "website-url",
@@ -83,15 +92,19 @@ export function buildFeedEditDialogViewProps({
           void controller.handleCopy(feedSiteUrl);
         },
       },
-      {
-        key: "feed-url",
-        label: t("feed_url"),
-        value: feedUrl,
-        copyLabel: t("copy_feed_url"),
-        onCopy: () => {
-          void controller.handleCopy(feedUrl);
-        },
-      },
+      ...(controller.feedUrlEditable
+        ? []
+        : [
+            {
+              key: "feed-url",
+              label: t("feed_url"),
+              value: feedUrl,
+              copyLabel: t("copy_feed_url"),
+              onCopy: () => {
+                void controller.handleCopy(feedUrl);
+              },
+            },
+          ]),
     ],
     folderSelectProps: {
       labelId: folderLabelId,

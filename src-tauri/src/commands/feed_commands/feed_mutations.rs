@@ -9,6 +9,7 @@ use crate::domain::account::Account;
 use crate::domain::feed::Feed;
 use crate::domain::provider::{FeedIdentifier, ProviderKind};
 use crate::domain::types::{AccountId, FeedId};
+use crate::domain::url_policy::validate_user_provided_feed_url;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
@@ -221,5 +222,73 @@ pub(crate) fn rename_feed_in_db(
     let title = validate_feed_title(&title)?;
     let repo = SqliteFeedRepository::new(db.writer());
     repo.rename(&FeedId(feed_id), &title)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_feed_url(
+    state: State<'_, AppState>,
+    feed_id: String,
+    url: String,
+) -> Result<(), AppError> {
+    update_feed_url_with_boundary(&state.db, state.syncing.as_ref(), feed_id, url)
+}
+
+pub(crate) fn update_feed_url_with_boundary(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+    url: String,
+) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
+    let feed_id_typed = FeedId(feed_id.clone());
+    let feed = {
+        let db = lock_db(db)?;
+        load_feed_for_delete(&db, &feed_id_typed)?
+    };
+    let account = {
+        let db = lock_db(db)?;
+        load_delete_feed_account(&db, &feed.account_id)?
+    };
+    if !matches!(account.kind, ProviderKind::Local) {
+        return Err(AppError::UserVisible {
+            message: "Feed URL can only be changed for local feeds".into(),
+        });
+    }
+    let url = normalize_feed_url_input(&url)?;
+    let db = lock_db(db)?;
+    update_feed_url_in_db(&db, feed_id, &feed.account_id, &url)
+}
+
+fn normalize_feed_url_input(url: &str) -> Result<String, AppError> {
+    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| AppError::UserVisible {
+        message: "Feed URL must be a valid URL".into(),
+    })?;
+    validate_user_provided_feed_url(&parsed)?;
+    Ok(parsed.to_string())
+}
+
+pub(crate) fn update_feed_url_in_db(
+    db: &DbManager,
+    feed_id: String,
+    account_id: &AccountId,
+    url: &str,
+) -> Result<(), AppError> {
+    let feed_repo = SqliteFeedRepository::new(db.reader());
+    for existing in [
+        feed_repo.find_by_url(account_id, url)?,
+        feed_repo.find_by_remote_id(account_id, url)?,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if existing.id.0 != feed_id {
+            return Err(AppError::UserVisible {
+                message: "Feed URL is already subscribed".into(),
+            });
+        }
+    }
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    feed_repo.update_url(&FeedId(feed_id), url)?;
     Ok(())
 }

@@ -136,6 +136,49 @@ describe("FeedEditDialogView", () => {
     expect(onRequestUnsubscribe).toHaveBeenCalledTimes(1);
   });
 
+  it("renders an editable feed URL field when one is provided", () => {
+    const onFeedUrlChange = vi.fn();
+
+    render(
+      <FeedEditDialogView
+        open={true}
+        title="Tech Blog"
+        loading={false}
+        displayMode="standard"
+        displayModeOptions={[{ value: "standard", label: "Standard" }]}
+        onOpenChange={vi.fn()}
+        onTitleChange={vi.fn()}
+        onDisplayModeChange={vi.fn()}
+        feedUrlField={{
+          label: "Feed URL",
+          value: "https://example.com/feed.xml",
+          onChange: onFeedUrlChange,
+        }}
+        urlFields={[]}
+        labels={{
+          title: "Edit Feed",
+          titleField: "Title",
+          displayMode: "Display Mode",
+          cancel: "Cancel",
+          save: "Save",
+          saving: "Saving",
+          unsubscribe: "Unsubscribe",
+          unsubscribeAction: "Unsubscribe…",
+          feedInformation: "Feed information",
+          unsubscribeDescription: "Articles from this feed will also be deleted.",
+        }}
+        onRequestUnsubscribe={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    const feedUrlInput = screen.getByLabelText("Feed URL");
+    expect(feedUrlInput).toHaveValue("https://example.com/feed.xml");
+
+    fireEvent.change(feedUrlInput, { target: { value: "https://example.com/new.xml" } });
+    expect(onFeedUrlChange).toHaveBeenLastCalledWith("https://example.com/new.xml");
+  });
+
   it("lets a blank title be submitted and shows the field and save errors where they occur", () => {
     render(
       <FeedEditDialogView

@@ -102,6 +102,7 @@ export const TAURI_COMMAND_NAMES = [
   "update_account_sync",
   "update_feed_display_settings",
   "update_feed_folder",
+  "update_feed_url",
   "update_mute_keyword",
   "vacuum_database",
 ] as const;

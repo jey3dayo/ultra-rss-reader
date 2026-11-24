@@ -33,8 +33,10 @@ function createParams(overrides: Partial<SubmitFeedEditsParams> = {}): SubmitFee
     },
     queryClient: createTestQueryClient(),
     reportError: vi.fn(),
+    feedUrl: null,
     createFolderErrorMessage: (error) => `Create folder failed: ${error.message}`,
     renameErrorMessage: (error) => `Rename failed: ${error.message}`,
+    updateUrlErrorMessage: (error) => `Update URL failed: ${error.message}`,
     updateFeedFolder: vi.fn(async () => true),
     updateDisplaySettings: vi.fn(async () => true),
     ...overrides,
@@ -93,6 +95,58 @@ describe("submitFeedEdits", () => {
     });
     expect(reportError).toHaveBeenCalledWith("Rename failed: Name already exists");
     expectTauriCommandError(consoleError, "rename_feed", appError);
+  });
+
+  it("updates the feed URL when it changes", async () => {
+    recorder = createTauriMockCallRecorder((cmd) => (cmd === "update_feed_url" ? null : undefined));
+    setupTauriMocks(recorder.handler);
+
+    await expect(submitFeedEdits(createParams({ feedUrl: "https://example.com/new-feed.xml" }))).resolves.toEqual({
+      success: true,
+      partialOutcomes: null,
+    });
+
+    expect(recorder.calls).toContainEqual({
+      cmd: "update_feed_url",
+      args: { feedId: feed.id, url: "https://example.com/new-feed.xml" },
+    });
+  });
+
+  it("skips the feed URL update when the URL is unchanged or not editable", async () => {
+    setupTauriMocks(recorder.handler);
+
+    await expect(submitFeedEdits(createParams({ feedUrl: feed.url }))).resolves.toEqual({
+      success: true,
+      partialOutcomes: null,
+    });
+
+    expect(recorder.calls).not.toContainEqual(expect.objectContaining({ cmd: "update_feed_url" }));
+  });
+
+  it("returns false and reports the message when the URL update fails", async () => {
+    const consoleError = suppressConsoleError();
+    const appError: AppError = {
+      type: "UserVisible",
+      message: "Feed URL is already subscribed",
+    };
+    const reportError = vi.fn();
+    recorder = createTauriMockCallRecorder((cmd) => {
+      if (cmd === "update_feed_url") {
+        throw appError;
+      }
+      return undefined;
+    });
+    setupTauriMocks(recorder.handler);
+
+    await expect(
+      submitFeedEdits(createParams({ feedUrl: "https://example.com/other.xml", reportError })),
+    ).resolves.toEqual({
+      success: false,
+      partialOutcomes: null,
+    });
+
+    expect(reportError).toHaveBeenCalledWith("Update URL failed: Feed URL is already subscribed");
+    expectTauriCommandError(consoleError, "update_feed_url", appError);
   });
 
   it("updates feed display settings when the display preset changes", async () => {

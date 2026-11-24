@@ -74,6 +74,7 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "update_account_sync",
   "update_feed_display_settings",
   "update_feed_folder",
+  "update_feed_url",
   "vacuum_database",
 ].toSorted();
 

@@ -477,6 +477,122 @@ async fn rename_feed_command_skips_remote_push_for_local_account() {
 }
 
 #[test]
+fn update_feed_url_command_updates_local_feed_url_and_remote_id() {
+    let db = Mutex::new(test_db());
+    let account_id = {
+        let guard = db.lock().unwrap();
+        insert_test_account(&guard, "Primary")
+    };
+    let feed_id = {
+        let guard = db.lock().unwrap();
+        insert_test_feed_with_url(&guard, &account_id, "http://example.com/old.xml")
+    };
+    let syncing = AtomicBool::new(false);
+
+    update_feed_url_with_boundary(
+        &db,
+        &syncing,
+        feed_id.0.clone(),
+        "https://example.com/new.xml".to_string(),
+    )
+    .expect("local feed URL update should succeed");
+
+    let guard = db.lock().unwrap();
+    let feed_repo = SqliteFeedRepository::new(guard.reader());
+    let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
+    assert_eq!(feed.url, "https://example.com/new.xml");
+    assert_eq!(
+        feed.remote_id.as_deref(),
+        Some("https://example.com/new.xml")
+    );
+}
+
+#[test]
+fn update_feed_url_command_rejects_freshrss_feed() {
+    let db = Mutex::new(test_db());
+    let account_id = {
+        let guard = db.lock().unwrap();
+        insert_test_account_with_kind(&guard, "Primary", "FreshRss")
+    };
+    let feed_id = {
+        let guard = db.lock().unwrap();
+        insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
+    };
+    let syncing = AtomicBool::new(false);
+
+    let error = update_feed_url_with_boundary(
+        &db,
+        &syncing,
+        feed_id.0,
+        "https://example.com/new.xml".to_string(),
+    )
+    .expect_err("provider feed URL update should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message == "Feed URL can only be changed for local feeds"
+    ));
+}
+
+#[test]
+fn update_feed_url_command_rejects_duplicate_url() {
+    let db = Mutex::new(test_db());
+    let account_id = {
+        let guard = db.lock().unwrap();
+        insert_test_account(&guard, "Primary")
+    };
+    let feed_id = {
+        let guard = db.lock().unwrap();
+        insert_test_feed_with_url(&guard, &account_id, "http://example.com/a.xml")
+    };
+    {
+        let guard = db.lock().unwrap();
+        insert_test_feed_with_url(&guard, &account_id, "http://example.com/b.xml");
+    }
+    let syncing = AtomicBool::new(false);
+
+    let error = update_feed_url_with_boundary(
+        &db,
+        &syncing,
+        feed_id.0,
+        "http://example.com/b.xml".to_string(),
+    )
+    .expect_err("duplicate feed URL update should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message == "Feed URL is already subscribed"
+    ));
+}
+
+#[test]
+fn update_feed_url_command_rejects_invalid_url() {
+    let db = Mutex::new(test_db());
+    let account_id = {
+        let guard = db.lock().unwrap();
+        insert_test_account(&guard, "Primary")
+    };
+    let feed_id = {
+        let guard = db.lock().unwrap();
+        insert_test_feed(&guard, &account_id)
+    };
+    let syncing = AtomicBool::new(false);
+
+    let error = update_feed_url_with_boundary(
+        &db,
+        &syncing,
+        feed_id.0.clone(),
+        "ftp://example.com/feed.xml".to_string(),
+    )
+    .expect_err("non-http feed URL update should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message.contains("http:// and https://")
+    ));
+}
+
+#[test]
 fn update_feed_display_settings_command_rejects_missing_feed() {
     let db = test_db();
 

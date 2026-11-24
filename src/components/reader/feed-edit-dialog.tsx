@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useFeedEditDialogController } from "@/components/reader/hooks/feed-dialogs/use-feed-edit-dialog-controller";
 import { useFeedEditDialogViewProps } from "@/components/reader/hooks/feed-dialogs/use-feed-edit-dialog-view-props";
+import { useAccounts } from "@/hooks/use-accounts";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useUiStore } from "@/stores/ui-store";
 import type { FeedEditDialogProps } from "./feed-edit-dialog.types";
@@ -45,12 +46,16 @@ export function FeedEditDialog({ feed, open, onOpenChange, accountScope }: FeedE
     setOperationActive(false);
   };
 
+  const { data: accounts } = useAccounts();
+  const feedUrlEditable = accounts?.find((account) => account.id === feed.account_id)?.kind === "local";
+
   const controller = useFeedEditDialogController({
     feed,
     open,
     onOpenChange,
     claimOperation,
     releaseOperation,
+    feedUrlEditable,
   });
   const viewProps = useFeedEditDialogViewProps({
     open,

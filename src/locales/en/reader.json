@@ -224,6 +224,7 @@
   "display_mode_preview": "Article text + Web Preview",
   "display_mode_default": "Use default",
   "failed_to_rename": "Failed to rename: {{message}}",
+  "failed_to_update_feed_url": "Failed to update the feed URL: {{message}}",
   "failed_to_update_folder": "Failed to update folder: {{message}}",
   "failed_to_update_display_settings": "Failed to update display settings: {{message}}",
   "partial_save_summary": "Only some changes were saved",
