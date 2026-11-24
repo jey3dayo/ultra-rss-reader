@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { type HostPrivacyPolicy, isHostBlockedByPolicy } from "@/lib/runtime/host-privacy";
-import { UNSUPPORTED_HTTP_URL_MESSAGE } from "@/lib/ui-errors";
+import { PRIVATE_OR_LOOPBACK_URL_MESSAGE, UNSUPPORTED_HTTP_URL_MESSAGE } from "@/lib/ui-errors";
 import { controlCharPattern, READING_LIST_URL_MAX_BYTES, textEncoder, whitespacePattern } from "./shared";
 
 export function hasHttpUrlCredentials(value: string): boolean {
@@ -65,18 +65,12 @@ export function isValidWebPreviewUrl(value: string): boolean {
 
 export const userNavigationUrlSchema = v.pipe(
   httpUrlSchema,
-  v.check(
-    (url) => !hasBlockedHttpHost(url, "userNavigation"),
-    "Requests to private/loopback addresses are not allowed",
-  ),
+  v.check((url) => !hasBlockedHttpHost(url, "userNavigation"), PRIVATE_OR_LOOPBACK_URL_MESSAGE),
 );
 
 export const automaticRequestUrlSchema = v.pipe(
   httpUrlSchema,
-  v.check(
-    (url) => !hasBlockedHttpHost(url, "automaticRequest"),
-    "Requests to private/loopback addresses are not allowed",
-  ),
+  v.check((url) => !hasBlockedHttpHost(url, "automaticRequest"), PRIVATE_OR_LOOPBACK_URL_MESSAGE),
 );
 
 export const safariReadingListUrlSchema = v.pipe(
