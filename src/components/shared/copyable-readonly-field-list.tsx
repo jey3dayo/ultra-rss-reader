@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Fragment } from "react";
 import { CopyableReadonlyField, type CopyableReadonlyFieldProps } from "./copyable-readonly-field";
 
-export type CopyableReadonlyFieldItem = CopyableReadonlyFieldProps & {
+type CopyableReadonlyFieldItem = CopyableReadonlyFieldProps & {
   key: string;
 };
 
