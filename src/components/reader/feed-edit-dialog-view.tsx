@@ -61,10 +61,10 @@ function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loa
   const canCopy = field.value.trim().length > 0;
 
   return (
-    <LabeledControlRow label={field.label} className={FEED_EDIT_ROW_CLASS_NAME}>
-      <div className="flex min-h-10 min-w-0 items-center justify-end gap-1.5 sm:ml-auto sm:w-[17rem] lg:w-[17rem]">
-        <span className="min-w-0 flex-1 truncate text-right font-sans text-xs leading-4 text-foreground">
-          {field.value}
+    <div className="py-1.5">
+      <div className="flex min-h-6 items-center gap-2">
+        <span className="select-none font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]">
+          {field.label}
         </span>
         {field.copyLabel && field.onCopy ? (
           <AppTooltip label={field.copyLabel}>
@@ -75,14 +75,15 @@ function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loa
               onClick={field.onCopy}
               disabled={loading || !canCopy}
               aria-label={field.copyLabel}
-              className="size-7 shrink-0 self-center border-0 bg-transparent text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground"
+              className="ml-auto size-7 shrink-0 border-0 bg-transparent text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground"
             >
               <Copy className="size-3.5" aria-hidden="true" />
             </Button>
           </AppTooltip>
         ) : null}
       </div>
-    </LabeledControlRow>
+      {canCopy ? <p className="mt-0.5 break-all text-xs leading-5 text-foreground-soft">{field.value}</p> : null}
+    </div>
   );
 }
 
