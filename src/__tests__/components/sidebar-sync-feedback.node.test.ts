@@ -177,7 +177,7 @@ describe("sidebar-sync-feedback", () => {
 
     const message = resolveSidebarSyncFeedbackMessage(getSidebarT(), feedback);
 
-    expect(message).toContain("記事の既読化");
+    expect(message).toContain("既読にする");
     expect(message).not.toContain("mark_read");
   });
 

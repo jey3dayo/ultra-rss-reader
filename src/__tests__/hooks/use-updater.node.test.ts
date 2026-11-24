@@ -200,7 +200,7 @@ describe("use-updater background download flow", () => {
         await flushMicrotasksAndRealTimer();
 
         expect(useUiStore.getState().toastMessage).toMatchObject({
-          message: "v1.2.3 の更新を準備しました。再起動後に適用されます",
+          message: "v1.2.3 のアップデート準備が完了しました。再起動後に適用されます。",
           persistent: true,
           variant: "update",
         });
@@ -438,7 +438,7 @@ describe("use-updater background download flow", () => {
       await flushMicrotasksAndRealTimer();
 
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "v1.2.4 の更新を準備しました。再起動後に適用されます",
+        message: "v1.2.4 のアップデート準備が完了しました。再起動後に適用されます。",
         persistent: true,
         variant: "update",
       });
@@ -719,7 +719,7 @@ describe("use-updater background download flow", () => {
       expect(mockRestartApp).toHaveBeenCalledTimes(1);
       expect(await pendingState()).toMatchObject({ status: "idle" });
       expect(useUiStore.getState().toastMessage?.message).toBe(
-        "編集中または保存中の変更があるため、再起動できません。",
+        "未保存または保存中の変更があるため、再起動できません。",
       );
     });
 
@@ -823,7 +823,7 @@ describe("use-updater background download flow", () => {
       expect(mockRestartApp).not.toHaveBeenCalled();
       expect(useUiStore.getState().confirmDialog.open).toBe(false);
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "編集中または保存中の変更があるため、再起動できません。",
+        message: "未保存または保存中の変更があるため、再起動できません。",
         persistent: true,
         variant: "update",
       });
@@ -852,7 +852,7 @@ describe("use-updater background download flow", () => {
       expect(mockRestartApp).not.toHaveBeenCalled();
       expect(useUiStore.getState().confirmDialog.open).toBe(false);
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "編集中または保存中の変更があるため、再起動できません。",
+        message: "未保存または保存中の変更があるため、再起動できません。",
         persistent: true,
         variant: "update",
       });
@@ -970,7 +970,7 @@ describe("use-updater background download flow", () => {
       expect(mockRestartApp).not.toHaveBeenCalled();
       expect(useUiStore.getState().confirmDialog.open).toBe(false);
       expect(useUiStore.getState().toastMessage?.message).toBe(
-        "編集中または保存中の変更があるため、再起動できません。",
+        "未保存または保存中の変更があるため、再起動できません。",
       );
 
       addFeedHook.unmount();
@@ -1016,7 +1016,7 @@ describe("use-updater background download flow", () => {
       await flushMicrotasksAndRealTimer();
 
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "v1.2.4 の更新を準備しました。再起動後に適用されます",
+        message: "v1.2.4 のアップデート準備が完了しました。再起動後に適用されます。",
         variant: "update",
       });
     });
@@ -1204,13 +1204,13 @@ describe("use-updater background download flow", () => {
 
       readyListeners[0]?.({ payload: { session_id: 7 } });
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "v1.2.3 の更新を準備しました。再起動後に適用されます",
+        message: "v1.2.3 のアップデート準備が完了しました。再起動後に適用されます。",
         variant: "update",
       });
 
       progressListeners[0]?.({ payload: { session_id: 7, percent: 99 } });
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "v1.2.3 の更新を準備しました。再起動後に適用されます",
+        message: "v1.2.3 のアップデート準備が完了しました。再起動後に適用されます。",
         variant: "update",
       });
 
@@ -1231,7 +1231,7 @@ describe("use-updater background download flow", () => {
       await flushMicrotasksAndRealTimer();
 
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "v1.2.3 の更新を準備しました。再起動後に適用されます",
+        message: "v1.2.3 のアップデート準備が完了しました。再起動後に適用されます。",
         variant: "update",
       });
     });
@@ -1257,12 +1257,16 @@ describe("use-updater background download flow", () => {
       await updaterModule.runManualUpdateCheck();
 
       readyListeners[0]?.({ payload: { session_id: 9 } });
-      expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 の更新を準備しました。再起動後に適用されます");
+      expect(useUiStore.getState().toastMessage?.message).toBe(
+        "v1.2.3 のアップデート準備が完了しました。再起動後に適用されます。",
+      );
 
       deferredDownload.resolve(Result.fail(testUserVisibleAppError("late download failure")));
       await flushMicrotasksAndRealTimer();
 
-      expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 の更新を準備しました。再起動後に適用されます");
+      expect(useUiStore.getState().toastMessage?.message).toBe(
+        "v1.2.3 のアップデート準備が完了しました。再起動後に適用されます。",
+      );
     });
 
     it("does not bind stale progress from a failed session to a retried download", async () => {
@@ -1353,7 +1357,7 @@ describe("use-updater background download flow", () => {
       progressListeners[0]?.({ payload: { session_id: 21, percent: 100 } });
       readyListeners[0]?.({ payload: { session_id: 21 } });
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "v1.2.4 の更新を準備しました。再起動後に適用されます",
+        message: "v1.2.4 のアップデート準備が完了しました。再起動後に適用されます。",
         variant: "update",
       });
 

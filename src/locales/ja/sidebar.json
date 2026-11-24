@@ -41,9 +41,9 @@
   "press_plus_to_add_feed": "+ でフィードを追加",
   "sync_completed": "同期完了",
   "sync_local_feed_failures_details": "詳細を見る",
-  "sync_fetch_error_navigation_blocked_dirty": "設定に未保存の変更があります。保存または破棄して設定を閉じてから、もう一度お試しください。",
-  "sync_fetch_error_navigation_blocked_pending": "設定を更新中です。完了を待って設定を閉じてから、もう一度お試しください。",
-  "sync_fetch_error_navigation_blocked_setup": "アカウントのセットアップが終わるまで移動できません。設定でセットアップを完了して設定を閉じてから、もう一度お試しください。",
+  "sync_fetch_error_navigation_blocked_dirty": "設定に未保存の変更があります。変更を保存または破棄して設定画面を閉じてから、もう一度お試しください。",
+  "sync_fetch_error_navigation_blocked_pending": "設定を保存中です。完了後に設定画面を閉じてから、もう一度お試しください。",
+  "sync_fetch_error_navigation_blocked_setup": "アカウントの初回セットアップが完了するまで移動できません。セットアップを終えて設定画面を閉じてから、もう一度お試しください。",
   "sync_local_feed_failures": "同期が完了しました。{{count}}件のフィードを更新できませんでした",
   "sync_completed_with_retry_pending": "同期は完了しましたが、{{accounts}} の一部変更は次回に再試行されます",
   "sync_completed_with_warnings": "同期は完了しましたが、{{accounts}} で問題が見つかりました",
@@ -76,8 +76,8 @@
     "deleted_greader_folders_other": "リモートに存在しないフォルダを {{count}} 件削除しました",
     "feed_skipped_entries_one": "「{{feedTitle}}」で同期中に {{count}} 件のエントリをスキップしました",
     "feed_skipped_entries_other": "「{{feedTitle}}」で同期中に {{count}} 件のエントリをスキップしました",
-    "feed_articles_vanished_one": "「{{feedTitle}}」の保存済み記事 {{count}} 件が同期後に消失しました",
-    "feed_articles_vanished_other": "「{{feedTitle}}」の保存済み記事 {{count}} 件が同期後に消失しました",
+    "feed_articles_vanished_one": "「{{feedTitle}}」の保存済み記事 {{count}} 件が同期後に見つからなくなりました",
+    "feed_articles_vanished_other": "「{{feedTitle}}」の保存済み記事 {{count}} 件が同期後に見つからなくなりました",
     "account_skipped_entries_one": "「{{accountName}}」で同期中に {{count}} 件のエントリをスキップしました",
     "account_skipped_entries_other": "「{{accountName}}」で同期中に {{count}} 件のエントリをスキップしました",
     "local_feed_sync_failed": "「{{feedTitle}}」の同期に失敗しました: {{message}}",
@@ -89,10 +89,10 @@
     "credential_access_required": "「{{accountName}}」の認証情報へのアクセスが必要です。アカウント設定で「接続確認」を実行し、macOS の確認が出たら許可してください。許可されるまで自動再試行は停止します。",
     "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます",
     "mutation_labels": {
-      "mark_read": "記事の既読化",
-      "mark_unread": "記事の未読化",
-      "star": "スター付与",
-      "unstar": "スター解除"
+      "mark_read": "既読にする",
+      "mark_unread": "未読にする",
+      "star": "スターを付ける",
+      "unstar": "スターを外す"
     },
     "operation_labels": {
       "import": "取り込み",

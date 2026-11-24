@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ultra RSS Reader — フィードは、あなたの手元に</title>
-<meta name="description" content="キーボード操作中心のデスクトップ RSS リーダー。全文検索はオフラインで動き、FreshRSS と同期できます。アカウント不要・クラウド不要・サブスク不要。" />
+<meta name="description" content="オフライン全文検索と FreshRSS 同期を備えた、キーボード操作中心のデスクトップ RSS リーダー。アカウント不要・クラウド不要・サブスク不要。" />
 <link rel="canonical" href="https://ultra-rss.jey3dayo.net/ja/" />
 <link rel="alternate" hreflang="en" href="https://ultra-rss.jey3dayo.net/" />
 <link rel="alternate" hreflang="ja" href="https://ultra-rss.jey3dayo.net/ja/" />
@@ -13,12 +13,12 @@
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Ultra RSS Reader — フィードは、あなたの手元に" />
-<meta property="og:description" content="キーボード操作中心のデスクトップ RSS リーダー。全文検索はオフラインで動き、FreshRSS と同期できます。アカウント不要・クラウド不要・サブスク不要。" />
+<meta property="og:description" content="オフライン全文検索と FreshRSS 同期を備えた、キーボード操作中心のデスクトップ RSS リーダー。アカウント不要・クラウド不要・サブスク不要。" />
 <meta property="og:image" content="https://ultra-rss.jey3dayo.net/assets/ja/screenshot-reader-light-mac.jpg" />
 <meta property="og:url" content="https://ultra-rss.jey3dayo.net/ja/" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Ultra RSS Reader — フィードは、あなたの手元に" />
-<meta name="twitter:description" content="キーボード操作中心のデスクトップ RSS リーダー。全文検索はオフラインで動き、FreshRSS と同期できます。アカウント不要・クラウド不要・サブスク不要。" />
+<meta name="twitter:description" content="オフライン全文検索と FreshRSS 同期を備えた、キーボード操作中心のデスクトップ RSS リーダー。アカウント不要・クラウド不要・サブスク不要。" />
 <meta name="twitter:image" content="https://ultra-rss.jey3dayo.net/assets/ja/screenshot-reader-light-mac.jpg" />
 
 <style>
@@ -532,8 +532,8 @@
       <h1>Ultra RSS Reader</h1>
       <p class="tagline">
         <strong>フィードは、あなたの手元に。</strong
-        >キーボード操作中心のデスクトップ RSS リーダー。全文検索はオフラインで動き、FreshRSS
-        と同期できます。アカウント不要・クラウド不要・サブスク不要。
+        >オフライン全文検索と FreshRSS 同期を備えた、キーボード操作中心のデスクトップ RSS
+        リーダー。アカウント不要・クラウド不要・サブスク不要。
       </p>
 
       <div class="cta-row">
@@ -544,12 +544,12 @@
       </div>
 
       <p class="fine-print" id="gatekeeper-note">
-        <strong>macOS 注意:</strong> 現在リリースは ad-hoc 署名(Apple Developer ID
-        なし)のため、初回起動時に Gatekeeper の警告が出ます。アプリを右クリック →「開く」、または
+        <strong>macOS でのご注意:</strong> 現在のリリースは ad-hoc 署名（Apple Developer ID
+        なし）のため、初回起動時に Gatekeeper の警告が表示されます。アプリを右クリックして「開く」を選ぶか、
         <code>xattr -dr com.apple.quarantine "/Applications/Ultra RSS Reader.app"</code> を実行してください。
       </p>
       <a class="all-platforms" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">
-        すべてのプラットフォームとインストーラを見る →
+        すべてのプラットフォームとインストーラーを見る →
       </a>
       <div class="store-badge">
         <a href="https://apps.microsoft.com/detail/9N85DQ7XKQ20">
@@ -590,38 +590,38 @@
 
   <section id="why">
     <div class="wrap">
-      <h2>なぜ Ultra RSS Reader?</h2>
+      <h2>Ultra RSS Reader の特徴</h2>
       <div class="card-grid">
         <div class="card">
           <strong>ローカルファースト、アカウント不要</strong>
-          <p>全記事が組み込み SQLite に保存され、FTS5 全文検索がオフラインで動作します。</p>
+          <p>取得した記事はすべて組み込みの SQLite に保存され、FTS5 による全文検索がオフラインで動作します。</p>
         </div>
         <div class="card">
-          <strong>FreshRSS 同期</strong>
+          <strong>本格的な FreshRSS 同期</strong>
           <p>
             Google Reader API 経由で FreshRSS
-            サーバーと接続。既読・スターは双方向同期し、ローカルの未送信変更が古いリモート状態で巻き戻されないよう保護されます。
+            サーバーと連携できます。既読・スターは双方向で同期され、未送信のローカル変更が古いリモート状態で上書きされないよう保護します。
             HTTPS サーバーでは、任意の Cloudflare Access Service Token 認証も利用できます。
           </p>
         </div>
         <div class="card">
-          <strong>認証情報は既定で OS キーリングへ</strong>
+          <strong>認証情報は既定で OS のキーリングへ保存</strong>
           <p>
             パスワードやトークン、任意の Cloudflare Access Service Token 認証情報は
-            Keychain / Credential Manager / Secret Service に保存され、データベースには入りません。設定で選べるローカルファイルモードでは、
+            Keychain / 資格情報マネージャー / Secret Service に保存し、データベースには書き込みません。設定から選べるローカルファイルモードでは、
             アプリのデータフォルダへ暗号化せずに保存します。
           </p>
         </div>
         <div class="card">
-          <strong>キーボード駆動</strong>
+          <strong>キーボード中心の操作</strong>
           <p>
-            <code>j</code>/<code>k</code> ナビゲーション、単キーアクション、任意のフィードへ直接ジャンプできる
-            <code>⌘K</code> コマンドパレット。バインドはすべてカスタマイズ可能です。
+            <code>j</code> / <code>k</code> での移動、単キーでの操作、任意のフィードへ直接ジャンプできる
+            <code>⌘K</code> コマンドパレットを搭載。キー割り当てはすべてカスタマイズできます。
           </p>
         </div>
         <div class="card">
-          <strong>リーディングフローを離れず元ページを閲覧</strong>
-          <p>Web Preview が配信元ページをアプリ内に埋め込み、専用のブラウザ操作を提供します。</p>
+          <strong>読む流れを止めずに元ページを閲覧</strong>
+          <p>Webプレビューで配信元ページをアプリ内にそのまま開け、専用のブラウザ操作で快適に閲覧できます。</p>
         </div>
       </div>
     </div>
@@ -630,7 +630,9 @@
   <section id="shortcuts">
     <div class="wrap">
       <h2>キーボードショートカット</h2>
-      <p style="text-align: center; opacity: 0.8; margin-top: -12px">すべて設定でカスタマイズ可能。既定値:</p>
+      <p style="text-align: center; opacity: 0.8; margin-top: -12px">
+        キー割り当てはすべて環境設定からカスタマイズできます。既定値:
+      </p>
       <div class="table-scroll">
         <table class="shortcuts-table">
           <thead>
@@ -646,23 +648,23 @@
               <td><kbd>j</kbd> / <kbd>k</kbd></td>
               <td>次 / 前の記事</td>
               <td><kbd>m</kbd></td>
-              <td>既読切替</td>
+              <td>既読 / 未読を切り替え</td>
             </tr>
             <tr>
               <td><kbd>h</kbd> / <kbd>l</kbd></td>
               <td>前 / 次のフィード</td>
               <td><kbd>s</kbd></td>
-              <td>スター切替</td>
+              <td>スターを切り替え</td>
             </tr>
             <tr>
               <td><kbd>Space</kbd> / <kbd>Shift+Space</kbd></td>
-              <td>記事スクロール</td>
+              <td>本文をスクロール</td>
               <td><kbd>a</kbd></td>
-              <td>すべて既読</td>
+              <td>すべて既読にする</td>
             </tr>
             <tr>
               <td><kbd>v</kbd></td>
-              <td>アプリ内ブラウザで開く</td>
+              <td>Webプレビューを開く</td>
               <td><kbd>b</kbd></td>
               <td>外部ブラウザで開く</td>
             </tr>
@@ -670,25 +672,25 @@
               <td><kbd>/</kbd></td>
               <td>検索</td>
               <td><kbd>f</kbd></td>
-              <td>フィルタ切替</td>
+              <td>フィルターを切り替え</td>
             </tr>
             <tr>
               <td><kbd>⌘1</kbd> / <kbd>⌘2</kbd> / <kbd>⌘3</kbd></td>
               <td>未読 / すべて / スター</td>
               <td><kbd>u</kbd></td>
-              <td>サイドバーへフォーカス</td>
+              <td>サイドバーにフォーカス</td>
             </tr>
             <tr>
               <td><kbd>⌘K</kbd></td>
               <td>コマンドパレット</td>
               <td><kbd>⌘\</kbd></td>
-              <td>サイドバー表示切替</td>
+              <td>サイドバーを切り替え</td>
             </tr>
             <tr>
               <td><kbd>Esc</kbd></td>
-              <td>閉じる / クリア</td>
+              <td>閉じる / 選択解除</td>
               <td><kbd>⌘,</kbd></td>
-              <td>設定</td>
+              <td>環境設定を開く</td>
             </tr>
           </tbody>
         </table>
@@ -699,18 +701,18 @@
   <section id="compare" class="compare">
     <div class="wrap">
       <h2>他のリーダーとの違い</h2>
-      <p>優れた RSS リーダーは他にもたくさんあり、何を重視するかで最適解は変わります。</p>
+      <p>優れた RSS リーダーは他にもたくさんあり、何を重視するかで最適な選択は変わります。</p>
       <p>
-        Ultra RSS Reader は、記事のアーカイブを自分のマシンに置いておきたい人、そして手をキーボードから離したくない人のために作っています。取得した記事はすべてローカルの
-        SQLite に残り、オフラインで全文検索できます。同期は任意で、自分の FreshRSS
-        サーバーに向けることも、アカウントなしで使うこともできます。ソースコードは MIT ライセンスで公開しています。Microsoft Store 版は有料です。
+        Ultra RSS Reader は、記事のアーカイブを自分の手元に残したい人、そしてキーボードから手を離さずに読み進めたい人のためのアプリです。取得した記事はすべてローカルの
+        SQLite に蓄積され、オフラインのまま全文検索できます。同期は任意で、自分の FreshRSS
+        サーバーに接続しても、アカウントなしでローカル専用として使っても構いません。ソースコードは MIT ライセンスで公開しています（Microsoft Store 版は有料です）。
       </p>
       <p>
-        Apple プラットフォームで完成度の高いネイティブリーダーが欲しいなら
+        Apple 環境で完成度の高いネイティブリーダーを求めるなら
         <a href="https://netnewswire.com/">NetNewsWire</a> や <a href="https://reederapp.com/">Reeder</a>
-        が優れています。モバイルアプリや記事推薦を含むホスティング型サービスが欲しいなら
+        が優れています。モバイルアプリや記事のおすすめ機能を備えたクラウド型サービスを使いたいなら
         <a href="https://feedly.com/">Feedly</a> や <a href="https://www.inoreader.com/">Inoreader</a>
-        の方が向いています。Ultra RSS Reader はホスティング側の機能を意図的に持ちません。
+        が向いています。Ultra RSS Reader には、クラウド型サービスに相当する機能をあえて持たせていません。
       </p>
     </div>
   </section>
@@ -719,10 +721,10 @@
 <footer class="site-footer">
   <div class="wrap footer-row">
     <div class="footer-links">
-      <a href="/ja/privacy/">Privacy</a>
-      <a href="/ja/support/">Support</a>
+      <a href="/ja/privacy/">プライバシー</a>
+      <a href="/ja/support/">サポート</a>
       <a href="https://github.com/jey3dayo/ultra-rss-reader">GitHub</a>
-      <a href="https://github.com/jey3dayo/ultra-rss-reader/releases">Releases</a>
+      <a href="https://github.com/jey3dayo/ultra-rss-reader/releases">リリース</a>
       <a href="https://github.com/jey3dayo/ultra-rss-reader/blob/main/LICENSE">ライセンス (MIT)</a>
       <a href="/" hreflang="en">English</a>
     </div>
@@ -776,7 +778,7 @@
         if (!asset) return;
         btn.href = asset.browser_download_url;
         var label = platform === "mac" ? "macOS 向けにダウンロード" : "Windows 向けにダウンロード";
-        if (release.tag_name) label += "(" + release.tag_name + ")";
+        if (release.tag_name) label += " (" + release.tag_name + ")";
         btn.textContent = label;
       })
       .catch(function () {
