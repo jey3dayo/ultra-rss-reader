@@ -508,6 +508,73 @@ fn update_feed_url_command_updates_local_feed_url_and_remote_id() {
 }
 
 #[test]
+fn update_feed_url_command_rekeys_articles_to_the_new_url() {
+    let db = Mutex::new(test_db());
+    let account_id = {
+        let guard = db.lock().unwrap();
+        insert_test_account(&guard, "Primary")
+    };
+    let feed_id = {
+        let guard = db.lock().unwrap();
+        insert_test_feed_with_url(&guard, &account_id, "http://example.com/old.xml")
+    };
+    let old_article_id = crate::domain::article::generate_entry_id(
+        &account_id.0,
+        Some("entry-1"),
+        "http://example.com/old.xml",
+        Some("https://example.com/posts/1"),
+        Some("First Post"),
+    );
+    {
+        let guard = db.lock().unwrap();
+        guard
+            .writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, url, published_at, fetched_at, is_read, is_starred)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, 1, 1)",
+                params![
+                    old_article_id.0,
+                    feed_id.0,
+                    "entry-1",
+                    "First Post",
+                    "https://example.com/posts/1",
+                    "2026-01-01T00:00:00Z"
+                ],
+            )
+            .unwrap();
+    }
+    let syncing = AtomicBool::new(false);
+
+    update_feed_url_with_boundary(
+        &db,
+        &syncing,
+        feed_id.0.clone(),
+        "https://example.com/new.xml".to_string(),
+    )
+    .expect("local feed URL update should succeed");
+
+    let expected_article_id = crate::domain::article::generate_entry_id(
+        &account_id.0,
+        Some("entry-1"),
+        "https://example.com/new.xml",
+        Some("https://example.com/posts/1"),
+        Some("First Post"),
+    );
+    let guard = db.lock().unwrap();
+    let (article_id, is_read, is_starred): (String, i64, i64) = guard
+        .reader()
+        .query_row(
+            "SELECT id, is_read, is_starred FROM articles WHERE feed_id = ?1",
+            params![feed_id.0],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(article_id, expected_article_id.0);
+    assert_eq!(is_read, 1);
+    assert_eq!(is_starred, 1);
+}
+
+#[test]
 fn update_feed_url_command_rejects_freshrss_feed() {
     let db = Mutex::new(test_db());
     let account_id = {

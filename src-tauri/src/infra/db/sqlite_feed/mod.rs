@@ -291,13 +291,62 @@ impl FeedRepository for SqliteFeedRepository<'_> {
     }
 
     fn update_url(&self, feed_id: &FeedId, url: &str) -> DomainResult<()> {
-        let affected_rows = self.conn.execute(
+        let account_id: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT account_id FROM feeds WHERE id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(account_id) = account_id else {
+            return Err(DomainError::Validation("feed not found".to_string()));
+        };
+
+        let articles: Vec<(String, Option<String>, Option<String>, String)> = {
+            let mut statement = self
+                .conn
+                .prepare("SELECT id, remote_id, url, title FROM articles WHERE feed_id = ?1")?;
+            let rows = statement.query_map(params![feed_id.0], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            })?;
+            let mut articles = Vec::new();
+            for row in rows {
+                articles.push(row?);
+            }
+            articles
+        };
+
+        let tx = self.conn.unchecked_transaction()?;
+        for (article_id, remote_id, article_url, title) in articles {
+            let new_id = crate::domain::article::generate_entry_id(
+                &account_id,
+                remote_id.as_deref(),
+                url,
+                article_url.as_deref(),
+                Some(&title),
+            );
+            if new_id.0 == article_id {
+                continue;
+            }
+            tx.execute(
+                "UPDATE article_tags SET article_id = ?1 WHERE article_id = ?2",
+                params![new_id.0, article_id],
+            )?;
+            tx.execute(
+                "UPDATE article_view_history SET article_id = ?1 WHERE article_id = ?2",
+                params![new_id.0, article_id],
+            )?;
+            tx.execute(
+                "UPDATE articles SET id = ?1 WHERE id = ?2",
+                params![new_id.0, article_id],
+            )?;
+        }
+        tx.execute(
             "UPDATE feeds SET url = ?1, remote_id = ?1 WHERE id = ?2",
             params![url, feed_id.0],
         )?;
-        if affected_rows == 0 {
-            return Err(DomainError::Validation("feed not found".to_string()));
-        }
+        tx.commit()?;
         Ok(())
     }
 
