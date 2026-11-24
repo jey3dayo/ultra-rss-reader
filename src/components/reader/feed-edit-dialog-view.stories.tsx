@@ -119,9 +119,9 @@ export const Japanese: Story = {
       {
         key: "feed-url",
         icon: Rss,
-        label: "フィードのURL",
+        label: "フィードURL",
         value: "https://example.com/rss.xml",
-        copyLabel: "フィードのURLをコピー",
+        copyLabel: "フィードURLをコピー",
         onCopy: fn(),
       },
     ],
