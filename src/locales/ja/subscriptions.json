@@ -28,7 +28,7 @@
   "detail_fetch_error_retry": "再取得",
   "detail_fetch_error_retrying": "再取得中",
   "detail_fetch_error_edit_feed_url": "フィード設定を確認",
-  "detail_fetch_error_url_change_guidance": "フィードURLはアプリ内で変更できません。URLを変える場合は、この詳細の下部から購読を解除し、正しいURLでフィードを追加し直してください。",
+  "detail_fetch_error_url_change_guidance": "フィードURLは「フィード設定を確認」から変更できます。",
   "fetch_error_retry_busy": "同期処理中です。完了後に再取得してください。",
   "fetch_error_retry_succeeded": "再取得しました",
   "detail_fetch_error_retry_failed": "フィードを再取得できませんでした",
