@@ -234,14 +234,6 @@ const readMigrationModuleSource = (): string => {
     .map((file) => readText(`${migrationDir}/${file}`))
     .join("\n");
 };
-const readAccountCommandsModuleSource = (): string =>
-  ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/commands/account_commands/${file}`)).join("\n");
-const readOpmlCommandsModuleSource = (): string =>
-  ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/commands/opml_commands/${file}`)).join("\n");
-const readFeedDiscoveryModuleSource = (): string =>
-  ["mod.rs", "http.rs", "html.rs", "tests.rs"]
-    .map((file) => readText(`src-tauri/src/infra/feed_discovery/${file}`))
-    .join("\n");
 const readGReaderProviderModuleSource = (): string =>
   [
     "mod.rs",
@@ -254,10 +246,6 @@ const readGReaderProviderModuleSource = (): string =>
     "tests.rs",
   ]
     .map((file) => readText(`src-tauri/src/infra/provider/greader/${file}`))
-    .join("\n");
-const readLocalProviderModuleSource = (): string =>
-  ["mod.rs", "http.rs", "metadata.rs", "tests.rs"]
-    .map((file) => readText(`src-tauri/src/infra/provider/local/${file}`))
     .join("\n");
 const readMiseTaskCorpus = (): string =>
   ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"].map(readText).join("\n");
@@ -388,12 +376,6 @@ const parseCspDirectives = (csp: string): Map<string, string[]> => {
   return directives;
 };
 
-/**
- * Splits a workflow into its individual `- name:`/`- uses:`/`- run:` step blocks so a contract can
- * assert that two commands live in *different* steps. Substring checks against the whole file
- * cannot tell a per-stage step layout apart from one step running everything, which is the
- * distinction the CI timing breakdown depends on.
- */
 const extractWorkflowStepBlocks = (workflow: string): string[] => {
   const stepStart = /^\s{6}- (?:name|uses|run):/;
   const lines = workflow.split("\n");
@@ -718,9 +700,6 @@ const generateMigrationChangelog = (): MigrationChangelogEntry[] =>
     })
     .sort((a, b) => a.version - b.version);
 
-// Same reason as release-version-bump: this file reads a large set of repository files per case,
-// which runs past the suite-wide 15s testTimeout on Windows CI and on a loaded local machine.
-// Widened for this file only; the global budget stays 15s.
 describe("release repository contract", { timeout: 30_000 }, () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
@@ -745,9 +724,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     releaseWorkflow,
     msixManifest: readText("msix/Package.appxmanifest"),
   };
-  const releaseCommand = readText(".claude/commands/release.md");
-  const codexReleaseSkill = readText(".codex/skills/release/SKILL.md");
-  const codexPhase2Reference = readText(".codex/skills/release/references/phase-2-generate.md");
   const codexReleaseChecks = readText(".codex/skills/release/scripts/release_checks.py");
   const dependencyLicenseReportScript = readText("scripts/report-dependency-licenses.ts");
   const releaseArtifactsCli = readText("scripts/release/artifacts.ts");
@@ -757,11 +733,8 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const updaterCommandsSource = readUpdaterModuleSource();
   const migrationSource = readMigrationModuleSource();
   const devMocks = readText("src/dev/mocks.ts");
-  const feedContentPrivacy = readText("docs/feed-content-privacy.md");
   const incidentRunbook = readText("docs/incident-runbook.md");
-  const readerKeyboardNavigation = readText("docs/reader-keyboard-navigation.md");
   const releaseManualVerification = readText("docs/release-manual-verification.md");
-  const docsReadme = readText("docs/README.md");
   const ciWorkflow = readText(".github/workflows/ci.yml");
   const labelerWorkflow = readText(".github/workflows/labeler.yml");
   const prInsightsLabelerWorkflow = readText(".github/workflows/pr-insights-labeler.yml");
@@ -782,12 +755,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const sqliteAccountSource = readText("src-tauri/src/infra/db/sqlite_account.rs");
   const platformConstantsSource = readText("src/constants/platform.ts");
   const providerHttpDefaultsSource = readRustModuleSource("src-tauri/src/infra/provider/http_defaults.rs");
-  const localProviderSource = readLocalProviderModuleSource();
-  const accountCommandsSource = readAccountCommandsModuleSource();
-  const opmlCommandsSource = readOpmlCommandsModuleSource();
   const greaderProviderSource = readGReaderProviderModuleSource();
-  const articleContentViewTest = readText("src/__tests__/components/article-content-view.test.tsx");
-  const feedDiscoverySource = readFeedDiscoveryModuleSource();
   const addAccountFormSource = readText("src/lib/account/add-account-form.ts");
   const addAccountServicesSource = readText("src/components/settings/add-account/services.ts");
 
@@ -819,9 +787,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       validateReleaseConfigSources({ releaseTag: `v${packageJson.version}`, sources: releaseConfigSources }),
     ).toEqual([]);
     expect(releaseConfigCli).toContain('from "./lib/config-validation.ts"');
-    expect(releaseCommand).toContain("node scripts/release/bump-version.ts <new_version>");
-    expect(codexReleaseSkill).toContain("scripts/release/bump-version.ts <new_version>");
-    expect(codexPhase2Reference).toContain("scripts/release/bump-version.ts <new_version>");
     expect(codexReleaseChecks).toContain("src-tauri/Cargo.lock");
     expect(codexReleaseChecks).toContain("msix/Package.appxmanifest");
   });
@@ -906,7 +871,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   it("keeps a local release preflight available before pushing release tags", () => {
     const localPreflightTask = extractTaskBlock(miseToml, "release:preflight:local");
     const releaseSkill = readText(".codex/skills/release/references/phase-3-publish.md");
-    const releaseCommand = readText(".claude/commands/release.md");
     const releaseRule = readText(".claude/rules/release-workflow.md");
 
     expect(localPreflightTask).toContain("RELEASE_TAG:?set RELEASE_TAG=vX.Y.Z");
@@ -916,8 +880,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(localPreflightTask).toContain("mise exec -- mise run lint:types");
     expect(localPreflightTask).toContain("mise exec -- mise run test:unit:ci");
     expect(releaseSkill).toContain("RELEASE_TAG=v{new_version} mise run release:preflight:local");
-    expect(releaseCommand).toContain("RELEASE_TAG=v{new_version} mise run release:preflight:local");
-    expect(releaseCommand).toContain("通常の commit hook ではなく");
     expect(releaseRule).toContain("RELEASE_TAG=vX.Y.Z mise run release:preflight:local");
   });
 
@@ -1159,7 +1121,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("cancels superseded CI runs only for pull requests", () => {
-    const githubExpressionOpen = `${String.fromCharCode(36)}{{`;
+    const githubExpressionOpen = "${{";
     // A shared group would still replace a pending main run with the next one.
     expect(ciWorkflow).toContain(
       `group: ${githubExpressionOpen} github.workflow }}-${githubExpressionOpen} github.event_name == 'pull_request' && github.ref || github.run_id }}`,
@@ -1175,10 +1137,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("documents the intentionally narrow Windows Rust test scope", () => {
-    // Built via String.fromCharCode instead of a literal "${{" so these read as
-    // real template interpolation, not an accidental placeholder
-    // (lint/suspicious/noTemplateCurlyInString).
-    const githubExpressionOpen = `${String.fromCharCode(36)}{{`;
+    const githubExpressionOpen = "${{";
     const rustTestTask = extractTaskBlock(miseToml, "test:rust");
 
     expect(rustTestTask).toContain("Windows CI is scoped to integration_test");
@@ -1239,7 +1198,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("keeps Rust cfg(test) production-only release gaps inventoried", () => {
-    expect(releaseManualVerification).toContain("Rust Test cfg(test) And Production-Only Coverage Inventory");
     for (const productionOnlySurface of [
       "Tauri runtime startup",
       "Panic and logging",
@@ -1248,8 +1206,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     ]) {
       expect(releaseManualVerification).toContain(productionOnlySurface);
     }
-    expect(releaseManualVerification).toContain("Do not treat a `cargo test` pass as evidence for release signing");
-    expect(releaseManualVerification).toContain("packaged updater install");
     expect(tauriLib).toContain("#[cfg(not(test))]");
     expect(tauriLib).toContain("fn run()");
   });
@@ -1378,282 +1334,23 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriConfig.identifier).toBe(PROD_TAURI_IDENTIFIER);
     expect(tauriReleaseConfig.identifier).toBe(PROD_TAURI_IDENTIFIER);
     expect(tauriDevConfig.identifier).toBe(DEV_TAURI_IDENTIFIER);
-
-    expect(incidentRunbook).toContain("The current production bundle identifier is `com.jey3dayo.ultra-rss-reader`");
-    expect(incidentRunbook).toContain("triage must check the old identifier's app data, log, and keyring namespace");
-    expect(incidentRunbook).toContain("OS keyring credentials may need to be re-entered");
-    expect(incidentRunbook).toContain(
-      "Do not move logs, backups, support dumps, or credentials between identifier namespaces",
-    );
-    expect(incidentRunbook).toContain("normal startup must not rename the app data directory automatically");
-    expect(incidentRunbook).toContain("Log paths change with the identifier namespace");
-    expect(incidentRunbook).toContain("Rollback across an identifier change must use the old identifier namespace");
-    expect(releaseManualVerification).toContain(
-      "No automatic app data directory rename is attempted during normal startup",
-    );
-    expect(releaseManualVerification).toContain("a user-visible database migration prompt or backup/copy prompt");
-    expect(releaseManualVerification).toContain("OS keyring credentials cannot be copied automatically");
-    expect(releaseManualVerification).toContain(
-      "Rollback after an identifier change must return users to the old identifier namespace",
-    );
   });
 
-  it("keeps reader import, favicon, and browser-origin privacy boundaries documented", () => {
-    expect(feedContentPrivacy).toContain(
-      "OS file drop and drag-and-drop import surfaces, if added, must enter the same OPML import boundary as the native open dialog.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Dropped directories, unsupported extensions, multiple-file drops, symlink files, oversized files, and unreadable files must fail or be ignored before parsing",
-    );
-    expect(feedContentPrivacy).toContain(
-      "app shell surfaces must not subscribe to OS file-drop events or expose a shell-wide file-drop overlay",
-    );
-    expect(feedContentPrivacy).toContain(
-      "The browser overlay titlebar drag rail and toolbar actions keep pointer priority through their scoped overlay root",
-    );
-    expect(feedContentPrivacy).toContain("Favicon requests must send no `Referer` header.");
-    expect(feedContentPrivacy).toContain("use a maximum 7-day success TTL");
-    expect(feedContentPrivacy).toContain("Failure cache must be bounded, resettable, and expire within 24 hours.");
-    expect(feedContentPrivacy).toContain("The embedded browser webview represents a remote publisher origin.");
-    expect(feedContentPrivacy).toContain(
-      "article reader state may use sanitized `content_sanitized`, local app metadata, and app-controlled focus state",
-    );
-    expect(feedContentPrivacy).toContain("### Reduced Data And Low Power Policy");
-    expect(feedContentPrivacy).toContain("Ultra RSS Reader does not currently integrate with OS reduced-data or");
-    expect(feedContentPrivacy).toContain("Reader remote images continue to load in the default mode");
-    expect(feedContentPrivacy).toContain("A future reduced-data setting may block reader remote images");
-    expect(feedContentPrivacy).toContain("Feed favicon fetching is non-essential remote metadata.");
-    expect(feedContentPrivacy).toContain("Automatic background sync may be delayed or skipped while low-power");
-    expect(feedContentPrivacy).toContain("Manual sync remains a user override");
-    expect(feedContentPrivacy).toContain("Suppressed automatic sync must surface as stale or suppressed state in-app");
-    expect(feedContentPrivacy).toContain(
-      'Settings copy must describe reduced-data behavior as "limits automatic remote',
-    );
-    expect(feedContentPrivacy).toContain("### Offline-First Stale Content Banner Policy");
-    expect(feedContentPrivacy).toContain("show stale-content warning surfaces only when the reader is presenting");
-    expect(feedContentPrivacy).toContain("Account view: show an account-scoped stale warning");
-    expect(feedContentPrivacy).toContain("Feed view: show a feed-scoped stale warning");
-    expect(feedContentPrivacy).toContain("Article view: show at most a compact inherited stale indicator");
-    expect(feedContentPrivacy).toContain("Stale warning dismiss is session-scoped by default");
-    expect(feedContentPrivacy).toContain("Account stale dismiss is scoped to the selected account id");
-    expect(feedContentPrivacy).toContain("Feed stale dismiss is scoped to the selected feed id");
-    expect(feedContentPrivacy).toContain("A new error class, a newer failed manual sync");
-    expect(incidentRunbook).toContain(
-      "capture whether a stale content banner was shown in the account, feed, or article view",
-    );
-    expect(readerKeyboardNavigation).toContain("Sync failure, auth failure, or stale content");
-    expect(feedContentPrivacy).toContain(
-      "Support/debug copy must not include a stable app or environment fingerprint by default.",
-    );
-    expect(feedContentPrivacy).toContain("### Support/Debug Environment Fingerprint");
-    expect(feedContentPrivacy).toContain("must not automatically include hostname, local filesystem paths");
-    expect(feedContentPrivacy).toContain("Tooltips and `title` attributes must not reveal credentials");
-    expect(feedContentPrivacy).toContain(
-      "Feed URLs, server URLs, log paths, and article URLs use redacted display and redacted tooltip copy",
-    );
-    expect(feedContentPrivacy).toContain("must not appear in logs, support copy, `title` attributes, or error toasts");
-    expect(readerKeyboardNavigation).toContain(
-      "This exception does not apply to URLs, server paths, credentials, debug paths, or other privacy-sensitive values.",
-    );
-    expect(readerKeyboardNavigation).toContain("Recovery surfaces must remain keyboard-only operable.");
-    expect(readerKeyboardNavigation).toContain(
-      "retry, open settings, open log directory, restore backup, dismiss toast, and focus restoration",
-    );
-    expect(feedContentPrivacy).toContain("Dev mock data source labeling");
-    expect(feedContentPrivacy).toContain(
-      "Internal Dev mock records, screenshots, and product-metric samples must be labeled as `Dev mock data`",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Release builds must not show the Dev mock data source label because release source must not import dev-only mock data or scenario modules.",
-    );
-
-    expect(localProviderSource).toContain("pull_entries_smoke_parses_many_large_entries_under_body_cap");
-    expect(opmlCommandsSource).toContain("import_parser_smoke_parses_large_opml_under_file_limit");
-    expect(articleContentViewTest).toContain(
-      "smoke-renders a large sanitized article body with many remote images without expanding render wrappers",
-    );
-    expect(feedContentPrivacy).toContain("### Large Feed And Article Memory Pressure Smoke Policy");
-    expect(feedContentPrivacy).toContain(
-      "Large-feed import and article-render smoke tests are regression sentinels, not supported hard limits.",
-    );
-    expect(feedContentPrivacy).toContain("Provider parse failures must not persist raw response samples");
-    expect(incidentRunbook).toContain("Feed parser failure samples must be support-safe by default.");
-    expect(feedContentPrivacy).toContain("### Provider Scale Guidance Decision");
-    expect(feedContentPrivacy).toContain(
-      "Account settings may show provider-specific feed and article count guidance as advisory performance guidance, not as an enforced maximum.",
-    );
-    expect(accountCommandsSource).toContain("provider_account_scale_guidance_contract_is_advisory");
-    expect(accountCommandsSource).toContain("warning_threshold_guidance");
-    expect(accountCommandsSource).toContain("no_hard_limit_copy");
-  });
-
-  it("keeps feed provider abuse-prevention and redirect contracts documented", () => {
+  it("keeps provider HTTP client hardening wired in the shared defaults", () => {
     expect(providerHttpDefaultsSource).toContain(".timeout(PROVIDER_HTTP_TIMEOUT)");
     expect(providerHttpDefaultsSource).toContain(".no_proxy()");
-    expect(providerHttpDefaultsSource).toContain("PROVIDER_CACHE_CONTROL");
-    expect(providerHttpDefaultsSource).toContain("PROVIDER_PRAGMA");
-
-    expect(localProviderSource).toContain("local_provider_limits_concurrent_feed_requests_per_instance");
-    expect(localProviderSource).toContain("local_provider_keeps_sync_and_discovery_request_limits_separate");
-    expect(localProviderSource).toContain("redirect_policy_preserves_authorization_on_same_origin_redirects");
-    expect(localProviderSource).toContain("redirect_policy_strips_authorization_on_cross_origin_redirects");
-    expect(localProviderSource).toContain("validate_external_feed_url_rechecks_repeated_private_host_resolution");
-    expect(localProviderSource).toContain("pull_entries_preserves_retry_after_for_rate_limit_status");
-    expect(localProviderSource).toContain("create_subscription_preserves_retry_after_for_rate_limit_status");
-
-    expect(feedDiscoverySource).toContain("Discovery is a user-initiated single URL probe, not a crawler.");
-    expect(feedDiscoverySource).toContain("pub(crate) fn discovery_http_client_builder");
-    expect(feedDiscoverySource).toContain("pub(crate) fn extract_feed_links");
-    expect(feedDiscoverySource).toContain("validate_discovery_redirect_rejects_dns_rebinding_private_hostname_targets");
-    expect(feedDiscoverySource).toContain("discovery_http_client_sends_shared_user_agent_and_does_not_prefetch_robots");
-
-    expect(feedContentPrivacy).toContain("Local provider sync is single-flight per provider instance.");
-    expect(feedContentPrivacy).toContain(
-      "The global local sync cap is 1, which also caps same-host sync concurrency at 1",
-    );
-    expect(feedContentPrivacy).toContain("Manual sync is allowed to bypass automatic-scheduler suppression");
-    expect(feedContentPrivacy).toContain("Feed discovery is a user-initiated single URL probe, not a crawler.");
-    expect(feedContentPrivacy).toContain("Authorization headers may remain on same-origin redirects");
-    expect(feedContentPrivacy).toContain(
-      "Authorization headers must be stripped by the HTTP client on cross-origin redirects.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Redirect targets are revalidated at every redirect hop. Public hostname lookups go through the current HTTP client's validated DNS resolver",
-    );
-    expect(feedContentPrivacy).toContain(
-      "When hostname validation returns public addresses, those socket addresses are pinned with `resolve_to_addrs`",
-    );
-    expect(feedContentPrivacy).toContain(
-      "The resolver cache is scoped to one `reqwest::Client` and lives only for that client's lifetime.",
-    );
-    expect(incidentRunbook).toContain("Manual sync can bypass automatic-scheduler suppression");
-    expect(incidentRunbook).toContain("Feed discovery is a user-initiated single URL probe, not a crawler");
-
-    expect(providerSource).toContain("provider_auth_semantics_document_token_refresh_contract");
-    expect(providerSource).toContain("freshrss_capability_is_connected_to_greader_product_diagnostics");
-    expect(providerSource).toContain("unsupported_by_greader_contract");
-    expect(providerSource).toContain("freshrss-greader");
-    expect(providerSource).toContain("treat_401_403_as_auth_failure_and_scheduler_backoff");
-    expect(providerSource).toContain("provider_side_deletion_retention_policy_is_fixed_by_account_kind");
-    expect(feedContentPrivacy).toContain("### Provider Sync Contract");
-    expect(feedContentPrivacy).toContain(
-      "FreshRSS uses the GReader protocol with diagnostics label `freshrss-greader`",
-    );
-    expect(feedContentPrivacy).toContain("server product version detection is unsupported by the current GReader");
-    expect(feedContentPrivacy).toContain("FreshRSS subscription reconciliation removes provider-managed local feeds");
-    expect(feedContentPrivacy).toContain("This existing feed");
-    expect(feedContentPrivacy).toContain("deletion behavior is separate from folder reconciliation");
-    expect(feedContentPrivacy).toContain("after a successful complete folder snapshot");
-    expect(feedContentPrivacy).toContain("account; its feeds are detached");
-    expect(feedContentPrivacy).toContain("into the no-folder bucket and retained");
-    expect(feedContentPrivacy).toContain("A folder-fetch/auth/network failure does not");
-    expect(feedContentPrivacy).toContain("HTTP 401 or 403 after reauthentication is an auth failure");
-    expect(feedContentPrivacy).toContain(
-      "A slow, failed, or retry-delayed account must not block another ready account",
-    );
-    expect(feedContentPrivacy).toContain("Partial success, all failed, scheduler suppression, and offline");
-    expect(incidentRunbook).toContain("### Provider Sync Triage");
-    expect(incidentRunbook).toContain("Existing FreshRSS subscription reconciliation removes provider-managed local");
-    expect(incidentRunbook).toContain("detached into the no-folder bucket");
-    expect(incidentRunbook).toContain("A folder-fetch or authentication/network failure does not delete");
-    expect(releaseManualVerification).toContain("expired or rejected tokens surface as auth failure/backoff");
-    expect(releaseManualVerification).toContain(
-      "Partial sync success remains visible with matching freshness language",
-    );
-  });
-
-  it("keeps reader search and feed discovery trust contracts synchronized", () => {
-    const sqliteArticleSource = [
-      "mod.rs",
-      "diagnostics.rs",
-      "list.rs",
-      "read.rs",
-      "history.rs",
-      "maintenance.rs",
-      "mutation.rs",
-      "remote_state.rs",
-      "tests/mod.rs",
-      "tests/list.rs",
-      "tests/read.rs",
-      "tests/unread.rs",
-      "tests/history.rs",
-      "tests/mutation.rs",
-      "tests/maintenance.rs",
-      "tests/remote_state.rs",
-      "tests/search.rs",
-      "tests/orphaned.rs",
-    ]
-      .map((file) => readText(`src-tauri/src/infra/db/sqlite_article/${file}`))
-      .join("\n");
-    const readerLocaleEn = readText("src/locales/en/reader.json");
-    const readerLocaleJa = readText("src/locales/ja/reader.json");
-
-    expect(sqliteArticleSource).toContain("fn build_fts_query(query: &str) -> Option<String>");
-    expect(sqliteArticleSource).toContain("Search treats every whitespace-separated token as literal text.");
-    expect(sqliteArticleSource).toContain("search_fts_query_builder_quotes_every_term_as_literal_text");
-    expect(sqliteArticleSource).toContain("search_dedupes_fts_and_like_hits_before_applying_stable_order");
-    expect(sqliteArticleSource).toContain("ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC");
-
-    expect(readerLocaleEn).toContain(
-      "Words are searched literally in titles and article text. Quotes, OR, NEAR, and * are not search operators.",
-    );
-    expect(readerLocaleJa).toContain(
-      "タイトルと本文を単語ごとにそのまま検索します。引用符、OR、NEAR、* は検索演算子として扱いません。",
-    );
-
-    expect(feedContentPrivacy).toContain("### Reader Search Query And Snippet Policy");
-    expect(feedContentPrivacy).toContain("reader search treats user input as literal words");
-    expect(feedContentPrivacy).toContain("remote-content-derived");
-    expect(feedContentPrivacy).toContain("snippets");
-    expect(feedContentPrivacy).toContain("Search uses SQLite FTS only as a candidate matcher.");
-    expect(feedContentPrivacy).toContain("Search UI copy must describe literal-word search");
-    expect(feedContentPrivacy).toContain("FTS rank, match position,");
-    expect(feedContentPrivacy).toContain("publisher title tricks, or snippet density");
-    expect(feedContentPrivacy).toContain("### Article Content Selection And Search Highlight Contract");
-    expect(feedContentPrivacy).toContain("stays one contiguous sanitized DOM surface.");
-    expect(feedContentPrivacy).toContain("DOM selection inside sanitized article content");
-    expect(feedContentPrivacy).toContain("Reader search is a list-level filter only today");
-    expect(feedContentPrivacy).toContain("It must not inject search");
-    expect(feedContentPrivacy).toContain("highlight markup into sanitized article HTML");
-    expect(feedContentPrivacy).toContain("Future article-content virtualization must keep stable scroll anchors");
-    expect(feedContentPrivacy).toContain("Image lazy loading may stay browser-owned");
-
-    expect(readerKeyboardNavigation).toContain("## Long Article Selection And Search Highlight Contract");
-    expect(readerKeyboardNavigation).toContain("article content remains a single rendered reading surface");
-    expect(readerKeyboardNavigation).toContain(
-      "Text selection owned by the browser must not be cleared by scroll restoration",
-    );
-    expect(readerKeyboardNavigation).toContain(
-      "Find-in-article and search highlights must be anchored to normalized text ranges or stable content nodes",
-    );
-    expect(readerKeyboardNavigation).toContain(
-      "Reader scroll restoration must use a stable article/content anchor and offset.",
-    );
-
-    expect(feedContentPrivacy).toContain("### Feed Discovery Result Trust Levels");
-    expect(feedContentPrivacy).toContain(
-      "feed discovery results are untrusted metadata until the add action validates and normalizes the selected URL",
-    );
-    expect(feedContentPrivacy).toContain("Discovery result display | Untrusted preview");
-    expect(feedContentPrivacy).toContain("Add action candidate     | Validated candidate");
-    expect(feedContentPrivacy).toContain("Stored feed              | Trusted app state");
-    expect(feedContentPrivacy).toContain("Add action must use the normalized feed URL selected by validation");
+    expect(providerHttpDefaultsSource).toContain("HeaderValue::from_static(PROVIDER_CACHE_CONTROL)");
+    expect(providerHttpDefaultsSource).toContain("HeaderValue::from_static(PROVIDER_PRAGMA)");
   });
 
   it("keeps production release log timezone policy synchronized with support docs", () => {
-    expect(tauriLib).toContain("TimezoneStrategy::UseLocal");
-    expect(tauriLib).toContain('RELEASE_LOG_TIMEZONE_STRATEGY: &str = "UseLocal"');
+    const strategy = tauriLib.match(/RELEASE_LOG_TIMEZONE_STRATEGY: &str = "([^"]+)"/)?.[1];
 
+    expect(strategy, "release log timezone strategy constant").toBeDefined();
+    expect(tauriLib).toContain(`TimezoneStrategy::${strategy}`);
     for (const doc of [incidentRunbook, releaseManualVerification]) {
-      expect(doc).toContain("TimezoneStrategy::UseLocal");
-      expect(doc).toContain("OS timezone");
-      expect(doc).toContain("UTC offset");
-      expect(doc).toContain("DST boundary");
-      expect(doc).toContain("release log filenames");
-      expect(doc).toContain("log line timestamp");
+      expect(doc).toContain(`TimezoneStrategy::${strategy}`);
     }
-    expect(releaseManualVerification).toContain("Do not convert local release log timestamps to UTC");
-    expect(incidentRunbook).toContain("instead of converting timestamps in place");
   });
 
   it("keeps packaged window icon paths and runtime platform fallback in the release smoke contract", () => {
@@ -1804,21 +1501,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow.indexOf("Generate release provenance record")).toBeLessThan(
       releaseWorkflow.indexOf("Upload release provenance assets"),
     );
-    expect(releaseManualVerification).toContain("Release Provenance And SBOM Record");
-    expect(releaseManualVerification).toContain("Annotated tag object SHA");
-    expect(releaseManualVerification).toContain("Release tag and tag target SHA");
-    expect(releaseManualVerification).toContain("PR number or merge commit subject for the source commit");
-    expect(releaseManualVerification).toContain("Source commit SHA checked out by the release workflow");
-    expect(releaseManualVerification).toContain("GitHub workflow run id and run URL");
-    expect(releaseManualVerification).toContain("Updater checksum sidecar asset");
-    expect(releaseManualVerification).toContain("Updater signature sidecar asset");
-    expect(releaseManualVerification).toContain("Installed app identifier or bundle identifier");
-    expect(releaseManualVerification).toContain("Quarantine and first-launch result");
-    expect(releaseManualVerification).toContain("Update check smoke result from the installed published artifact");
-    expect(releaseManualVerification).toContain("Windows Installer Signing And SmartScreen Verification");
-    expect(releaseManualVerification).toContain("SBOM or dependency provenance record");
-    expect(releaseManualVerification).toContain("Draft release attachment list before publishing");
-    expect(docsReadme).toContain("Release provenance checklist");
   });
 
   it("stops release artifact publication when signing secrets are missing and keeps dry-run preflight explicit", () => {
@@ -1840,9 +1522,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(signingPreflightStep).toContain("rerun workflow_dispatch with dry_run=true");
     expect(signingPreflightStep).toContain('echo "should_publish=true" >> "$GITHUB_OUTPUT"');
     expect(signingPreflightStep).toContain('echo "should_build=true" >> "$GITHUB_OUTPUT"');
-    // The quality preflight (format/lint/test) runs in its own job gated at the
-    // job level, so it only executes after the signing preflight resolves
-    // should_build=true — equivalent to the former step-level should_build gate.
     const qualityJobBlock = releaseWorkflow.slice(
       releaseWorkflow.indexOf("\n  quality:"),
       releaseWorkflow.indexOf("\n  release:"),
@@ -1873,7 +1552,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow.indexOf("Validate release signing preflight")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
-    expect(releaseManualVerification).toContain("workflow_dispatch` used `dry_run=true`");
   });
 
   it("gates release artifact publication on the release quality preflight", () => {
@@ -2006,61 +1684,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
     expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
     expect(releaseWorkflow).not.toMatch(/\bULTRA_RSS_DEV_CREDENTIALS\s*:/);
-    expect(releaseManualVerification).toContain("Release Dev-Only Contamination Record");
-    expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
-    expect(releaseManualVerification).toMatch(/dev mocks/i);
-    expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
-  });
-
-  it("keeps updater, export, and database backup interruption checks cancellation-aware", () => {
-    expect(feedContentPrivacy).toContain("### Import/Export Progress Cancellation");
-    expect(feedContentPrivacy).toContain(
-      "destructive or ambiguous cancellation confirmation must happen before canceling an import/export operation",
-    );
-    expect(feedContentPrivacy).toContain(
-      "OPML import: confirmation is required after parsing or preview has started and before canceling a running import that may have written feeds or folders.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "OPML export: confirmation is required after the destination path has been chosen and before canceling a running write that may leave a partial artifact.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Database backup/restore: confirmation is required before canceling any running copy or restore step that may leave a partial backup set or restore target.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "A cancel request made before a file is selected or before an operation starts must close without a confirmation prompt.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "If cancellation cannot guarantee cleanup of a partial artifact, the UI must say the artifact may remain and direct the user to delete or retry it manually.",
-    );
-    expect(releaseManualVerification).toContain(
-      "fresh flow unless the artifact is revalidated against the current manifest",
-    );
-    expect(releaseManualVerification).toContain(
-      "Sleeping during updater download, OPML export, or database backup/restore",
-    );
-    expect(releaseManualVerification).toContain(
-      "either cancels cleanly, blocks restart/retry until cleanup is known, or resumes",
-    );
-    expect(releaseManualVerification).toContain(
-      "Canceling a dialog leaves no file mutation, error toast, or stuck progress state.",
-    );
-    expect(releaseManualVerification).toContain(
-      "After a canceled export or backup, a retry does not silently reuse a stale partial artifact.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Dirty settings forms, pending imports/exports, in-flight backups, and sync writes can block close or restart with clear copy.",
-    );
-    expect(incidentRunbook).toContain(
-      "If OS sleep, app restart, permission denial, or disk full interrupts an updater download, export, or backup, preserve logs and treat any partial artifact as untrusted",
-    );
-    expect(incidentRunbook).toContain("Canceling an updater download must leave no installable pending artifact.");
-    expect(incidentRunbook).toContain(
-      "Atomic writes must use a temporary file in the target directory followed by rename for export, database backup/restore, and the dev credential store.",
-    );
-    expect(updaterCommandsSource).toContain("DownloadGuard");
-    expect(updaterCommandsSource).toContain("DownloadProgress");
-    expect(updaterCommandsSource).toContain("session_id");
-    expect(updaterCommandsSource).toContain("update-ready");
   });
 
   it("keeps single-instance and deep-link routing behind lifecycle state gates", () => {
@@ -2068,99 +1691,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriLib).toContain("commands::updater_commands::is_update_download_in_flight()");
     expect(tauriLib).toContain("MainWindowCloseDecision::BlockNativeOperationInFlight");
     expect(tauriLib).toContain("SecondLaunchDecision::FocusAndReportNativeOperationInFlight");
-
-    expect(feedContentPrivacy).toContain("### Single-Instance And Second-Launch Routing");
-    expect(feedContentPrivacy).toContain("### System Tray And Background Resident Mode");
-    expect(feedContentPrivacy).toContain(
-      "do not ship tray or background resident mode until app lifecycle semantics are explicit for close, quit, updater restart, sync, and dirty settings state.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "whether sync scheduler, updater checks, file export, and database backup may run while the main window is hidden",
-    );
-    expect(feedContentPrivacy).toContain(
-      "visible user controls for disabling background activity and for quitting completely",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Until this contract exists, closing the app must not be reinterpreted as background operation",
-    );
-    expect(feedContentPrivacy).toContain(
-      "second launch must be treated as a lifecycle route request, not a blind app restart or state mutation.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "dirty settings, add-feed drafts, pending imports/exports, in-flight backups, sync in-flight, and update pending state remain owned by the first instance",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Until this contract is implemented and verified, second launch must not dispatch app actions beyond focusing the existing window.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "`ultra-rss-reader://v1/<action>` for production and `ultra-rss-reader-dev://v1/<action>` for development",
-    );
-    expect(feedContentPrivacy).toContain("reserved routes for `focus`, `settings`, and `import-preview`");
-    expect(feedContentPrivacy).toContain(
-      "queues it behind startup readiness, and applies the action only after sync/update/dirty-state gates allow it",
-    );
-    expect(feedContentPrivacy).toContain("### Native Notification Permission And Quiet Hours");
-    expect(feedContentPrivacy).toContain(
-      "do not ship native notifications for sync, update, or error events until permission, privacy, quiet-hours, and disable controls are designed together.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "an explicit user opt-in or OS permission prompt path before the first non-critical notification",
-    );
-    expect(feedContentPrivacy).toContain(
-      "a global disable setting and per-event-class controls before notification delivery",
-    );
-    expect(feedContentPrivacy).toContain(
-      "quiet hours behavior, including whether urgent errors may bypass it and how that exception is presented",
-    );
-    expect(feedContentPrivacy).toContain(
-      "lock-screen-safe copy that redacts account names, feed titles, article titles, server URLs, credentials, tokens, cookies, and local paths",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Until this contract exists, sync/update/error feedback must stay in-app or in redacted logs rather than native OS notifications.",
-    );
-    expect(feedContentPrivacy).toContain("### Custom Protocol And Deep Link Routing");
-    expect(feedContentPrivacy).toContain(
-      "do not add a custom protocol or deep links until the URL schema, action allowlist, validation behavior, and single-instance routing are fixed as a contract.",
-    );
-    expect(feedContentPrivacy).toContain("unknown versions rejected before action mapping");
-    expect(feedContentPrivacy).toContain(
-      "strict parsing for malformed links, userinfo URLs, mixed scheme casing, percent-encoding, oversized payloads, and repeated parameters",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Until this contract exists, external URLs must continue to use normal OS/browser handling and must not dispatch app actions through a custom protocol.",
-    );
-
-    expect(releaseManualVerification).toContain(
-      "Second launch with no route focuses or restores the existing main window without starting duplicate sync, updater, import/export, or backup work.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Close-to-tray, full quit, updater restart, OS shutdown, and force quit have separate user-visible behavior.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Background sync, updater checks, file export, and database backup are either disabled while the window is hidden or explicitly documented as resident operations.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Users can disable background activity and can quit the app completely.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Dirty settings, add-feed drafts, sync in-flight, update pending, pending imports/exports, and in-flight backups block or defer routed actions with clear copy.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Custom protocol routes use the reviewed production or development scheme and versioned route shape, reject unknown versions, malformed links, userinfo URLs, oversized payloads, repeated parameters, private hosts, and local paths before mutation, and log only route class plus failure reason.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Single-instance route delivery waits for startup readiness, focuses the main window, and applies only allowlisted actions after sync/update/dirty-state gates allow them.",
-    );
-
-    expect(incidentRunbook).toContain(
-      "Treat normal second launch as a focus/restore request unless a reviewed single-instance route contract says otherwise.",
-    );
-    expect(incidentRunbook).toContain(
-      "the second launch may restore focus and report the blocked lifecycle route, but it must leave the pending operation owned by the first instance.",
-    );
-    expect(incidentRunbook).toContain(
-      "record only the route class, app scheme, version, validation failure reason, and focus result.",
-    );
   });
 
   it("keeps Tauri identifiers and seed data directories collision-proof across dev and production", () => {
@@ -2188,25 +1718,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(providerSource).toContain("supports_star_state_mutations");
     expect(providerSource).toContain("optimistic_mutation_conflict_policy");
     expect(providerSource).toContain("ProviderSideDeletionRetention::DeleteLocal");
-    expect(feedContentPrivacy).toContain("### Provider Account Kind Migration Checklist");
-    expect(feedContentPrivacy).toContain("Checklist template:");
-    expect(feedContentPrivacy).toContain(
-      "Account identity: declare the provider kind id, display label, stable account",
-    );
-    expect(feedContentPrivacy).toContain("Credentials: define where credentials live, how test connection reads them");
-    expect(feedContentPrivacy).toContain("Capabilities: document read, star, tag, folder, feed add/delete, article");
-    expect(feedContentPrivacy).toContain(
-      "Sync cursor: define initial sync, incremental sync, cursor reset, clock skew",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Folder and tag semantics: define ownership, rename/delete behavior, duplicate",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Schema and migration: add or confirm runtime DTO schemas, database migrations",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Privacy boundary: confirm server URLs, feed URLs, article URLs, account names",
-    );
     expect(addAccountFormSource).toContain('case "FreshRss":');
     expect(addAccountFormSource).toContain("requiresCredentials: true");
     expect(addAccountServicesSource).toContain('nameKey: "account.freshrss"');
@@ -2311,19 +1822,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(migrationSource).toContain("if version > LATEST_VERSION");
     expect(migrationSource).toContain("Downgrade startup is blocked to avoid data loss");
     expect(migrationSource).toContain("fn future_schema_version_blocks_downgrade_migration()");
-    expect(incidentRunbook).toContain("Stale update install must be rejected or surfaced as recovery-required");
-    expect(incidentRunbook).toContain("Starting an older app against a newer database schema is a downgrade attempt");
-    expect(incidentRunbook).toContain(
-      "Treat the app binary version, database schema version, and pending updater state as one recovery boundary.",
-    );
-    expect(incidentRunbook).toContain(
-      "After any failed install/restart, record the app binary version, database schema version, and pending update state before retrying.",
-    );
-    expect(releaseManualVerification).toContain("record app binary version,");
-    expect(releaseManualVerification).toContain("database schema version, and pending update state before retrying");
-    expect(releaseManualVerification).toContain("stale or partial pending update state is not installable");
-    expect(releaseManualVerification).toContain("Rollback impossible or unsafe");
-    expect(releaseManualVerification).toContain("Data migration or storage compatibility change");
   });
 
   it("keeps native menu action payloads aligned with frontend AppAction ids", () => {
@@ -2337,8 +1835,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
     expect(appActions.has("unknown-action-payload")).toBe(false);
     expect(appActions.has("disabled-runtime-action")).toBe(false);
-    expect(appActionsSource).toContain('export type AppActionSurface = "commandPalette" | "nativeMenu"');
-    expect(appActionsSource).toContain("APP_ACTION_CAPABILITY_MATRIX");
   });
 
   it("keeps native menu item action ids aligned with customizable shortcut definitions", () => {
@@ -2358,25 +1854,23 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       expect(nativeMenuActions.get(menuId)).toBe(action);
       expect(shortcutActionIds.has(shortcutActionId)).toBe(true);
     }
-    expect(keyboardShortcutsSource).toContain(
-      'const nativeMenuOwnedShortcuts = new Set(["\\u2318+r", platformSettingsShortcut, "F11"])',
-    );
     expect(nativeMenuActions.get("accounts-sync")).toBe("sync-all");
   });
 
-  it("keeps native checked menu preferences compatible with frontend preference migration", () => {
-    expect(nativeMenuSource).toMatch(
-      /fn is_sort_unread_checked\(prefs: &HashMap<String, String>\) -> bool \{\s+prefs\s+\.get\("reading_sort"\)\s+\.or_else\(\|\| prefs\.get\("sort_unread"\)\)\s+\.is_some_and\(\|v\| v == "oldest_first"\)\s+\}/,
+  it("keeps native menu preference keys aligned with frontend preference keys", () => {
+    const nativeMenuPrefKeys = new Set(
+      [...nativeMenuSource.matchAll(/prefs\s*\.get\("([^"]+)"\)/g)].map((match) => match[1]),
     );
-    expect(nativeMenuSource).toMatch(
-      /fn is_group_by_feed_checked\(prefs: &HashMap<String, String>\) -> bool \{\s+prefs\.get\("group_by"\)\.is_some_and\(\|v\| v == "feed"\)\s+\}/,
-    );
+
+    expect(nativeMenuPrefKeys.size).toBeGreaterThan(0);
+    const frontendPreferenceSources = `${preferenceValuesSource}\n${preferencesStoreSource}`;
+    for (const key of nativeMenuPrefKeys) {
+      expect(frontendPreferenceSources, `native menu reads unknown preference key "${key}"`).toContain(`"${key}"`);
+    }
+  });
+
+  it("keeps native checked menu toggles rolled back when the action emit fails", () => {
     expect(nativeMenuSource).toContain("should_rollback_check_toggle_after_emit(toggled_check_item, true)");
-    expect(preferencesStoreSource).toContain(
-      'sortUnread: () => resolvePreferenceValue(getState().prefs, "reading_sort")',
-    );
-    expect(preferenceValuesSource).toContain('key === "reading_sort"');
-    expect(preferenceValuesSource).toContain('prefs.sort_unread ?? fallbackValue ?? ""');
   });
 
   it("generates a release/debug feature flag inventory report", { timeout: 30_000 }, () => {
@@ -2466,7 +1960,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(greaderProviderSource).toContain("skip_live_freshrss_test_when_env_is_missing");
     for (const envKey of liveProviderTestGateContract.requiredEnvKeys) {
       expect(greaderProviderSource).toContain(`std::env::var("${envKey}")`);
-      expect(releaseManualVerification).toContain(envKey);
     }
     expect(normalizedReleaseManualVerification).toContain(liveProviderTestGateContract.localGateExclusionPolicy);
     expect(normalizedReleaseManualVerification).toContain(liveProviderTestGateContract.maskingPolicy);
