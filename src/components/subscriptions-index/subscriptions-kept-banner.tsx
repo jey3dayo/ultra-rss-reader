@@ -15,18 +15,18 @@ export function SubscriptionsKeptBannerView({ banner }: { banner: SubscriptionsK
   return (
     <div
       data-testid="subscriptions-kept-banner"
-      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border/60 bg-surface-1/58 px-3.5 py-2.5 text-sm"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-1 text-sm"
     >
       <p role="status" className="min-w-0 flex-1 text-foreground-soft">
         {banner.message}
       </p>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         {banner.toggle ? (
-          <Button type="button" variant="outline" onClick={banner.toggle.onClick} className="min-h-11">
+          <Button type="button" variant="ghost" size="sm" onClick={banner.toggle.onClick}>
             {banner.toggle.label}
           </Button>
         ) : null}
-        <Button type="button" variant="outline" onClick={banner.onReset} className="min-h-11">
+        <Button type="button" variant="ghost" size="sm" onClick={banner.onReset}>
           {banner.resetLabel}
         </Button>
       </div>
