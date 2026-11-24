@@ -128,6 +128,14 @@ function buildUrlDetail(
   return { text: url, onCopy: () => onCopy(url), copyLabel };
 }
 
+function buildFeedUrlDetail(
+  row: SubscriptionListRow | null,
+  onCopyFeedUrl: ((feedUrl: string) => void) | undefined,
+  copyFeedUrlLabel: string | undefined,
+): FeedUrlDetail | null {
+  return buildUrlDetail(row?.feed.url ?? null, onCopyFeedUrl, copyFeedUrlLabel);
+}
+
 function SubscriptionDetailBackToList({ label, onBackToList }: { label: string; onBackToList: () => void }) {
   return (
     <div className="mb-3 lg:hidden">
@@ -554,7 +562,7 @@ export function SubscriptionDetailPane({
   const showReviewContext = resolveShowReviewContext(hasFetchError, hasRemoteFetchFailure, row);
   const formattedLastAttempt = formatOptionalDateTime(fetchError?.last_attempt_at, dateLocale);
   const formattedLastSuccess = formatOptionalDateTime(fetchError?.last_success_at, dateLocale);
-  const feedUrlDetail = buildUrlDetail(row?.feed.url ?? null, onCopyFeedUrl, copyFeedUrlLabel);
+  const feedUrlDetail = buildFeedUrlDetail(row, onCopyFeedUrl, copyFeedUrlLabel);
   const contentUrlDetail = buildUrlDetail(contentUrlHref, onCopyContentUrl, copyContentUrlLabel);
 
   return (
