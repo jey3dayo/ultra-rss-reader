@@ -5,13 +5,29 @@ import { contextMenuStyles } from "./context-menu-styles";
 type AccountContextMenuContentProps = {
   settingsLabel: string;
   onOpenSettings: () => void;
+  subscriptionsLabel?: string;
+  onOpenSubscriptions?: () => void;
 };
 
-export function AccountContextMenuContent({ settingsLabel, onOpenSettings }: AccountContextMenuContentProps) {
+export function AccountContextMenuContent({
+  settingsLabel,
+  onOpenSettings,
+  subscriptionsLabel,
+  onOpenSubscriptions,
+}: AccountContextMenuContentProps) {
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner className={contextMenuStyles.positioner}>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
+          {subscriptionsLabel && onOpenSubscriptions ? (
+            <ContextMenu.Item
+              data-action-id={CONTEXT_MENU_ACTION_IDS.accountOpenSubscriptionsIndex}
+              className={contextMenuStyles.item}
+              onClick={onOpenSubscriptions}
+            >
+              {subscriptionsLabel}
+            </ContextMenu.Item>
+          ) : null}
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.accountOpenSettings}
             className={contextMenuStyles.item}

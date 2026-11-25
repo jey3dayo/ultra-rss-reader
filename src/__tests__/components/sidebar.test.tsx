@@ -753,7 +753,8 @@ describe("Sidebar", () => {
     fireEvent.contextMenu(await screen.findByRole("button", { name: /Local/ }));
 
     const settingsItem = await screen.findByRole("menuitem", { name: "Account settings" });
-    expect(screen.getAllByRole("menuitem")).toHaveLength(1);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+    expect(screen.getByRole("menuitem", { name: "Open subscriptions index" })).toBeInTheDocument();
 
     fireEvent.click(settingsItem);
 
@@ -765,6 +766,21 @@ describe("Sidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add account" }));
 
     expect(useUiStore.getState().settingsAddAccount).toBe(true);
+  });
+
+  it("opens the subscriptions index from the account section context menu", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /Local/ }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Open subscriptions index" }));
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index", accountId: "acc-1" });
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-1");
   });
 
   it("keeps starred subscription context when selecting a feed from the starred smart view", async () => {
@@ -1987,6 +2003,26 @@ describe("Sidebar", () => {
 
     fireEvent.keyDown(freshRssAccount, { key: "Up" });
     expect(localAccount).toHaveFocus();
+  });
+
+  it("opens the subscriptions index for a non-selected account from the account pane context menu", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      accountPaneOpen: true,
+      focusedPane: "sidebar",
+    });
+
+    render(<AccountPane />, { wrapper: createWrapper() });
+
+    const accountPane = screen.getByRole("navigation", { name: "Accounts" });
+    const freshRssAccount = await within(accountPane).findByRole("button", { name: /FreshRSS/ });
+
+    fireEvent.contextMenu(freshRssAccount);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Open subscriptions index" }));
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index", accountId: "acc-2" });
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-1");
   });
 
   it("keeps selected and focused account pane rows visually distinct", async () => {

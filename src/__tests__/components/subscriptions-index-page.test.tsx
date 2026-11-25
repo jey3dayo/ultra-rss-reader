@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createSampleAccounts } from "@tests/helpers/api-fixtures";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -241,6 +242,29 @@ describe("SubscriptionsIndexPage", () => {
       "motion-content-swap",
       "rounded-md",
     );
+  });
+
+  it("shows the managed account name as header text without an in-page account switcher", async () => {
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
+    const headerBody = screen.getByTestId("workspace-header-body");
+    expect(await within(headerBody).findByText("Local")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("omits the account name from the header when there is a single account", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") return createSampleAccounts().filter((account) => account.id === "acc-1");
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
+    const headerBody = screen.getByTestId("workspace-header-body");
+    expect(within(headerBody).queryByText("Local")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("puts the fetch error filter after the fixed filters once a feed has a recorded error", async () => {

@@ -425,21 +425,23 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
       set((state) => ({
         isTagsSectionOpen: typeof open === "function" ? open(state.isTagsSectionOpen) : open,
       })),
-    openSubscriptionsIndex: (returnState, navigationRequest) =>
+    openSubscriptionsIndex: (returnState, navigationRequest, accountId) =>
       set((state) => {
         if (state.subscriptionsWorkspace) {
           return navigationRequest
             ? { subscriptionsWorkspace: { ...state.subscriptionsWorkspace, navigationRequest } }
             : state;
         }
-        const accountId = navigationRequest?.accountId ?? state.selectedAccountId;
+        const targetAccountId = navigationRequest?.accountId ?? accountId ?? state.selectedAccountId;
         const retained =
-          returnState?.accountId === accountId ? returnState : state.subscriptionsIndexReturnStates.get(accountId);
+          returnState?.accountId === targetAccountId
+            ? returnState
+            : state.subscriptionsIndexReturnStates.get(targetAccountId);
         return {
           accountPaneOpen: false,
           subscriptionsWorkspace: {
             kind: "index",
-            accountId,
+            accountId: targetAccountId,
             ...(retained ? { returnState: runtime.parseSubscriptionsWorkspaceReturnState(retained) } : {}),
             ...(navigationRequest ? { navigationRequest } : {}),
           },
