@@ -1,4 +1,3 @@
-import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import { ChevronDown, Folder } from "lucide-react";
 import {
@@ -45,15 +44,9 @@ import { type SubscriptionsSearchCondition, SubscriptionsSearchConditionView } f
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
 const READY_LOAD_STATE: SubscriptionsListLoadState = { status: "ready" };
 
-// Selecting keeps each checkbox and row button as grid siblings, so toggling the mode never remounts the row buttons.
-const subscriptionRowsVariants = cva("pl-9 pt-1", {
-  variants: {
-    selecting: {
-      true: "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5",
-      false: "space-y-1.5",
-    },
-  },
-});
+// Rows keep one layout in both modes: the selection checkbox overlays the row card,
+// so toggling selection never shifts the cards.
+const SUBSCRIPTION_ROWS_CLASS_NAME = "space-y-1.5 pl-9 pt-1";
 
 type SubscriptionGroupDisclosureButtonProps = {
   group: SubscriptionListGroup;
@@ -229,13 +222,11 @@ type SubscriptionGroupSectionProps = Pick<
   fetchErrorLabel: string;
   remoteFetchFailureLabel: string;
   expanded: boolean;
-  selecting: boolean;
 };
 
 function SubscriptionGroupSection({
   group,
   expanded,
-  selecting,
   selectedFeedId,
   kept,
   bulkSelection,
@@ -270,7 +261,7 @@ function SubscriptionGroupSection({
         <div className="motion-disclosure-body">
           <div
             data-testid={`subscriptions-folder-rows-${group.folderId ?? "ungrouped"}`}
-            className={subscriptionRowsVariants({ selecting })}
+            className={SUBSCRIPTION_ROWS_CLASS_NAME}
           >
             {group.rows.map((row) => (
               <SubscriptionsListRow
@@ -540,7 +531,6 @@ export function SubscriptionsListPane({
                 key={group.key}
                 group={group}
                 expanded={isGroupExpanded(group.key)}
-                selecting={selecting}
                 selectedFeedId={selectedFeedId}
                 kept={kept}
                 bulkSelection={bulkSelection}

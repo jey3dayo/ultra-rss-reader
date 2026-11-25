@@ -1,7 +1,11 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
-import type { ReactElement } from "react";
-import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME, MOTION_INTERACTIVE_SURFACE_CLASS_NAME } from "@/constants";
+import { type ReactElement, useId } from "react";
+import {
+  MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
+  MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
+  MOTION_PRESSABLE_SURFACE_CLASS_NAME,
+} from "@/constants";
 import { AppTooltip, Checkbox, FeedFavicon, LabelChip, TooltipProvider } from "@/design-system";
 import { resolveSubscriptionStatusTone } from "@/lib/subscriptions/subscription-status-tone";
 import type { SubscriptionListRow, SubscriptionStatusTone } from "@/lib/subscriptions/subscriptions-index.types";
@@ -147,7 +151,8 @@ function RowTooltip({ label, children }: { label: string | null; children: React
   );
 }
 
-// The checkbox sits in a fixed slot before the row button, so the button keeps its position and is not remounted when selection mode toggles.
+// The row wrapper is always rendered so the button keeps its parent across selection-mode toggles.
+// In selection mode the checkbox overlays the favicon slot; the strip mirrors the button's border + px-3.5 so the two stay aligned.
 export function SubscriptionsListRow({
   row,
   selected,
@@ -163,6 +168,7 @@ export function SubscriptionsListRow({
   onSelectFeed,
 }: SubscriptionsListRowProps) {
   const selecting = bulkSelection?.mode === true;
+  const checkboxId = useId();
   const statusChip = resolveStatusChip(row, statusLabels, fetchErrorLabel, remoteFetchFailureLabel);
   const rowButton = (
     <button
@@ -176,8 +182,9 @@ export function SubscriptionsListRow({
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 @[28rem]:grid-cols-[auto_minmax(0,1fr)_8.5rem_5.5rem]">
         <span
           className={cn(
-            "row-span-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-[background-color,border-color] duration-200 ease-standard motion-reduce:transition-none @[28rem]:row-span-1",
+            "row-span-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-[background-color,border-color,opacity] duration-200 ease-standard motion-reduce:transition-none @[28rem]:row-span-1",
             selected ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
+            selecting && "opacity-0",
           )}
           style={{
             borderColor: "var(--subscriptions-list-divider)",
@@ -210,15 +217,27 @@ export function SubscriptionsListRow({
   const reasonTooltipLabel = resolveReasonTooltipLabel(row, reasonTooltipLabels, fetchErrorLabel);
 
   return (
-    <>
+    <div className="relative">
       {bulkSelection && selecting ? (
-        <Checkbox
-          checked={bulkSelection.checkedFeedIds.has(row.feed.id)}
-          aria-label={bulkSelection.labels.rowSelectAria(row.feed.title)}
-          onCheckedChange={() => bulkSelection.onToggleFeed(row.feed.id)}
-        />
+        <label
+          htmlFor={checkboxId}
+          className="group absolute inset-y-0 left-0 z-10 flex cursor-pointer items-center rounded-l-md border border-transparent pr-1.5 pl-3.5"
+        >
+          <span className="flex size-9 items-center justify-center">
+            <Checkbox
+              id={checkboxId}
+              checked={bulkSelection.checkedFeedIds.has(row.feed.id)}
+              aria-label={bulkSelection.labels.rowSelectAria(row.feed.title)}
+              onCheckedChange={() => bulkSelection.onToggleFeed(row.feed.id)}
+              className={cn(
+                MOTION_PRESSABLE_SURFACE_CLASS_NAME,
+                "group-hover:border-border-strong group-hover:bg-surface-2",
+              )}
+            />
+          </span>
+        </label>
       ) : null}
       <RowTooltip label={reasonTooltipLabel}>{rowButton}</RowTooltip>
-    </>
+    </div>
   );
 }
