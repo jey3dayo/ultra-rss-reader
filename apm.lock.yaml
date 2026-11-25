@@ -1,10 +1,9 @@
 lockfile_version: '1'
-generated_at: '2026-09-18T06:27:00.966069+00:00'
-apm_version: 0.28.0
+apm_version: 0.36.1
 dependencies:
 - repo_url: _local/tauri-icon-gen
   name: tauri-icon-gen
-  version: 0.0.0
+  version: unknown
   package_type: claude_skill
   deployed_files:
   - .agents/skills/tauri-icon-gen
@@ -20,9 +19,10 @@ dependencies:
     .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   source: local
   local_path: ./.apm/skills/tauri-icon-gen
+  content_hash: sha256:3f2f5b8cbcf25e1144f87ad39dd95f9238e934c0dcb8382fc8ec74009f5ae498
 - repo_url: _local/tauri-webview-geometry
   name: tauri-webview-geometry
-  version: 0.0.0
+  version: unknown
   package_type: claude_skill
   deployed_files:
   - .agents/skills/tauri-webview-geometry
@@ -46,16 +46,18 @@ dependencies:
     .claude/skills/tauri-webview-geometry/references/lifecycle-contracts.md: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
   source: local
   local_path: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:f60dff004e1bcfc64cd3761f4e7123d5c5fc6efb6f69b5ddd9480b7f91073a73
 - repo_url: apollographql/skills
   name: rust-best-practices
   host: github.com
-  resolved_commit: c288eb80629dd2309eed81f23d693f66a452d043
+  resolved_commit: 9dda1397730370aeb8df4ff8f2015c34c86b5003
   version: unknown
   virtual_path: skills/rust-best-practices
   is_virtual: true
   package_type: claude_skill
   deployed_files:
   - .agents/skills/rust-best-practices
+  - .agents/skills/rust-best-practices/LICENSE
   - .agents/skills/rust-best-practices/SKILL.md
   - .agents/skills/rust-best-practices/references/chapter_01.md
   - .agents/skills/rust-best-practices/references/chapter_02.md
@@ -67,6 +69,7 @@ dependencies:
   - .agents/skills/rust-best-practices/references/chapter_08.md
   - .agents/skills/rust-best-practices/references/chapter_09.md
   - .claude/skills/rust-best-practices
+  - .claude/skills/rust-best-practices/LICENSE
   - .claude/skills/rust-best-practices/SKILL.md
   - .claude/skills/rust-best-practices/references/chapter_01.md
   - .claude/skills/rust-best-practices/references/chapter_02.md
@@ -78,85 +81,92 @@ dependencies:
   - .claude/skills/rust-best-practices/references/chapter_08.md
   - .claude/skills/rust-best-practices/references/chapter_09.md
   deployed_file_hashes:
-    .agents/skills/rust-best-practices/SKILL.md: sha256:e2e93a95c899079e5c3391319f309a0961f4f7cdd882cf7221e2e56da9813a18
-    .agents/skills/rust-best-practices/references/chapter_01.md: sha256:05aed21a95cce7a97badc44f628eb7e23466f7be178a8c8ce8e3c7c1f82fd306
-    .agents/skills/rust-best-practices/references/chapter_02.md: sha256:05c6495150ea1b3a038555231e1965b75dc4c2499e4c7a784a0a35640eaee579
-    .agents/skills/rust-best-practices/references/chapter_03.md: sha256:160883f80db912c748cb73884942b6824be0599c98b8f16e9256f27fb9a44c6a
-    .agents/skills/rust-best-practices/references/chapter_04.md: sha256:3257b7dfa06698bd59fe2d315b33b22181926d30cda3776bc16c792b51eeb239
-    .agents/skills/rust-best-practices/references/chapter_05.md: sha256:7b44b4a6e245e692feb07df573162ce8b2c7ffc20716f8a5518d3d4ee2793c7c
-    .agents/skills/rust-best-practices/references/chapter_06.md: sha256:c001d3dbffe3e403cfc52ad81e4fe0468416f61add2e140d0f442fee1812049c
-    .agents/skills/rust-best-practices/references/chapter_07.md: sha256:a3c989e1aff99c6de53123ce97f3cf9496e0d68fe4099faabe436758ac1a5475
-    .agents/skills/rust-best-practices/references/chapter_08.md: sha256:452edcd46db8bf105c9b208ffb9ee41f876ae1a26ea60c699660047861e077c6
-    .agents/skills/rust-best-practices/references/chapter_09.md: sha256:6edd831122b04ee9f11c0a529a9ebddf2d34b5d1d8edef9bd6929d41693ad262
-    .claude/skills/rust-best-practices/SKILL.md: sha256:e2e93a95c899079e5c3391319f309a0961f4f7cdd882cf7221e2e56da9813a18
-    .claude/skills/rust-best-practices/references/chapter_01.md: sha256:05aed21a95cce7a97badc44f628eb7e23466f7be178a8c8ce8e3c7c1f82fd306
-    .claude/skills/rust-best-practices/references/chapter_02.md: sha256:05c6495150ea1b3a038555231e1965b75dc4c2499e4c7a784a0a35640eaee579
-    .claude/skills/rust-best-practices/references/chapter_03.md: sha256:160883f80db912c748cb73884942b6824be0599c98b8f16e9256f27fb9a44c6a
-    .claude/skills/rust-best-practices/references/chapter_04.md: sha256:3257b7dfa06698bd59fe2d315b33b22181926d30cda3776bc16c792b51eeb239
-    .claude/skills/rust-best-practices/references/chapter_05.md: sha256:7b44b4a6e245e692feb07df573162ce8b2c7ffc20716f8a5518d3d4ee2793c7c
-    .claude/skills/rust-best-practices/references/chapter_06.md: sha256:c001d3dbffe3e403cfc52ad81e4fe0468416f61add2e140d0f442fee1812049c
-    .claude/skills/rust-best-practices/references/chapter_07.md: sha256:a3c989e1aff99c6de53123ce97f3cf9496e0d68fe4099faabe436758ac1a5475
-    .claude/skills/rust-best-practices/references/chapter_08.md: sha256:452edcd46db8bf105c9b208ffb9ee41f876ae1a26ea60c699660047861e077c6
-    .claude/skills/rust-best-practices/references/chapter_09.md: sha256:6edd831122b04ee9f11c0a529a9ebddf2d34b5d1d8edef9bd6929d41693ad262
-  content_hash: sha256:5873f4b0d34e0f6c79d510db8ffdfe307e8c5cf2c60e7f880c3be6592b226501
+    .agents/skills/rust-best-practices/LICENSE: sha256:37fe5c19dc6b3904a11dc50b4ac4a2463625ace4d2aa3b8c417c58bd58cfb361
+    .agents/skills/rust-best-practices/SKILL.md: sha256:b1651a95a2c36a8350c033449f52d07eebfdbf08e3bd1d5b22c4b7f55f7aa17c
+    .agents/skills/rust-best-practices/references/chapter_01.md: sha256:def0d5dc6ad2c8e143aed03c888c3f55b7f2b8f245c563e970f8fa951f7d7b52
+    .agents/skills/rust-best-practices/references/chapter_02.md: sha256:3b5d4ad26ce444770a05d91f737cc48417cb5bac94b2ab1587fc8de536bdcbb9
+    .agents/skills/rust-best-practices/references/chapter_03.md: sha256:fd673405cc1b5094d44d59eac4634e35525d7103d34b43178ee37277f392e15f
+    .agents/skills/rust-best-practices/references/chapter_04.md: sha256:5189a1118c41c25426357a14ad4e651e931443f1aefc241ea79689cb694175bf
+    .agents/skills/rust-best-practices/references/chapter_05.md: sha256:fb753a7515e11c1bc84d853d8b6d3442dd810d607f2b153595248d57232b8d38
+    .agents/skills/rust-best-practices/references/chapter_06.md: sha256:cff0a6826a23a9c4337700757cc67f4741aa4be81cd56925601b110752d38534
+    .agents/skills/rust-best-practices/references/chapter_07.md: sha256:be71105ee9123fe2dff6673d85fc854eafd281fbfa6e8778216d3f3a8d0ffaad
+    .agents/skills/rust-best-practices/references/chapter_08.md: sha256:54c1548a28586ebb373fe508ce0d885d78bc83e579aabd89836d2a53f7129a8b
+    .agents/skills/rust-best-practices/references/chapter_09.md: sha256:bdd59af111d402e4385c77e26fa6d53fc113e40ef678a9cf7aaff221e5c21917
+    .claude/skills/rust-best-practices/LICENSE: sha256:37fe5c19dc6b3904a11dc50b4ac4a2463625ace4d2aa3b8c417c58bd58cfb361
+    .claude/skills/rust-best-practices/SKILL.md: sha256:b1651a95a2c36a8350c033449f52d07eebfdbf08e3bd1d5b22c4b7f55f7aa17c
+    .claude/skills/rust-best-practices/references/chapter_01.md: sha256:def0d5dc6ad2c8e143aed03c888c3f55b7f2b8f245c563e970f8fa951f7d7b52
+    .claude/skills/rust-best-practices/references/chapter_02.md: sha256:3b5d4ad26ce444770a05d91f737cc48417cb5bac94b2ab1587fc8de536bdcbb9
+    .claude/skills/rust-best-practices/references/chapter_03.md: sha256:fd673405cc1b5094d44d59eac4634e35525d7103d34b43178ee37277f392e15f
+    .claude/skills/rust-best-practices/references/chapter_04.md: sha256:5189a1118c41c25426357a14ad4e651e931443f1aefc241ea79689cb694175bf
+    .claude/skills/rust-best-practices/references/chapter_05.md: sha256:fb753a7515e11c1bc84d853d8b6d3442dd810d607f2b153595248d57232b8d38
+    .claude/skills/rust-best-practices/references/chapter_06.md: sha256:cff0a6826a23a9c4337700757cc67f4741aa4be81cd56925601b110752d38534
+    .claude/skills/rust-best-practices/references/chapter_07.md: sha256:be71105ee9123fe2dff6673d85fc854eafd281fbfa6e8778216d3f3a8d0ffaad
+    .claude/skills/rust-best-practices/references/chapter_08.md: sha256:54c1548a28586ebb373fe508ce0d885d78bc83e579aabd89836d2a53f7129a8b
+    .claude/skills/rust-best-practices/references/chapter_09.md: sha256:bdd59af111d402e4385c77e26fa6d53fc113e40ef678a9cf7aaff221e5c21917
+  content_hash: sha256:4b73768ffeb249ba196961d2bf27c7d790b8180098e913e642d588bd31d34ffc
+  carried_licenses:
+  - path: LICENSE
+    source: LICENSE
+    hash: sha256:37fe5c19dc6b3904a11dc50b4ac4a2463625ace4d2aa3b8c417c58bd58cfb361
 - repo_url: benjitaylor/agentation
   name: agentation
   host: github.com
-  resolved_commit: 8158a97c10c37e577b0a6e2d3175d143918216cd
+  resolved_commit: 0e3236eb1a0f5577852ab7bb5121f5dd46d42f1d
   version: unknown
   package_type: skill_bundle
   deployed_files:
   - .agents/skills/agentation-self-driving
+  - .agents/skills/agentation-self-driving/LICENSE
   - .agents/skills/agentation-self-driving/SKILL.md
   - .agents/skills/agentation-self-driving/references/two-session-workflow.md
   - .claude/skills/agentation-self-driving
+  - .claude/skills/agentation-self-driving/LICENSE
   - .claude/skills/agentation-self-driving/SKILL.md
   - .claude/skills/agentation-self-driving/references/two-session-workflow.md
   deployed_file_hashes:
-    .agents/skills/agentation-self-driving/SKILL.md: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
-    .agents/skills/agentation-self-driving/references/two-session-workflow.md: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
-    .claude/skills/agentation-self-driving/SKILL.md: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
-    .claude/skills/agentation-self-driving/references/two-session-workflow.md: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
-  content_hash: sha256:f543a041470b32b0a65278171932ac136d810d369281ec7b6c9d169de84088c4
+    .agents/skills/agentation-self-driving/LICENSE: sha256:29eb64b5c188e2d6f739a8beadf09bcbb3a386bf78ae44e07343975331fd9775
+    .agents/skills/agentation-self-driving/SKILL.md: sha256:3c556d51b44dfe5d898b7f955322a85a0bafda9f2e383c44d1b29be00052462a
+    .agents/skills/agentation-self-driving/references/two-session-workflow.md: sha256:1b1f7c337c40c4f009e52eebd396d86b6adeb57221ad770b3b7cb254566c6e00
+    .claude/skills/agentation-self-driving/LICENSE: sha256:29eb64b5c188e2d6f739a8beadf09bcbb3a386bf78ae44e07343975331fd9775
+    .claude/skills/agentation-self-driving/SKILL.md: sha256:3c556d51b44dfe5d898b7f955322a85a0bafda9f2e383c44d1b29be00052462a
+    .claude/skills/agentation-self-driving/references/two-session-workflow.md: sha256:1b1f7c337c40c4f009e52eebd396d86b6adeb57221ad770b3b7cb254566c6e00
+  content_hash: sha256:10abdc53338af38ceffc0394a07a1697ccae3702f4791fab5f35b310a1c47025
   skill_subset:
   - agentation-self-driving
+  carried_licenses:
+  - path: skills/agentation-self-driving/LICENSE
+    source: LICENSE
+    hash: sha256:29eb64b5c188e2d6f739a8beadf09bcbb3a386bf78ae44e07343975331fd9775
+  - path: skills/agentation/LICENSE
+    source: LICENSE
+    hash: sha256:29eb64b5c188e2d6f739a8beadf09bcbb3a386bf78ae44e07343975331fd9775
 - repo_url: epicenterhq/epicenter
   materialization_repo_url: EpicenterHQ/epicenter
   name: tauri
   host: github.com
-  resolved_commit: ecba0242f6fadec4a69e0be0ff66a245b117cdb7
+  resolved_commit: bff4f9cb21121d0376ae4995b32678cfaa9177d8
   version: unknown
   virtual_path: .agents/skills/tauri
   is_virtual: true
   package_type: claude_skill
   deployed_files:
   - .agents/skills/tauri
+  - .agents/skills/tauri/LICENSE
   - .agents/skills/tauri/SKILL.md
   - .claude/skills/tauri
+  - .claude/skills/tauri/LICENSE
   - .claude/skills/tauri/SKILL.md
   deployed_file_hashes:
-    .agents/skills/tauri/SKILL.md: sha256:63701854ae4b4773534eb020e28c6edb756dd59ecd635c6f6f7822f93c6fed02
-    .claude/skills/tauri/SKILL.md: sha256:63701854ae4b4773534eb020e28c6edb756dd59ecd635c6f6f7822f93c6fed02
-  content_hash: sha256:d889617931ccb84e320ce12c04843f93ec64805655d5185ca2702257332ce1f4
+    .agents/skills/tauri/LICENSE: sha256:633268a45bf33f6c91dbddce00ec5c9ec32696122c1c2bf7a614919b46dc7881
+    .agents/skills/tauri/SKILL.md: sha256:782d49f67cf34c31c75eefdcfc49a2508a7cd6eb9402b5d6850e08d5061cf79f
+    .claude/skills/tauri/LICENSE: sha256:633268a45bf33f6c91dbddce00ec5c9ec32696122c1c2bf7a614919b46dc7881
+    .claude/skills/tauri/SKILL.md: sha256:782d49f67cf34c31c75eefdcfc49a2508a7cd6eb9402b5d6850e08d5061cf79f
+  content_hash: sha256:d98070bd1ae7cbaed69a9a26ecc78964b53efb997401e21e620cc3b8c71fd522
+  carried_licenses:
+  - path: LICENSE
+    source: LICENSE
+    hash: sha256:633268a45bf33f6c91dbddce00ec5c9ec32696122c1c2bf7a614919b46dc7881
 deployments:
-- kind: project-relative
-  target: agents
-  value: .agents/skills/todo-triage-format
-  runtime: null
-  scope: project
-  owners:
-  - .
-  active_owner: .
-  content_hash: null
-- kind: project-relative
-  target: agents
-  value: .agents/skills/todo-triage-format/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - .
-  active_owner: .
-  content_hash: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
 - kind: project-relative
   target: claude
   value: .claude/skills/agentation-self-driving
@@ -168,13 +178,22 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: claude
+  value: .claude/skills/agentation-self-driving/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:29eb64b5c188e2d6f739a8beadf09bcbb3a386bf78ae44e07343975331fd9775
+- kind: project-relative
+  target: claude
   value: .claude/skills/agentation-self-driving/SKILL.md
   runtime: null
   scope: project
   owners:
   - benjitaylor/agentation
   active_owner: benjitaylor/agentation
-  content_hash: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
+  content_hash: sha256:3c556d51b44dfe5d898b7f955322a85a0bafda9f2e383c44d1b29be00052462a
 - kind: project-relative
   target: claude
   value: .claude/skills/agentation-self-driving/references/two-session-workflow.md
@@ -183,7 +202,7 @@ deployments:
   owners:
   - benjitaylor/agentation
   active_owner: benjitaylor/agentation
-  content_hash: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
+  content_hash: sha256:1b1f7c337c40c4f009e52eebd396d86b6adeb57221ad770b3b7cb254566c6e00
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices
@@ -195,13 +214,22 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: claude
+  value: .claude/skills/rust-best-practices/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:37fe5c19dc6b3904a11dc50b4ac4a2463625ace4d2aa3b8c417c58bd58cfb361
+- kind: project-relative
+  target: claude
   value: .claude/skills/rust-best-practices/SKILL.md
   runtime: null
   scope: project
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:e2e93a95c899079e5c3391319f309a0961f4f7cdd882cf7221e2e56da9813a18
+  content_hash: sha256:b1651a95a2c36a8350c033449f52d07eebfdbf08e3bd1d5b22c4b7f55f7aa17c
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_01.md
@@ -210,7 +238,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:05aed21a95cce7a97badc44f628eb7e23466f7be178a8c8ce8e3c7c1f82fd306
+  content_hash: sha256:def0d5dc6ad2c8e143aed03c888c3f55b7f2b8f245c563e970f8fa951f7d7b52
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_02.md
@@ -219,7 +247,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:05c6495150ea1b3a038555231e1965b75dc4c2499e4c7a784a0a35640eaee579
+  content_hash: sha256:3b5d4ad26ce444770a05d91f737cc48417cb5bac94b2ab1587fc8de536bdcbb9
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_03.md
@@ -228,7 +256,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:160883f80db912c748cb73884942b6824be0599c98b8f16e9256f27fb9a44c6a
+  content_hash: sha256:fd673405cc1b5094d44d59eac4634e35525d7103d34b43178ee37277f392e15f
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_04.md
@@ -237,7 +265,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:3257b7dfa06698bd59fe2d315b33b22181926d30cda3776bc16c792b51eeb239
+  content_hash: sha256:5189a1118c41c25426357a14ad4e651e931443f1aefc241ea79689cb694175bf
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_05.md
@@ -246,7 +274,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:7b44b4a6e245e692feb07df573162ce8b2c7ffc20716f8a5518d3d4ee2793c7c
+  content_hash: sha256:fb753a7515e11c1bc84d853d8b6d3442dd810d607f2b153595248d57232b8d38
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_06.md
@@ -255,7 +283,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:c001d3dbffe3e403cfc52ad81e4fe0468416f61add2e140d0f442fee1812049c
+  content_hash: sha256:cff0a6826a23a9c4337700757cc67f4741aa4be81cd56925601b110752d38534
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_07.md
@@ -264,7 +292,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:a3c989e1aff99c6de53123ce97f3cf9496e0d68fe4099faabe436758ac1a5475
+  content_hash: sha256:be71105ee9123fe2dff6673d85fc854eafd281fbfa6e8778216d3f3a8d0ffaad
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_08.md
@@ -273,7 +301,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:452edcd46db8bf105c9b208ffb9ee41f876ae1a26ea60c699660047861e077c6
+  content_hash: sha256:54c1548a28586ebb373fe508ce0d885d78bc83e579aabd89836d2a53f7129a8b
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices/references/chapter_09.md
@@ -282,7 +310,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:6edd831122b04ee9f11c0a529a9ebddf2d34b5d1d8edef9bd6929d41693ad262
+  content_hash: sha256:bdd59af111d402e4385c77e26fa6d53fc113e40ef678a9cf7aaff221e5c21917
 - kind: project-relative
   target: claude
   value: .claude/skills/tauri
@@ -374,13 +402,22 @@ deployments:
   content_hash: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
 - kind: project-relative
   target: claude
+  value: .claude/skills/tauri/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - epicenterhq/epicenter/.agents/skills/tauri
+  active_owner: epicenterhq/epicenter/.agents/skills/tauri
+  content_hash: sha256:633268a45bf33f6c91dbddce00ec5c9ec32696122c1c2bf7a614919b46dc7881
+- kind: project-relative
+  target: claude
   value: .claude/skills/tauri/SKILL.md
   runtime: null
   scope: project
   owners:
   - epicenterhq/epicenter/.agents/skills/tauri
   active_owner: epicenterhq/epicenter/.agents/skills/tauri
-  content_hash: sha256:63701854ae4b4773534eb020e28c6edb756dd59ecd635c6f6f7822f93c6fed02
+  content_hash: sha256:782d49f67cf34c31c75eefdcfc49a2508a7cd6eb9402b5d6850e08d5061cf79f
 - kind: project-relative
   target: codex
   value: .agents/skills/agentation-self-driving
@@ -392,13 +429,22 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: codex
+  value: .agents/skills/agentation-self-driving/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:29eb64b5c188e2d6f739a8beadf09bcbb3a386bf78ae44e07343975331fd9775
+- kind: project-relative
+  target: codex
   value: .agents/skills/agentation-self-driving/SKILL.md
   runtime: null
   scope: project
   owners:
   - benjitaylor/agentation
   active_owner: benjitaylor/agentation
-  content_hash: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
+  content_hash: sha256:3c556d51b44dfe5d898b7f955322a85a0bafda9f2e383c44d1b29be00052462a
 - kind: project-relative
   target: codex
   value: .agents/skills/agentation-self-driving/references/two-session-workflow.md
@@ -407,7 +453,7 @@ deployments:
   owners:
   - benjitaylor/agentation
   active_owner: benjitaylor/agentation
-  content_hash: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
+  content_hash: sha256:1b1f7c337c40c4f009e52eebd396d86b6adeb57221ad770b3b7cb254566c6e00
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices
@@ -419,13 +465,22 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: codex
+  value: .agents/skills/rust-best-practices/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:37fe5c19dc6b3904a11dc50b4ac4a2463625ace4d2aa3b8c417c58bd58cfb361
+- kind: project-relative
+  target: codex
   value: .agents/skills/rust-best-practices/SKILL.md
   runtime: null
   scope: project
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:e2e93a95c899079e5c3391319f309a0961f4f7cdd882cf7221e2e56da9813a18
+  content_hash: sha256:b1651a95a2c36a8350c033449f52d07eebfdbf08e3bd1d5b22c4b7f55f7aa17c
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_01.md
@@ -434,7 +489,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:05aed21a95cce7a97badc44f628eb7e23466f7be178a8c8ce8e3c7c1f82fd306
+  content_hash: sha256:def0d5dc6ad2c8e143aed03c888c3f55b7f2b8f245c563e970f8fa951f7d7b52
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_02.md
@@ -443,7 +498,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:05c6495150ea1b3a038555231e1965b75dc4c2499e4c7a784a0a35640eaee579
+  content_hash: sha256:3b5d4ad26ce444770a05d91f737cc48417cb5bac94b2ab1587fc8de536bdcbb9
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_03.md
@@ -452,7 +507,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:160883f80db912c748cb73884942b6824be0599c98b8f16e9256f27fb9a44c6a
+  content_hash: sha256:fd673405cc1b5094d44d59eac4634e35525d7103d34b43178ee37277f392e15f
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_04.md
@@ -461,7 +516,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:3257b7dfa06698bd59fe2d315b33b22181926d30cda3776bc16c792b51eeb239
+  content_hash: sha256:5189a1118c41c25426357a14ad4e651e931443f1aefc241ea79689cb694175bf
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_05.md
@@ -470,7 +525,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:7b44b4a6e245e692feb07df573162ce8b2c7ffc20716f8a5518d3d4ee2793c7c
+  content_hash: sha256:fb753a7515e11c1bc84d853d8b6d3442dd810d607f2b153595248d57232b8d38
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_06.md
@@ -479,7 +534,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:c001d3dbffe3e403cfc52ad81e4fe0468416f61add2e140d0f442fee1812049c
+  content_hash: sha256:cff0a6826a23a9c4337700757cc67f4741aa4be81cd56925601b110752d38534
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_07.md
@@ -488,7 +543,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:a3c989e1aff99c6de53123ce97f3cf9496e0d68fe4099faabe436758ac1a5475
+  content_hash: sha256:be71105ee9123fe2dff6673d85fc854eafd281fbfa6e8778216d3f3a8d0ffaad
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_08.md
@@ -497,7 +552,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:452edcd46db8bf105c9b208ffb9ee41f876ae1a26ea60c699660047861e077c6
+  content_hash: sha256:54c1548a28586ebb373fe508ce0d885d78bc83e579aabd89836d2a53f7129a8b
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices/references/chapter_09.md
@@ -506,7 +561,7 @@ deployments:
   owners:
   - apollographql/skills/skills/rust-best-practices
   active_owner: apollographql/skills/skills/rust-best-practices
-  content_hash: sha256:6edd831122b04ee9f11c0a529a9ebddf2d34b5d1d8edef9bd6929d41693ad262
+  content_hash: sha256:bdd59af111d402e4385c77e26fa6d53fc113e40ef678a9cf7aaff221e5c21917
 - kind: project-relative
   target: codex
   value: .agents/skills/tauri
@@ -598,13 +653,22 @@ deployments:
   content_hash: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
 - kind: project-relative
   target: codex
+  value: .agents/skills/tauri/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - epicenterhq/epicenter/.agents/skills/tauri
+  active_owner: epicenterhq/epicenter/.agents/skills/tauri
+  content_hash: sha256:633268a45bf33f6c91dbddce00ec5c9ec32696122c1c2bf7a614919b46dc7881
+- kind: project-relative
+  target: codex
   value: .agents/skills/tauri/SKILL.md
   runtime: null
   scope: project
   owners:
   - epicenterhq/epicenter/.agents/skills/tauri
   active_owner: epicenterhq/epicenter/.agents/skills/tauri
-  content_hash: sha256:63701854ae4b4773534eb020e28c6edb756dd59ecd635c6f6f7822f93c6fed02
+  content_hash: sha256:782d49f67cf34c31c75eefdcfc49a2508a7cd6eb9402b5d6850e08d5061cf79f
 - kind: uri
   target: mcp
   value: agentation
@@ -613,7 +677,7 @@ deployments:
   owners:
   - .
   active_owner: .
-  content_hash: null
+  content_hash: sha256:57e9a9676f29093916c145aebb92bac45f1f3c9083d24d0a59353cc551281ddd
 - kind: uri
   target: mcp
   value: tauri-mcp-server
@@ -622,25 +686,7 @@ deployments:
   owners:
   - .
   active_owner: .
-  content_hash: null
-- kind: uri
-  target: mcp
-  value: agentation
-  runtime: codex
-  scope: project
-  owners:
-  - .
-  active_owner: .
-  content_hash: null
-- kind: uri
-  target: mcp
-  value: tauri-mcp-server
-  runtime: codex
-  scope: project
-  owners:
-  - .
-  active_owner: .
-  content_hash: null
+  content_hash: sha256:f4472bc894ede3f3d554e450073e2ff2edc86bf6fed931cdf88dd3d5a50320e1
 mcp_servers:
 - agentation
 - tauri-mcp-server
@@ -666,9 +712,6 @@ mcp_target_servers:
   claude:
   - agentation
   - tauri-mcp-server
-  codex:
-  - agentation
-  - tauri-mcp-server
 local_deployed_files:
 - .agents/skills/tauri-icon-gen
 - .agents/skills/tauri-icon-gen/SKILL.md
@@ -678,8 +721,6 @@ local_deployed_files:
 - .agents/skills/tauri-webview-geometry/agents/openai.yaml
 - .agents/skills/tauri-webview-geometry/references/geometry-model.md
 - .agents/skills/tauri-webview-geometry/references/lifecycle-contracts.md
-- .agents/skills/todo-triage-format
-- .agents/skills/todo-triage-format/SKILL.md
 - .claude/skills/tauri-icon-gen
 - .claude/skills/tauri-icon-gen/SKILL.md
 - .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py
@@ -695,7 +736,6 @@ local_deployed_file_hashes:
   .agents/skills/tauri-webview-geometry/agents/openai.yaml: sha256:4ed20d4f9141cf4909a2c34fb6226c738f38021887b3dc6b16922709527ebfa7
   .agents/skills/tauri-webview-geometry/references/geometry-model.md: sha256:3d31e2c9075415414b1acb1939329b51cce92a3cfe6d44f25b5c826c275c58b4
   .agents/skills/tauri-webview-geometry/references/lifecycle-contracts.md: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
-  .agents/skills/todo-triage-format/SKILL.md: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
   .claude/skills/tauri-icon-gen/SKILL.md: sha256:4504f64c0d61854a6358164e25dc052a7e48e0b189a84427bec633c639a84570
   .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   .claude/skills/tauri-webview-geometry/SKILL.md: sha256:a207ea36720f5f1a3cedff710ca36bf7f32411b9f3dd1485aa3a0266b20ce768
