@@ -742,7 +742,7 @@ describe("Sidebar", () => {
     );
   });
 
-  it("opens account settings and account creation from the account section", async () => {
+  it("opens account settings from the account section", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -762,10 +762,7 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().settingsCategory).toBe("accounts");
     expect(useUiStore.getState().settingsAccountId).toBe("acc-1");
     expect(useUiStore.getState().settingsAddAccount).toBe(false);
-
-    fireEvent.click(screen.getByRole("button", { name: "Add account" }));
-
-    expect(useUiStore.getState().settingsAddAccount).toBe(true);
+    expect(screen.queryByRole("button", { name: "Add account" })).not.toBeInTheDocument();
   });
 
   it("opens the subscriptions index from the account section context menu", async () => {
@@ -2832,15 +2829,13 @@ describe("Sidebar", () => {
     expect(screen.getByRole("heading", { name: "Ultra RSS" })).toBeInTheDocument();
   });
 
-  it("opens account creation from the sidebar when no accounts exist", async () => {
-    const user = userEvent.setup();
+  it("does not offer account creation from the sidebar when no accounts exist", async () => {
     setupTauriMocks((cmd) => (cmd === "list_accounts" ? [] : undefined));
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Add account" }));
-
-    expect(useUiStore.getState()).toMatchObject({ settingsOpen: true, settingsAddAccount: true });
+    expect(await screen.findByRole("heading", { name: "Ultra RSS" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add account" })).not.toBeInTheDocument();
   });
 
   it("routes the header add-feed action to account settings when no account is available", async () => {
