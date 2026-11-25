@@ -33,8 +33,8 @@ use super::progress::{
     SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
 };
 use super::scheduler::{
-    clear_scheduler_sync_status, enable_automatic_sync, load_all_accounts, map_account_sync_status,
-    purge_old_articles,
+    clear_scheduler_sync_status, enable_automatic_sync, load_bulk_sync_accounts,
+    map_account_sync_status, purge_old_articles,
 };
 
 /// Explicit credential access for a single-account sync. `Interactive` is reserved for
@@ -62,7 +62,7 @@ pub async fn trigger_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
-    let accounts = load_all_accounts(&state.db)?;
+    let accounts = load_bulk_sync_accounts(&state.db)?;
     let reporter = SyncProgressReporter::new(
         app_handle.clone(),
         SyncProgressKind::ManualAll,
@@ -126,6 +126,9 @@ pub fn get_account_sync_status(
     if let Some(account) = account {
         status.waiting_for_credential_access =
             crate::service::sync_scheduler::waiting_for_credential_access(&state.db, &account);
+        if !account.sync_enabled {
+            status.next_retry_at = None;
+        }
     }
     Ok(status)
 }
@@ -163,6 +166,16 @@ pub async fn trigger_sync_account(
             })?
     };
     log_sync_request(SyncTrigger::ManualAccount, Some(&account.kind), true);
+    if matches!(credential_access, Some(SyncCredentialAccess::Background)) && !account.sync_enabled
+    {
+        return Ok(SyncResult {
+            synced: false,
+            total: 0,
+            succeeded: 0,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        });
+    }
     let reporter =
         SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAccount, 1);
     reporter.emit_started(Some(&account));

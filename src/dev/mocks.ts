@@ -195,6 +195,7 @@ function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile, mode: "p
         sync_interval_secs: profileAccount.sync_interval_secs,
         sync_on_startup: profileAccount.sync_on_startup,
         sync_on_wake: profileAccount.sync_on_wake,
+        sync_enabled: true,
         keep_read_items_days: profileAccount.keep_read_items_days,
         connection_verification_status: "unverified",
         connection_verified_at: null,
@@ -312,6 +313,7 @@ export function setupDevMocks(): RestoreDevMocks {
           sync_interval_secs: 3600,
           sync_on_startup: true,
           sync_on_wake: false,
+          sync_enabled: true,
           keep_read_items_days: 30,
         };
         mockAccounts.push(account);
@@ -322,16 +324,15 @@ export function setupDevMocks(): RestoreDevMocks {
       }
 
       case "update_account_sync": {
-        const { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays } = parseBrowserMockArgs(
-          "update_account_sync",
-          rawIpcPayload,
-        );
+        const { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays, syncEnabled } =
+          parseBrowserMockArgs("update_account_sync", rawIpcPayload);
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
           target.sync_interval_secs = syncIntervalSecs;
           target.sync_on_startup = syncOnStartup;
           target.sync_on_wake = syncOnWake;
           target.keep_read_items_days = keepReadItemsDays;
+          target.sync_enabled = syncEnabled;
         }
         return cloneMockResponse(target ?? null);
       }
@@ -1002,6 +1003,7 @@ export function setupDevMocks(): RestoreDevMocks {
               sync_interval_secs: account.sync_interval_secs,
               sync_on_startup: account.sync_on_startup,
               sync_on_wake: account.sync_on_wake,
+              sync_enabled: true,
               keep_read_items_days: account.keep_read_items_days,
             })),
             tags: mockTags.map((tag) => ({

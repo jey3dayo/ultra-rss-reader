@@ -248,7 +248,19 @@ fn v30_backfills_last_seen_article_at_from_stored_articles() {
 
     let result = run_migrations(&mut conn).unwrap();
     assert_eq!(result.from_version, 29);
-    assert_eq!(result.to_version, 30);
+    assert_eq!(result.to_version, 31);
+
+    let sync_enabled: i64 = conn
+        .query_row(
+            "SELECT sync_enabled FROM accounts WHERE id = 'acc-1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        sync_enabled, 1,
+        "accounts that predate V31 stay sync-enabled"
+    );
 
     let stale_last_seen: Option<String> = conn
         .query_row(

@@ -31,6 +31,7 @@ export type UpdateAccountSyncParams = {
   syncOnStartup?: boolean;
   syncOnWake?: boolean;
   keepReadItemsDays?: number;
+  syncEnabled?: boolean;
 };
 
 export type AccountDetailSyncControlsParams = {
@@ -219,7 +220,8 @@ export function useAccountDetailSyncControls({
       field !== "syncIntervalSecs" &&
       field !== "syncOnStartup" &&
       field !== "syncOnWake" &&
-      field !== "keepReadItemsDays"
+      field !== "keepReadItemsDays" &&
+      field !== "syncEnabled"
     )
       return;
     syncSavePendingRef.current = true;
@@ -231,6 +233,7 @@ export function useAccountDetailSyncControls({
         partial.syncOnStartup ?? account.sync_on_startup,
         partial.syncOnWake ?? account.sync_on_wake,
         partial.keepReadItemsDays ?? account.keep_read_items_days,
+        partial.syncEnabled ?? account.sync_enabled,
       );
       if (Result.isFailure(result)) {
         setSyncSaveStatus({
@@ -240,6 +243,9 @@ export function useAccountDetailSyncControls({
         });
       } else {
         updateCachedAccount(queryClient, Result.unwrap(result));
+        if (field === "syncEnabled") {
+          await invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey(account.id)]);
+        }
         setSyncSaveStatus({ field, state: "saved" });
       }
     } catch (error) {

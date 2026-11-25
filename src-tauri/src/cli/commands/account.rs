@@ -27,6 +27,7 @@ struct AccountListItem {
     username: Option<String>,
     sync_interval_secs: i64,
     sync_on_startup: bool,
+    sync_enabled: bool,
     keep_read_items_days: i64,
     connection_verification_status: serde_json::Value,
 }
@@ -57,6 +58,7 @@ impl CliCommand for AccountListCommand {
                     username: account.username,
                     sync_interval_secs: account.sync_interval_secs,
                     sync_on_startup: account.sync_on_startup,
+                    sync_enabled: account.sync_enabled,
                     keep_read_items_days: account.keep_read_items_days,
                     connection_verification_status: serde_json::to_value(
                         account.connection_verification_status,
@@ -73,12 +75,13 @@ impl CliCommand for AccountListCommand {
                 .iter()
                 .map(|item| {
                     format!(
-                        "{} [{}] {} interval={}s startup={} status={}",
+                        "{} [{}] {} interval={}s startup={} enabled={} status={}",
                         item.id,
                         item.kind,
                         item.name,
                         item.sync_interval_secs,
                         item.sync_on_startup,
+                        item.sync_enabled,
                         item.connection_verification_status
                     )
                 })

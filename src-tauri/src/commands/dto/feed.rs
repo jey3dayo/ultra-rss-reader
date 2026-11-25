@@ -13,6 +13,7 @@ pub struct AccountDto {
     pub sync_interval_secs: i64,
     pub sync_on_startup: bool,
     pub sync_on_wake: bool,
+    pub sync_enabled: bool,
     pub keep_read_items_days: i64,
     pub connection_verification_status: String,
     pub connection_verified_at: Option<String>,
@@ -173,6 +174,7 @@ impl AccountDto {
             sync_interval_secs: a.sync_interval_secs,
             sync_on_startup: a.sync_on_startup,
             sync_on_wake: a.sync_on_wake,
+            sync_enabled: a.sync_enabled,
             keep_read_items_days: a.keep_read_items_days,
             connection_verification_status: match a.connection_verification_status {
                 crate::domain::account::ConnectionVerificationStatus::Verified => "verified",
@@ -350,6 +352,7 @@ mod tests {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
             connection_verification_status:
                 crate::domain::account::ConnectionVerificationStatus::Verified,
@@ -408,6 +411,7 @@ mod tests {
                 sync_interval_secs: 3600,
                 sync_on_startup: true,
                 sync_on_wake: false,
+                sync_enabled: true,
                 keep_read_items_days: 30,
                 connection_verification_status:
                     crate::domain::account::ConnectionVerificationStatus::Unverified,

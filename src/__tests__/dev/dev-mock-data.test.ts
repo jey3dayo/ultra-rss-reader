@@ -129,6 +129,7 @@ describe("dev mock data", () => {
       sync_interval_secs: 1,
       sync_on_startup: false,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 1,
     });
 

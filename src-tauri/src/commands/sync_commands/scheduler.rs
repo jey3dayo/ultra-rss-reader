@@ -42,13 +42,13 @@ pub(crate) fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> 
     automatic_sync_enabled.load(Ordering::SeqCst)
 }
 
-pub(crate) fn load_all_accounts(db: &Mutex<DbManager>) -> Result<Vec<Account>, AppError> {
+pub(crate) fn load_bulk_sync_accounts(db: &Mutex<DbManager>) -> Result<Vec<Account>, AppError> {
     let db_guard = lock_db(db)?;
     let account_repo = SqliteAccountRepository::new(db_guard.reader());
     Ok(account_repo
         .find_all()?
         .into_iter()
-        .filter(|account| !matches!(account.kind, ProviderKind::Quarantined))
+        .filter(|account| account.included_in_bulk_sync())
         .collect())
 }
 
@@ -192,6 +192,26 @@ pub(crate) fn should_enable_automatic_sync_after_startup(
     plan_finish(&input, SyncEntry::Startup).enable_automatic
 }
 
+pub(crate) fn select_startup_sync_accounts(accounts: &[Account]) -> Vec<Account> {
+    accounts
+        .iter()
+        .filter(|account| account.sync_enabled && account.sync_on_startup)
+        .cloned()
+        .collect()
+}
+
+pub(crate) fn select_startup_repair_only_accounts(accounts: &[Account]) -> Vec<Account> {
+    accounts
+        .iter()
+        .filter(|account| {
+            matches!(account.kind, ProviderKind::FreshRss)
+                && account.sync_enabled
+                && !account.sync_on_startup
+        })
+        .cloned()
+        .collect()
+}
+
 #[tauri::command]
 pub async fn trigger_startup_sync(
     app_handle: tauri::AppHandle,
@@ -203,11 +223,7 @@ pub async fn trigger_startup_sync(
         let account_repo = SqliteAccountRepository::new(db_guard.reader());
         account_repo.find_all()?
     };
-    let startup_sync_accounts = all_accounts
-        .iter()
-        .filter(|account| account.sync_on_startup)
-        .cloned()
-        .collect::<Vec<_>>();
+    let startup_sync_accounts = select_startup_sync_accounts(&all_accounts);
     let startup_sync_accounts =
         prioritize_startup_sync_accounts(startup_sync_accounts, preferred_account_id.as_deref());
     let local_startup_import_warnings = run_local_account_startup_import_supplement(
@@ -217,13 +233,7 @@ pub async fn trigger_startup_sync(
     );
     let repair_pending = startup_remote_state_repair_pending(&state.db)?;
     let repair_only_accounts = if repair_pending {
-        all_accounts
-            .iter()
-            .filter(|account| {
-                matches!(account.kind, ProviderKind::FreshRss) && !account.sync_on_startup
-            })
-            .cloned()
-            .collect::<Vec<_>>()
+        select_startup_repair_only_accounts(&all_accounts)
     } else {
         Vec::new()
     };
@@ -447,7 +457,7 @@ pub async fn trigger_automatic_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
-    let accounts = load_all_accounts(&state.db)?;
+    let accounts = load_bulk_sync_accounts(&state.db)?;
     let reporter = SyncProgressReporter::new(
         app_handle.clone(),
         SyncProgressKind::Automatic,

@@ -309,6 +309,7 @@ describe("DTO schemas", () => {
       sync_interval_secs: 3600,
       sync_on_startup: true,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
     };
     expect(parse(AccountDtoSchema, data)).toEqual(data);
@@ -333,6 +334,7 @@ describe("DTO schemas", () => {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: "unverified",
         connection_verified_at: null,
@@ -356,6 +358,7 @@ describe("DTO schemas", () => {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: "verified",
         connection_verified_at: "2026-04-15T01:00:00Z",
@@ -379,6 +382,7 @@ describe("DTO schemas", () => {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: "verified",
         connection_verified_at: "2026-04-15T01:00:00Z",
@@ -487,6 +491,7 @@ describe("DTO schemas", () => {
       sync_interval_secs: 3600,
       sync_on_startup: true,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
     };
 
@@ -520,6 +525,7 @@ describe("DTO schemas", () => {
       sync_interval_secs: 3600,
       sync_on_startup: true,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
     };
 
@@ -538,6 +544,7 @@ describe("DTO schemas", () => {
       sync_interval_secs: 3600,
       sync_on_startup: true,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
     };
 
@@ -582,6 +589,7 @@ describe("DTO schemas", () => {
       sync_interval_secs: 3600,
       sync_on_startup: true,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
       connection_verification_status: "verified",
       connection_verified_at: "2026-04-15T01:00:00Z",
@@ -621,6 +629,7 @@ describe("DTO schemas", () => {
       sync_interval_secs: 3600,
       sync_on_startup: false,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
       connection_verification_status: "quarantined",
       connection_verified_at: null,
@@ -1289,6 +1298,7 @@ describe("DTO schemas", () => {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         capabilities: {
           supports_folders: false,
@@ -1617,6 +1627,7 @@ describe("SettingsProfileSchema", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ],
@@ -2358,6 +2369,7 @@ describe("command args schemas", () => {
       syncIntervalSecs: 3600,
       syncOnStartup: true,
       syncOnWake: false,
+      syncEnabled: true,
       keepReadItemsDays: 30,
     };
 

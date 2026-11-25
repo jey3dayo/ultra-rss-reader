@@ -6,7 +6,7 @@ export function extractSyncOnWakeAccountIds(accounts: readonly AccountDto[]): st
   const accountIds: string[] = [];
 
   for (const account of accounts) {
-    if (account.sync_on_wake) {
+    if (account.sync_enabled && account.sync_on_wake) {
       accountIds.push(account.id);
     }
   }

@@ -15,6 +15,7 @@ fn make_account(name: &str) -> Account {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,
@@ -498,8 +499,17 @@ fn update_sync_settings_persists_startup_flag() {
     let account = make_account("Startup");
     repo.save(&account).unwrap();
 
-    repo.update_sync_settings(&account.id, 7200, false, true, 90)
-        .unwrap();
+    repo.update_sync_settings(
+        &account.id,
+        AccountSyncSettingsUpdate {
+            sync_enabled: true,
+            sync_interval_secs: 7200,
+            sync_on_startup: false,
+            sync_on_wake: true,
+            keep_read_items_days: 90,
+        },
+    )
+    .unwrap();
 
     let saved = repo.find_by_id(&account.id).unwrap().unwrap();
     assert_eq!(saved.sync_interval_secs, 7200);
@@ -567,10 +577,13 @@ fn update_sync_settings_rejects_out_of_range_values() {
         assert!(
             repo.update_sync_settings(
                 &account.id,
-                sync_interval_secs,
-                false,
-                true,
-                keep_read_items_days,
+                AccountSyncSettingsUpdate {
+                    sync_enabled: true,
+                    sync_interval_secs,
+                    sync_on_startup: false,
+                    sync_on_wake: true,
+                    keep_read_items_days,
+                },
             )
             .is_err(),
             "sync_interval_secs={sync_interval_secs}, keep_read_items_days={keep_read_items_days} should be rejected"
@@ -590,10 +603,13 @@ fn update_sync_settings_returns_error_for_missing_account() {
     let error = repo
         .update_sync_settings(
             &AccountId("missing-account".to_string()),
-            7200,
-            false,
-            true,
-            90,
+            AccountSyncSettingsUpdate {
+                sync_enabled: true,
+                sync_interval_secs: 7200,
+                sync_on_startup: false,
+                sync_on_wake: true,
+                keep_read_items_days: 90,
+            },
         )
         .expect_err("missing account update should fail");
 

@@ -32,7 +32,7 @@ use super::local_import_export::{
     run_local_account_auto_import,
 };
 use super::progress::{SyncGuard, SyncProgressReporter};
-use super::scheduler::{clear_scheduler_sync_status, load_all_accounts};
+use super::scheduler::{clear_scheduler_sync_status, load_bulk_sync_accounts};
 
 mod startup;
 pub(crate) use startup::{
@@ -231,7 +231,7 @@ pub(crate) async fn run_full_sync_with_progress(
     syncing: &AtomicBool,
     reporter: Option<SyncProgressReporter>,
 ) -> Result<SyncResult, AppError> {
-    let accounts = load_all_accounts(db)?;
+    let accounts = load_bulk_sync_accounts(db)?;
 
     run_sync_for_accounts_with_progress(db, syncing, accounts, reporter).await
 }

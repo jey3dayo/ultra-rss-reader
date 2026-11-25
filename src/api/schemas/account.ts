@@ -40,6 +40,7 @@ export const AccountDtoSchema = s.strictObject({
   sync_interval_secs: accountSyncIntervalSecsSchema,
   sync_on_startup: v.boolean(),
   sync_on_wake: v.boolean(),
+  sync_enabled: v.boolean(),
   keep_read_items_days: accountKeepReadItemsDaysSchema,
   connection_verification_status: v.optional(AccountConnectionVerificationStatusSchema),
   connection_verified_at: v.optional(v.nullable(IsoDateTimeStringSchema)),

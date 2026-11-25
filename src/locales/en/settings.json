@@ -265,6 +265,8 @@
     "every_2_hours": "Every 2 hours",
     "every_4_hours": "Every 4 hours",
     "once_a_day": "Once a day",
+    "sync_enabled": "Sync this account",
+    "sync_enabled_description": "When off, this account is skipped by scheduled, startup, wake, and Sync All, and won't ask for credential access. Sync Now still works.",
     "sync_on_startup": "Sync on startup",
     "sync_on_wake": "Sync on wake up from sleep",
     "keep_read_items": "Keep read items",

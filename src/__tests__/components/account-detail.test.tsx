@@ -288,6 +288,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: false,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -301,6 +302,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: Number(args.syncIntervalSecs),
             sync_on_startup: Boolean(args.syncOnStartup),
             sync_on_wake: Boolean(args.syncOnWake),
+            sync_enabled: Boolean(args.syncEnabled),
             keep_read_items_days: Number(args.keepReadItemsDays),
           };
         default:
@@ -323,6 +325,7 @@ describe("AccountDetail", () => {
           syncOnStartup: false,
           syncOnWake: false,
           keepReadItemsDays: 60,
+          syncEnabled: true,
         },
       });
     });
@@ -349,6 +352,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: false,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -362,6 +366,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: Number(args.syncIntervalSecs),
             sync_on_startup: Boolean(args.syncOnStartup),
             sync_on_wake: Boolean(args.syncOnWake),
+            sync_enabled: Boolean(args.syncEnabled),
             keep_read_items_days: Number(args.keepReadItemsDays),
           };
         default:
@@ -382,6 +387,7 @@ describe("AccountDetail", () => {
           syncOnStartup: true,
           syncOnWake: false,
           keepReadItemsDays: 30,
+          syncEnabled: true,
         },
       });
     });
@@ -400,6 +406,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -437,6 +444,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -474,6 +482,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -517,6 +526,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -562,6 +572,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -608,6 +619,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -647,6 +659,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -705,6 +718,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -772,6 +786,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -814,6 +829,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -853,6 +869,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -892,6 +909,7 @@ describe("AccountDetail", () => {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
       };
       setupTauriMocks((cmd, args) => {
@@ -981,6 +999,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1048,6 +1067,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1063,6 +1083,7 @@ describe("AccountDetail", () => {
                 sync_interval_secs: 3600,
                 sync_on_startup: true,
                 sync_on_wake: false,
+                sync_enabled: true,
                 keep_read_items_days: 30,
               }),
             );
@@ -1077,6 +1098,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
             connection_verification_status: "verified",
             connection_verified_at: "2026-04-19T05:32:00Z",
@@ -1123,6 +1145,7 @@ describe("AccountDetail", () => {
       sync_interval_secs: 3600,
       sync_on_startup: true,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
     };
 
@@ -1219,6 +1242,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1232,6 +1256,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           };
         case "test_account_connection":
@@ -1243,6 +1268,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
             connection_verification_status: "verified",
             connection_verified_at: "2026-04-19T05:32:00Z",
@@ -1292,6 +1318,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1307,6 +1334,7 @@ describe("AccountDetail", () => {
                 sync_interval_secs: 3600,
                 sync_on_startup: true,
                 sync_on_wake: false,
+                sync_enabled: true,
                 keep_read_items_days: 30,
               }),
             );
@@ -1322,6 +1350,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
             connection_verification_status: "verified",
             connection_verified_at: "2026-04-19T05:32:00Z",
@@ -1398,6 +1427,7 @@ describe("AccountDetail", () => {
       sync_interval_secs: 3600,
       sync_on_startup: true,
       sync_on_wake: false,
+      sync_enabled: true,
       keep_read_items_days: 30,
       ...overrides,
     };
@@ -1453,6 +1483,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1552,6 +1583,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1595,6 +1627,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1638,6 +1671,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1677,6 +1711,7 @@ describe("AccountDetail", () => {
                 sync_interval_secs: 3600,
                 sync_on_startup: true,
                 sync_on_wake: false,
+                sync_enabled: true,
                 keep_read_items_days: 30,
               },
             ];
@@ -1723,6 +1758,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1772,6 +1808,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1820,6 +1857,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1861,6 +1899,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1911,6 +1950,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -1962,6 +2002,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -2005,6 +2046,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -2062,6 +2104,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -2128,6 +2171,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           },
         ];
@@ -2160,6 +2204,7 @@ describe("AccountDetail", () => {
               sync_interval_secs: 3600,
               sync_on_startup: true,
               sync_on_wake: false,
+              sync_enabled: true,
               keep_read_items_days: 30,
             },
           ];
@@ -2174,6 +2219,7 @@ describe("AccountDetail", () => {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
           };
         default:

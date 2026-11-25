@@ -10,12 +10,7 @@ pub(super) fn load_scheduler_accounts(db: &Mutex<DbManager>) -> DomainResult<Vec
     repo.find_all().map(|accounts| {
         accounts
             .into_iter()
-            .filter(|account| {
-                !matches!(
-                    account.kind,
-                    crate::domain::provider::ProviderKind::Quarantined
-                )
-            })
+            .filter(|account| account.included_in_bulk_sync())
             .collect()
     })
 }

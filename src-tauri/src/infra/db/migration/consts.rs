@@ -77,6 +77,12 @@ pub(super) const V24_FEED_ICON_URL_SQL: &str = "ALTER TABLE feeds ADD COLUMN ico
 pub(super) const V27_FOLDER_ORDER_MODE_COLUMN: &str = "folder_order_mode";
 pub(super) const V27_FOLDER_ORDER_MODE_SQL: &str =
     "ALTER TABLE accounts ADD COLUMN folder_order_mode TEXT NOT NULL DEFAULT 'name' CHECK (folder_order_mode IN ('name', 'manual'))";
+#[cfg(test)]
+pub(super) const MIGRATION_V31: &str =
+    include_str!("../../../../migrations/V31__account_sync_enabled.sql");
+pub(super) const V31_SYNC_ENABLED_COLUMN: &str = "sync_enabled";
+pub(super) const V31_SYNC_ENABLED_SQL: &str =
+    "ALTER TABLE accounts ADD COLUMN sync_enabled INTEGER NOT NULL DEFAULT 1";
 pub(super) const V28_READ_CHANGED_AT_COLUMN: &str = "read_changed_at";
 pub(super) const V28_READ_CHANGED_AT_SQL: &str =
     "ALTER TABLE articles ADD COLUMN read_changed_at TEXT";

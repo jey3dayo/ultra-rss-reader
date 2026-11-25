@@ -2,6 +2,15 @@ use crate::domain::account::{Account, ConnectionVerificationStatus, FolderOrderM
 use crate::domain::error::DomainResult;
 use crate::domain::types::AccountId;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AccountSyncSettingsUpdate {
+    pub sync_enabled: bool,
+    pub sync_interval_secs: i64,
+    pub sync_on_startup: bool,
+    pub sync_on_wake: bool,
+    pub keep_read_items_days: i64,
+}
+
 pub trait AccountRepository {
     fn find_all(&self) -> DomainResult<Vec<Account>>;
     fn find_by_id(&self, id: &AccountId) -> DomainResult<Option<Account>>;
@@ -9,10 +18,7 @@ pub trait AccountRepository {
     fn update_sync_settings(
         &self,
         id: &AccountId,
-        sync_interval_secs: i64,
-        sync_on_startup: bool,
-        sync_on_wake: bool,
-        keep_read_items_days: i64,
+        update: AccountSyncSettingsUpdate,
     ) -> DomainResult<()>;
     fn update_credentials(
         &self,

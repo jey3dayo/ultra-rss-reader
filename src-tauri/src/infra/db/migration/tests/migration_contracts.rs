@@ -161,6 +161,21 @@ fn v27_file_migration_matches_inline_contract() {
 }
 
 #[test]
+fn v31_file_migration_matches_inline_contract() {
+    let inline_v31_sql = format!(
+        "{V31_SYNC_ENABLED_SQL};
+          DELETE FROM schema_version;
+          INSERT INTO schema_version (version) VALUES (31);"
+    );
+
+    assert_eq!(
+        normalize_sql(MIGRATION_V31),
+        normalize_sql(&inline_v31_sql),
+        "file-based V31 migration must stay in sync with the inline migration"
+    );
+}
+
+#[test]
 fn v28_file_migration_matches_inline_contract() {
     let inline_v28_sql = format!(
         "{V28_READ_CHANGED_AT_SQL};

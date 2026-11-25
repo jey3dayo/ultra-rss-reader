@@ -34,6 +34,33 @@ fn load_scheduler_accounts_skips_invalid_account_rows() {
 }
 
 #[test]
+fn load_scheduler_accounts_excludes_sync_disabled_accounts() {
+    let db = std::sync::Mutex::new(test_db());
+    {
+        let db_guard = db.lock().unwrap();
+        db_guard
+            .writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params!["enabled-account", "Local", "Enabled"],
+            )
+            .unwrap();
+        db_guard
+            .writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name, sync_enabled) VALUES (?1, ?2, ?3, 0)",
+                params!["disabled-account", "Local", "Disabled"],
+            )
+            .unwrap();
+    }
+
+    let accounts = load_scheduler_accounts(&db).expect("accounts should load");
+
+    assert_eq!(accounts.len(), 1);
+    assert_eq!(accounts[0].id.0, "enabled-account");
+}
+
+#[test]
 fn scheduler_load_failure_warning_is_observable_as_generic_scheduler_warning() {
     let error = DomainError::Persistence("Lock error: poisoned".to_string());
 

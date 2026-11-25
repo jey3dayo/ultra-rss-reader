@@ -79,6 +79,18 @@ pub(crate) fn validate_add_account_args(
     }
 }
 
+pub(crate) fn validate_sync_enabled_for_kind(
+    kind: crate::domain::provider::ProviderKind,
+    sync_enabled: bool,
+) -> Result<(), AppError> {
+    if !sync_enabled && matches!(kind, crate::domain::provider::ProviderKind::Local) {
+        return Err(AppError::UserVisible {
+            message: "Sync cannot be disabled for a local account".into(),
+        });
+    }
+    Ok(())
+}
+
 pub(crate) fn validate_account_sync_settings(
     sync_interval_secs: i64,
     keep_read_items_days: i64,
@@ -149,5 +161,19 @@ pub(crate) fn normalize_updated_account_server_url(
         }
         ProviderKind::Local => Ok(server_url.map(ToOwned::to_owned)),
         ProviderKind::Quarantined => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_sync_enabled_for_kind;
+    use crate::domain::provider::ProviderKind;
+
+    #[test]
+    fn disabling_sync_is_rejected_for_local_accounts_only() {
+        assert!(validate_sync_enabled_for_kind(ProviderKind::Local, false).is_err());
+        assert!(validate_sync_enabled_for_kind(ProviderKind::Local, true).is_ok());
+        assert!(validate_sync_enabled_for_kind(ProviderKind::FreshRss, false).is_ok());
+        assert!(validate_sync_enabled_for_kind(ProviderKind::FreshRss, true).is_ok());
     }
 }

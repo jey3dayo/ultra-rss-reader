@@ -16,6 +16,7 @@ export function buildSidebarAccountStatusLabels(params: {
   now?: number;
   labels: {
     scheduledAt: (time: string) => string;
+    syncOff: string;
   };
 }): Record<string, string> {
   const { accounts, accountSyncStatuses, language, labels, now = Date.now() } = params;
@@ -27,6 +28,11 @@ export function buildSidebarAccountStatusLabels(params: {
       continue;
     }
     seenAccountIds.add(account.id);
+
+    if (account.sync_enabled === false) {
+      accountStatusLabels[account.id] = labels.syncOff;
+      continue;
+    }
 
     const syncStatus = accountSyncStatuses[account.id];
     if (getFutureAccountSyncRetry(syncStatus, now) === null) {
@@ -54,6 +60,7 @@ export function useSidebarAccountStatusLabels(accounts: SidebarAccountStatusLabe
         language: i18n.language,
         labels: {
           scheduledAt: (time) => t("account_retry_scheduled_short", { time }),
+          syncOff: t("account_sync_off"),
         },
       }),
     [accountSyncStatuses, accounts, i18n.language, now, t],

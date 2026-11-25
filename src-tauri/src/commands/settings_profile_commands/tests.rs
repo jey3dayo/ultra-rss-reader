@@ -21,6 +21,7 @@ fn local_account(id: &str, name: &str) -> Account {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,
@@ -38,6 +39,7 @@ fn freshrss_account(id: &str, name: &str, server_url: &str, username: &str) -> A
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Verified,
         connection_verified_at: Some("2026-01-01T00:00:00Z".to_string()),
@@ -174,6 +176,7 @@ fn import_updates_matching_freshrss_account_without_preserving_verification() {
         sync_interval_secs: 7200,
         sync_on_startup: false,
         sync_on_wake: true,
+        sync_enabled: true,
         keep_read_items_days: 7,
     });
 
@@ -230,6 +233,7 @@ fn import_matches_existing_freshrss_account_by_normalized_server_url() {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
     });
 
@@ -261,6 +265,7 @@ fn import_allows_explicit_private_freshrss_server_url() {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
     });
 
@@ -291,6 +296,7 @@ fn import_local_accounts_match_by_name_without_collapsing_different_local_accoun
         sync_interval_secs: 1800,
         sync_on_startup: false,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 10,
     });
 
@@ -324,6 +330,7 @@ fn import_maps_selected_account_id_and_skips_retired_global_startup_sync() {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
     });
     profile.preferences.insert(
@@ -372,6 +379,7 @@ fn import_rolls_back_when_account_name_conflicts_with_different_identity() {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
     });
 
@@ -505,4 +513,66 @@ fn import_rejects_invalid_profile_metadata_and_invalid_preference() {
         .preferences
         .insert("debug_browser_hud".to_string(), "TRUE".to_string());
     assert!(import_settings_profile_into_db(&db, &profile_json(profile)).is_err());
+}
+
+#[test]
+fn import_preserves_disabled_sync_for_freshrss_and_normalizes_local_to_enabled() {
+    let db = test_db();
+    let mut profile = empty_profile();
+    profile.accounts.push(SettingsProfileAccount {
+        source_id: "remote-source".to_string(),
+        kind: ProviderKind::FreshRss,
+        name: "Remote".to_string(),
+        server_url: Some("https://rss.example.com".to_string()),
+        username: Some("alice".to_string()),
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        sync_enabled: false,
+        keep_read_items_days: 30,
+    });
+    profile.accounts.push(SettingsProfileAccount {
+        source_id: "local-source".to_string(),
+        kind: ProviderKind::Local,
+        name: "Local".to_string(),
+        server_url: None,
+        username: None,
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        sync_enabled: false,
+        keep_read_items_days: 30,
+    });
+
+    import_settings_profile_into_db(&db, &profile_json(profile)).unwrap();
+
+    let accounts = SqliteAccountRepository::new(db.reader())
+        .find_all()
+        .unwrap();
+    let remote = accounts.iter().find(|a| a.name == "Remote").unwrap();
+    let local = accounts.iter().find(|a| a.name == "Local").unwrap();
+    assert!(!remote.sync_enabled);
+    assert!(local.sync_enabled);
+}
+
+#[test]
+fn profile_account_without_sync_enabled_defaults_to_enabled() {
+    let account = SettingsProfileAccount {
+        source_id: "source".to_string(),
+        kind: ProviderKind::FreshRss,
+        name: "Remote".to_string(),
+        server_url: Some("https://rss.example.com".to_string()),
+        username: Some("alice".to_string()),
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        sync_enabled: false,
+        keep_read_items_days: 30,
+    };
+
+    let mut value = serde_json::to_value(&account).unwrap();
+    value.as_object_mut().unwrap().remove("sync_enabled");
+    let restored: SettingsProfileAccount = serde_json::from_value(value).unwrap();
+
+    assert!(restored.sync_enabled);
 }
