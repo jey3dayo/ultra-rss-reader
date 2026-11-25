@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
 import { readerPassiveCardPaddingClassName } from "@/components/reader/reader-passive-card";
+import { MOTION_CONTENT_SWAP_SLOW_DURATION_MS, MOTION_CONTENT_SWAP_SLOW_OFFSET_PX } from "@/constants";
 
 describe("ArticleListScreenView", () => {
   it("renders the loading state inside the article list body", () => {
@@ -265,6 +266,42 @@ describe("ArticleListScreenView", () => {
       "bg-surface-1/48",
       "dark:border-border/75",
       "dark:shadow-none",
+    );
+  });
+
+  it("gives the direct-mounted setup empty state the shared content-swap entrance", () => {
+    render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isActivePane
+        isLoading={false}
+        emptyStateVariant="setup"
+        emptyMessage="Add an account and your articles will appear here."
+        emptyDescription="The list stays empty until the initial setup is complete."
+        loadingMessage="Loading articles"
+        groups={[]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    const motionWrapper = screen
+      .getByText("Add an account and your articles will appear here.")
+      .closest<HTMLElement>(".motion-content-swap");
+
+    expect(motionWrapper).not.toBeNull();
+    expect(motionWrapper).toHaveAttribute("data-motion-phase", "entering");
+    expect(motionWrapper).toHaveClass("h-full");
+    expect(motionWrapper?.style.getPropertyValue("--motion-duration-content-swap")).toBe(
+      MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+    );
+    expect(motionWrapper?.style.getPropertyValue("--motion-content-swap-offset")).toBe(
+      MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
     );
   });
 
