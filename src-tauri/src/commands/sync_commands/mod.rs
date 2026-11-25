@@ -80,10 +80,10 @@ pub use remote_feed_health::get_remote_feed_sync_statuses;
 pub(crate) use scheduler::enable_automatic_sync;
 #[cfg(test)]
 use scheduler::{
-    clear_scheduler_sync_status, enable_automatic_sync, map_account_sync_status,
-    prioritize_startup_sync_accounts, record_startup_remote_state_repair_complete,
-    select_startup_repair_only_accounts, select_startup_sync_accounts,
-    should_enable_automatic_sync_after_startup, startup_remote_state_repair_succeeded,
+    clear_scheduler_sync_status, map_account_sync_status, prioritize_startup_sync_accounts,
+    record_startup_remote_state_repair_complete, select_startup_repair_only_accounts,
+    select_startup_sync_accounts, should_enable_automatic_sync_after_startup,
+    startup_remote_state_repair_succeeded,
 };
 pub use scheduler::{
     purge_old_articles, run_automatic_sync, trigger_automatic_sync, trigger_startup_sync,
