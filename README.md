@@ -79,7 +79,7 @@ All bindings are customizable in Settings. Defaults:
 | `j` / `k` | Next / previous article | `m` | Toggle read |
 | `h` / `l` | Previous / next feed | `s` | Toggle star |
 | `Space` / `Shift+Space` | Scroll article | `a` | Mark all read |
-| `v` | Open in-app browser | `b` | Open external browser |
+| `v` | Open Web Preview | `b` | Open external browser |
 | `/` | Search | `f` | Cycle filter |
 | `⌘1` / `⌘2` / `⌘3` | Unread / All / Starred | `u` | Focus sidebar |
 | `⌘K` | Command palette | `⌘\` | Toggle sidebar |
