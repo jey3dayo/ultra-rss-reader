@@ -411,6 +411,31 @@ describe("SubscriptionsListPane", () => {
     expect(screen.getByRole("button", { name: /^更新過多/ })).toHaveAccessibleDescription(criteria);
   });
 
+  it("renders filter counts as chips inside the shared chip button and omits the chip when the count is unavailable", () => {
+    renderListPane([], {
+      groups: [],
+      filterBar: {
+        model: {
+          ariaLabel: "購読の絞り込み",
+          options: [
+            { filterKey: "all", label: "総購読数", count: 16, isActive: true },
+            { filterKey: "stale", label: "90日以上未更新", count: null, isActive: false },
+          ],
+          activeDescription: null,
+        },
+        onSelect: vi.fn(),
+      },
+    });
+
+    const active = screen.getByRole("button", { name: /^総購読数/ });
+    expect(active).toHaveAttribute("aria-pressed", "true");
+    expect(active.querySelector("[data-label-chip]")).toHaveTextContent("16");
+
+    const unavailable = screen.getByRole("button", { name: /^90日以上未更新/ });
+    expect(unavailable).toHaveAttribute("aria-pressed", "false");
+    expect(unavailable.querySelector("[data-label-chip]")).toBeNull();
+  });
+
   it("does not add a duplicate clear button to the search input", () => {
     const row = {
       feed: buildFeed({ title: "Searchable Feed" }),
