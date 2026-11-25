@@ -20,6 +20,7 @@
   "settings": "Settings",
   "theme_toggle": "Toggle theme",
   "account_settings": "Account settings",
+  "open_subscriptions_index": "Open subscriptions index",
   "account_connection_attention": "{{account}}: sync paused",
   "account_connection_check_prompt": "Credential access isn't allowed yet. Select to check the connection, and allow the macOS prompt if it appears.",
   "account_connection_checking": "Checking connection…",

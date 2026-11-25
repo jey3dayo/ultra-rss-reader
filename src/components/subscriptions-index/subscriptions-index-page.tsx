@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
-import { AppSelectPopup, Select, SelectItem, SelectTrigger, SelectValue, WorkspaceHeader } from "@/design-system";
+import { WorkspaceHeader } from "@/design-system";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
@@ -89,19 +89,12 @@ export function SubscriptionsIndexPage() {
   const { data: accounts = [], isSuccess, isError, isFetching } = useAccounts();
   const workspace = useUiStore((state) => state.subscriptionsWorkspace);
   const readerAccountId = useUiStore((state) => state.selectedAccountId);
-  const [selectOpen, setSelectOpen] = useState(false);
   const contentRef = useRef<IndexHandle>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const workspaceScrollRef = useRef<HTMLDivElement>(null);
   const viewportWidth = useSyncExternalStore(subscribeToViewport, getViewportWidth);
   const accountId = workspace?.accountId ?? null;
   const request = workspace?.navigationRequest;
   const currentAccount = accounts.find((account) => account.id === accountId);
-  const canSelectAccount = Boolean(currentAccount) && accounts.length > 1;
-
-  useEffect(() => {
-    if (!canSelectAccount) setSelectOpen(false);
-  }, [canSelectAccount]);
 
   const close = () => useUiStore.getState().closeSubscriptionsWorkspace(contentRef.current?.captureState());
   const switchAccount = useCallback((id: string | null, preserveRequest = false) => {
@@ -159,51 +152,15 @@ export function SubscriptionsIndexPage() {
     >
       <WorkspaceHeader
         title={t("title")}
+        subtitle={accounts.length > 1 ? currentAccount?.name : undefined}
         closeLabel={tc("close")}
         onClose={close}
-        actions={
-          currentAccount ? (
-            accounts.length > 1 ? (
-              <Select
-                value={accountId}
-                open={selectOpen}
-                onOpenChange={setSelectOpen}
-                onValueChange={(value) => {
-                  if (value && value !== accountId) {
-                    switchAccount(value);
-                    triggerRef.current?.focus();
-                  }
-                }}
-              >
-                <SelectTrigger
-                  ref={triggerRef}
-                  aria-label={t("account_select_label")}
-                  className="min-w-0 max-w-[min(40vw,16rem)] *:data-[slot=select-value]:min-w-0"
-                >
-                  <SelectValue>
-                    {() => <span className="block min-w-0 truncate">{currentAccount.name}</span>}
-                  </SelectValue>
-                </SelectTrigger>
-                <AppSelectPopup>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name}
-                    </SelectItem>
-                  ))}
-                </AppSelectPopup>
-              </Select>
-            ) : (
-              <span className="max-w-[min(40vw,16rem)] truncate text-sm">{currentAccount.name}</span>
-            )
-          ) : null
-        }
       />
       <SubscriptionsIndexPageForAccount
         key={accountId ?? "no-account"}
         ref={contentRef}
         accountId={accountId}
         accountName={currentAccount?.name ?? ""}
-        selectOpen={selectOpen && canSelectAccount}
         workspaceScrollRef={workspaceScrollRef}
         viewportWidth={viewportWidth}
         onClose={close}
@@ -222,7 +179,6 @@ function SubscriptionsIndexPageForAccount({
   ref,
   accountId: selectedAccountId,
   accountName,
-  selectOpen,
   workspaceScrollRef,
   viewportWidth,
   onClose,
@@ -230,7 +186,6 @@ function SubscriptionsIndexPageForAccount({
   ref: Ref<IndexHandle>;
   accountId: string | null;
   accountName: string;
-  selectOpen: boolean;
   workspaceScrollRef: React.RefObject<HTMLDivElement | null>;
   viewportWidth: number;
   onClose: () => void;
@@ -408,7 +363,6 @@ function SubscriptionsIndexPageForAccount({
   useSubscriptionsIndexEscape(
     hasOpenDialog,
     onClose,
-    selectOpen,
     { active: viewProps.bulk.selectionMode, end: viewProps.bulk.endSelection },
     viewProps.search,
   );

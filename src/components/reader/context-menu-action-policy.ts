@@ -5,6 +5,7 @@ import type { ToastData } from "@/lib/ui/toast.types";
 
 export const CONTEXT_MENU_ACTION_IDS = {
   accountOpenSettings: "account-open-settings",
+  accountOpenSubscriptionsIndex: "account-open-subscriptions-index",
   articleAddToReadingList: "article-add-to-reading-list",
   articleCopyLink: "article-copy-link",
   articleOpenBrowser: "article-open-browser",

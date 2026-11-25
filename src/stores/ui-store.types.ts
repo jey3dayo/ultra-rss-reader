@@ -177,6 +177,7 @@ export type UiActions = {
   openSubscriptionsIndex: (
     state?: SubscriptionsWorkspaceReturnState,
     navigationRequest?: SubscriptionsIndexNavigationRequest,
+    accountId?: string | null,
   ) => void;
   closeSubscriptionsWorkspace: (returnState?: SubscriptionsWorkspaceReturnState) => void;
   switchSubscriptionsAccount: (

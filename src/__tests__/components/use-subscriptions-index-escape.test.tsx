@@ -14,7 +14,7 @@ describe("useSubscriptionsIndexEscape", () => {
   it("closes the workspace on Escape when no bulk selection is active", () => {
     const close = vi.fn();
     const end = vi.fn();
-    renderHook(() => useSubscriptionsIndexEscape(false, close, false, { active: false, end }));
+    renderHook(() => useSubscriptionsIndexEscape(false, close, { active: false, end }));
 
     pressEscape();
 
@@ -34,7 +34,7 @@ describe("useSubscriptionsIndexEscape", () => {
   it("ends the bulk selection instead of closing the workspace while it is active", () => {
     const close = vi.fn();
     const end = vi.fn();
-    renderHook(() => useSubscriptionsIndexEscape(false, close, false, { active: true, end }));
+    renderHook(() => useSubscriptionsIndexEscape(false, close, { active: true, end }));
 
     pressEscape();
 
@@ -45,7 +45,7 @@ describe("useSubscriptionsIndexEscape", () => {
   it("does nothing while a text field owns Escape, even during bulk selection", () => {
     const close = vi.fn();
     const end = vi.fn();
-    renderHook(() => useSubscriptionsIndexEscape(false, close, false, { active: true, end }));
+    renderHook(() => useSubscriptionsIndexEscape(false, close, { active: true, end }));
     const input = document.createElement("input");
     document.body.append(input);
 
@@ -67,9 +67,7 @@ describe("useSubscriptionsIndexEscape", () => {
       const close = vi.fn();
       const end = vi.fn();
       const clear = vi.fn();
-      renderHook(() =>
-        useSubscriptionsIndexEscape(false, close, false, { active: true, end }, { active: true, clear }),
-      );
+      renderHook(() => useSubscriptionsIndexEscape(false, close, { active: true, end }, { active: true, clear }));
       const input = appendSearchInput();
 
       pressEscape(input);
@@ -82,7 +80,7 @@ describe("useSubscriptionsIndexEscape", () => {
     it("clears the query on Escape outside the search input", () => {
       const close = vi.fn();
       const clear = vi.fn();
-      renderHook(() => useSubscriptionsIndexEscape(false, close, false, undefined, { active: true, clear }));
+      renderHook(() => useSubscriptionsIndexEscape(false, close, undefined, { active: true, clear }));
 
       pressEscape();
 
@@ -91,7 +89,7 @@ describe("useSubscriptionsIndexEscape", () => {
     });
 
     it("takes over Escape from the search input so the browser does not clear it a second time", () => {
-      renderHook(() => useSubscriptionsIndexEscape(false, vi.fn(), false, undefined, { active: true, clear: vi.fn() }));
+      renderHook(() => useSubscriptionsIndexEscape(false, vi.fn(), undefined, { active: true, clear: vi.fn() }));
       const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
 
       appendSearchInput().dispatchEvent(event);
@@ -105,7 +103,7 @@ describe("useSubscriptionsIndexEscape", () => {
       const clear = vi.fn();
       const { rerender } = renderHook(
         ({ bulkActive }) =>
-          useSubscriptionsIndexEscape(false, close, false, { active: bulkActive, end }, { active: false, clear }),
+          useSubscriptionsIndexEscape(false, close, { active: bulkActive, end }, { active: false, clear }),
         { initialProps: { bulkActive: true } },
       );
       const input = appendSearchInput();
@@ -122,7 +120,7 @@ describe("useSubscriptionsIndexEscape", () => {
     it("still leaves Escape to other text fields while a query is active", () => {
       const close = vi.fn();
       const clear = vi.fn();
-      renderHook(() => useSubscriptionsIndexEscape(false, close, false, undefined, { active: true, clear }));
+      renderHook(() => useSubscriptionsIndexEscape(false, close, undefined, { active: true, clear }));
       const input = document.createElement("input");
       document.body.append(input);
 
@@ -134,7 +132,7 @@ describe("useSubscriptionsIndexEscape", () => {
 
     it("leaves Escape to an open select popup even with a query active", () => {
       const clear = vi.fn();
-      renderHook(() => useSubscriptionsIndexEscape(false, vi.fn(), false, undefined, { active: true, clear }));
+      renderHook(() => useSubscriptionsIndexEscape(false, vi.fn(), undefined, { active: true, clear }));
       const popup = document.createElement("div");
       popup.dataset.slot = "select-popup";
       popup.dataset.open = "";
@@ -149,7 +147,7 @@ describe("useSubscriptionsIndexEscape", () => {
   it("does nothing while a dialog is open, even during bulk selection", () => {
     const close = vi.fn();
     const end = vi.fn();
-    renderHook(() => useSubscriptionsIndexEscape(false, close, false, { active: true, end }));
+    renderHook(() => useSubscriptionsIndexEscape(false, close, { active: true, end }));
     const dialog = document.createElement("div");
     dialog.setAttribute("role", "dialog");
     document.body.append(dialog);
@@ -160,11 +158,10 @@ describe("useSubscriptionsIndexEscape", () => {
     expect(close).not.toHaveBeenCalled();
   });
 
-  it("does nothing while a feed dialog or select owns Escape, even during bulk selection", () => {
+  it("does nothing while a feed dialog owns Escape, even during bulk selection", () => {
     const close = vi.fn();
     const end = vi.fn();
-    renderHook(() => useSubscriptionsIndexEscape(true, close, false, { active: true, end }));
-    renderHook(() => useSubscriptionsIndexEscape(false, close, true, { active: true, end }));
+    renderHook(() => useSubscriptionsIndexEscape(true, close, { active: true, end }));
 
     pressEscape();
 
@@ -175,7 +172,7 @@ describe("useSubscriptionsIndexEscape", () => {
   it("ignores an Escape that commits an IME candidate during bulk selection", () => {
     const close = vi.fn();
     const end = vi.fn();
-    renderHook(() => useSubscriptionsIndexEscape(false, close, false, { active: true, end }));
+    renderHook(() => useSubscriptionsIndexEscape(false, close, { active: true, end }));
 
     pressEscape(document.body, { isComposing: true });
 

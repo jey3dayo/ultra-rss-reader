@@ -21,4 +21,26 @@ describe("AccountContextMenuContent", () => {
     expect(settingsItem).toHaveAttribute("data-action-id", "account-open-settings");
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
+
+  it("renders the subscriptions item only when its handler is provided", async () => {
+    const user = userEvent.setup();
+    const onOpenSubscriptions = vi.fn();
+
+    render(
+      <ContextMenu.Root open>
+        <AccountContextMenuContent
+          settingsLabel="Account settings"
+          onOpenSettings={vi.fn()}
+          subscriptionsLabel="Open subscriptions index"
+          onOpenSubscriptions={onOpenSubscriptions}
+        />
+      </ContextMenu.Root>,
+    );
+
+    const subscriptionsItem = screen.getByRole("menuitem", { name: "Open subscriptions index" });
+    await user.click(subscriptionsItem);
+
+    expect(subscriptionsItem).toHaveAttribute("data-action-id", "account-open-subscriptions-index");
+    expect(onOpenSubscriptions).toHaveBeenCalledTimes(1);
+  });
 });

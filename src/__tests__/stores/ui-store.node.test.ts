@@ -1286,6 +1286,18 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
+  it("opens the subscriptions index for a given account without changing the reader account", () => {
+    useUiStore.setState({ ...useUiStore.getInitialState(), selectedAccountId: "acc-reader" });
+
+    useUiStore.getState().openSubscriptionsIndex(undefined, undefined, "acc-other");
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+      accountId: "acc-other",
+    });
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-reader");
+  });
+
   it("keeps reader article and feed selection unchanged while subscriptions workspace is open", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),

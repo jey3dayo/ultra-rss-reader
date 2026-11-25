@@ -20,7 +20,6 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
 export function useSubscriptionsIndexEscape(
   hasOpenFeedDialog: boolean,
   closeSubscriptionsWorkspace: () => void,
-  selectOpen = false,
   endBulkSelection?: { active: boolean; end: () => void },
   clearSearch?: { active: boolean; clear: () => void },
 ) {
@@ -35,7 +34,6 @@ export function useSubscriptionsIndexEscape(
         isImeCommitKeyEvent(event) ||
         event.key !== "Escape" ||
         hasOpenFeedDialog ||
-        selectOpen ||
         hasOpenNestedEscapeLayer() ||
         (isTextEntryTarget(target) && !isSearchInput(target))
       ) {
@@ -54,5 +52,5 @@ export function useSubscriptionsIndexEscape(
     });
 
     return bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
-  }, [clearActiveSearch, closeSubscriptionsWorkspace, endActiveBulkSelection, hasOpenFeedDialog, selectOpen]);
+  }, [clearActiveSearch, closeSubscriptionsWorkspace, endActiveBulkSelection, hasOpenFeedDialog]);
 }

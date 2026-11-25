@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { useUiStore } from "@/stores/ui-store";
 import { AccountContextMenuContent } from "../../account-context-menu";
 import type { SidebarAccountSectionPropsParams } from "../../sidebar.types";
 import type { SidebarAccountSectionProps } from "../../sidebar-account-section";
@@ -45,6 +46,9 @@ export function useSidebarAccountSectionProps({
       createElement(AccountContextMenuContent, {
         settingsLabel: t("account_settings"),
         onOpenSettings: handleOpenAccountSettings,
+        subscriptionsLabel: t("open_subscriptions_index"),
+        onOpenSubscriptions: () =>
+          useUiStore.getState().openSubscriptionsIndex(undefined, undefined, selectedAccountId),
       });
   }
 

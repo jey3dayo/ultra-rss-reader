@@ -20,6 +20,7 @@
   "settings": "設定",
   "theme_toggle": "テーマを切り替え",
   "account_settings": "アカウント設定",
+  "open_subscriptions_index": "購読一覧を開く",
   "account_connection_attention": "{{account}}: 同期停止中",
   "account_connection_check_prompt": "認証情報へのアクセスが未許可です。押すと接続を確認します。macOS の確認が出たら許可してください",
   "account_connection_checking": "接続を確認しています…",

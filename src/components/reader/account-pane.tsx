@@ -20,6 +20,7 @@ import {
   scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
+import { AccountContextMenuTrigger } from "./account-context-menu-trigger";
 import { shouldShowKindLabel } from "./account-kind-label";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
@@ -99,39 +100,46 @@ export function AccountPane() {
             const showKindLabel = shouldShowKindLabel(account.name, account.kind);
 
             return (
-              <SidebarNavButton
+              <AccountContextMenuTrigger
                 key={account.id}
-                {...{ [ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE]: "true" }}
-                {...{ [ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE]: account.id }}
-                {...(selected ? { [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
-                {...(selected ? { "aria-current": "true" } : {})}
-                selected={selected}
-                activePane={true}
-                registerSidebarNavigationTarget={false}
-                selectedIndicatorTone="neutral"
-                size="default"
-                contentClassName="flex-col items-start gap-0.5"
-                className={cn(
-                  "rounded-md px-3 text-left",
-                  selected &&
-                    "focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_14%,transparent)]",
-                )}
-                onClick={() => {
+                accountId={account.id}
+                onSelect={() => {
                   selectAccount(account.id);
                   useUiStore.getState().setFocusedPane("sidebar");
                   focusSidebarSmartViewTargetWhenReady("unread");
                 }}
-              >
-                <span className="flex max-w-full items-center gap-2 pl-1.5">
-                  <span className={cn("truncate", selected ? "font-semibold" : "font-medium")}>{account.name}</span>
-                  {showKindLabel ? (
-                    <span className="shrink-0 text-xs text-sidebar-foreground/54">{account.kind}</span>
-                  ) : null}
-                </span>
-                {statusLabel ? (
-                  <span className="max-w-full truncate pl-1.5 text-xs text-sidebar-foreground/56">{statusLabel}</span>
-                ) : null}
-              </SidebarNavButton>
+                render={
+                  <SidebarNavButton
+                    {...{ [ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE]: "true" }}
+                    {...{ [ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE]: account.id }}
+                    {...(selected ? { [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+                    {...(selected ? { "aria-current": "true" } : {})}
+                    selected={selected}
+                    activePane={true}
+                    registerSidebarNavigationTarget={false}
+                    selectedIndicatorTone="neutral"
+                    size="default"
+                    contentClassName="flex-col items-start gap-0.5"
+                    className={cn(
+                      "rounded-md px-3 text-left",
+                      selected &&
+                        "focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_14%,transparent)]",
+                    )}
+                  >
+                    <span className="flex max-w-full items-center gap-2 pl-1.5">
+                      <span className={cn("truncate", selected ? "font-semibold" : "font-medium")}>{account.name}</span>
+                      {showKindLabel ? (
+                        <span className="shrink-0 text-xs text-sidebar-foreground/54">{account.kind}</span>
+                      ) : null}
+                    </span>
+                    {statusLabel ? (
+                      <span className="max-w-full truncate pl-1.5 text-xs text-sidebar-foreground/56">
+                        {statusLabel}
+                      </span>
+                    ) : null}
+                  </SidebarNavButton>
+                }
+              />
             );
           })}
         </div>
