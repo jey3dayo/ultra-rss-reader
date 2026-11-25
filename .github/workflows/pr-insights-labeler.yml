@@ -42,8 +42,13 @@ jobs:
             src-tauri/**/tests.rs
             src-tauri/**/tests/**
             src-tauri/target/**
+            src/components/storybook/**
             src/components/ui/**
+            src/dev/**
             src/generated/**
             src/locales/**/*.json
             src/styles/global.css
+            src/styles/motion.css
+            site/index.html
+            site/ja/index.html
           language: "ja"
