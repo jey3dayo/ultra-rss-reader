@@ -20,7 +20,6 @@ export function useSidebarAccountSectionProps({
   handleSelectAccount,
   closeAccountList,
   handleOpenAccountSettings,
-  handleAddAccount,
 }: SidebarAccountSectionPropsParams): SidebarAccountSectionProps {
   const props: SidebarAccountSectionProps = {
     containerRef: accountDropdownRef,
@@ -37,8 +36,6 @@ export function useSidebarAccountSectionProps({
     onToggle: toggleAccountList,
     onSelectAccount: handleSelectAccount,
     onClose: closeAccountList,
-    addAccountLabel: t("add_account_to_start"),
-    onAddAccount: handleAddAccount,
   };
 
   if (selectedAccountId) {

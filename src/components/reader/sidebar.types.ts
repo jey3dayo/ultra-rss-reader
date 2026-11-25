@@ -112,7 +112,6 @@ export type SidebarControllerSectionsParams = {
   isTagsSectionOpen: boolean;
   toggleTagsSection: () => void;
   handleOpenAccountSettings: () => void;
-  handleAddAccount: () => void;
   tags: SidebarTagItems;
   tagArticleCounts: SidebarTagArticleCounts;
   moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
@@ -167,7 +166,6 @@ export type SidebarAccountSectionPropsParams = {
   handleSelectAccount: SidebarAccountSelectHandler;
   closeAccountList: () => void;
   handleOpenAccountSettings: () => void;
-  handleAddAccount: () => void;
 };
 
 export type SidebarContentSectionsPropsParams = {

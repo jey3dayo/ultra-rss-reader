@@ -299,7 +299,6 @@ export function useSidebarController(): SidebarControllerResult {
       isTagsSectionOpen,
       toggleTagsSection,
       handleOpenAccountSettings,
-      handleAddAccount: openSettingsAddAccount,
       tags,
       tagArticleCounts,
       moveFeedToFolder,

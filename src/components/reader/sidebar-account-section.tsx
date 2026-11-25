@@ -1,4 +1,4 @@
-import { AlertCircle, Plus } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { NavRowButton } from "@/design-system";
@@ -8,8 +8,6 @@ import { useAccountCredentialAccessCheck } from "./hooks/sidebar/use-account-cre
 
 export type SidebarAccountSectionProps = AccountSwitcherProps & {
   containerRef: RefObject<HTMLDivElement | null>;
-  addAccountLabel: string;
-  onAddAccount: () => void;
 };
 
 export function SidebarAccountSection({
@@ -28,8 +26,6 @@ export function SidebarAccountSection({
   onSelectAccount,
   onClose,
   renderContextMenu,
-  addAccountLabel,
-  onAddAccount,
 }: SidebarAccountSectionProps) {
   const { t } = useTranslation("sidebar");
   const statuses = useAccountSyncStatuses(accounts);
@@ -74,15 +70,6 @@ export function SidebarAccountSection({
             </div>
           );
         })}
-      <div className="px-3 pb-3">
-        <NavRowButton
-          tone="sidebar"
-          title={addAccountLabel}
-          leading={<Plus aria-hidden="true" className="size-4" />}
-          onClick={() => onAddAccount()}
-          className="min-h-11 items-center gap-2 text-sm"
-        />
-      </div>
     </div>
   );
 }

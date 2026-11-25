@@ -34,7 +34,6 @@ describe("sidebar section props builders", () => {
       handleSelectAccount: onSelectAccount,
       closeAccountList: onClose,
       handleOpenAccountSettings: vi.fn(),
-      handleAddAccount: vi.fn(),
     });
 
     expect(props).toMatchObject({
@@ -72,7 +71,6 @@ describe("sidebar section props builders", () => {
       handleSelectAccount: vi.fn(),
       closeAccountList: vi.fn(),
       handleOpenAccountSettings: vi.fn(),
-      handleAddAccount: vi.fn(),
     });
 
     expect(props.title).toBe(t("app_name"));
