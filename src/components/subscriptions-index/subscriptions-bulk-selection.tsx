@@ -1,6 +1,7 @@
+import { cn } from "cn";
 import { Minus } from "lucide-react";
 import { type RefObject, useId } from "react";
-import { MOTION_BULK_ACTION_BAR_ENTER_CLASS_NAME } from "@/constants/motion";
+import { MOTION_BULK_ACTION_BAR_ENTER_CLASS_NAME, MOTION_PRESSABLE_SURFACE_CLASS_NAME } from "@/constants/motion";
 import { Button, Checkbox, DeleteButton } from "@/design-system";
 
 export type SubscriptionsBulkSelection = {
@@ -42,18 +43,24 @@ export function SubscriptionsBulkSelectAllRow({ bulkSelection, visibleRowCount }
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-9 pt-1">
       <label
         htmlFor={checkboxId}
-        className="flex min-h-9 min-w-0 cursor-pointer items-center gap-2 text-[0.88rem] font-medium text-foreground"
+        className="group flex min-h-11 min-w-0 cursor-pointer items-center gap-3 border border-transparent pr-2 pl-3.5 text-[0.88rem] font-medium text-foreground"
       >
-        <Checkbox
-          id={checkboxId}
-          checked={allVisibleCheckState === "all"}
-          indeterminate={allVisibleCheckState === "some"}
-          aria-label={labels.selectAllVisibleAria}
-          onCheckedChange={bulkSelection.onToggleAllVisible}
-          className="data-[indeterminate]:border-state-success-border data-[indeterminate]:bg-state-success-surface data-[indeterminate]:text-state-success-foreground"
-        >
-          {allVisibleCheckState === "some" ? <Minus className="size-3.5" strokeWidth={2.4} /> : undefined}
-        </Checkbox>
+        <span className="flex size-9 shrink-0 items-center justify-center">
+          <Checkbox
+            id={checkboxId}
+            checked={allVisibleCheckState === "all"}
+            indeterminate={allVisibleCheckState === "some"}
+            aria-label={labels.selectAllVisibleAria}
+            onCheckedChange={bulkSelection.onToggleAllVisible}
+            className={cn(
+              MOTION_PRESSABLE_SURFACE_CLASS_NAME,
+              "group-hover:border-border-strong",
+              "data-[indeterminate]:border-state-success-border data-[indeterminate]:bg-state-success-surface data-[indeterminate]:text-state-success-foreground",
+            )}
+          >
+            {allVisibleCheckState === "some" ? <Minus className="size-3.5" strokeWidth={2.4} /> : undefined}
+          </Checkbox>
+        </span>
         <span className="min-w-0 tabular-nums">{labels.selectAllVisible(visibleRowCount)}</span>
       </label>
       {skippedKeptCount > 0 ? (

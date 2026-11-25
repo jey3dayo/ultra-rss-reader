@@ -207,6 +207,63 @@ describe("SubscriptionsListPane bulk selection", () => {
     expect(checkbox.closest("button")).toBeNull();
   });
 
+  it("keeps the row button mounted and the rows layout unchanged when selection mode toggles", () => {
+    const rows = buildBulkRows();
+    const groups: SubscriptionListGroup[] = [{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows }];
+    const buildElement = (bulkSelection: SubscriptionsBulkSelection) => (
+      <SubscriptionsListPane
+        heading="全購読"
+        groups={groups}
+        selectedFeedId={rows[0]?.feed.id ?? null}
+        emptyLabel="一致する購読はありません。"
+        searchQuery=""
+        searchLabel="購読を検索"
+        searchPlaceholder="検索"
+        searchClearLabel="検索をクリア"
+        statusLabels={statusLabels}
+        reasonTooltipLabels={reasonTooltipLabels}
+        formatUnreadCountLabel={(count) => `未読 ${count}件`}
+        latestArticleLabels={latestArticleLabels}
+        isGroupExpanded={() => true}
+        bulkSelection={bulkSelection}
+        onSelectFeed={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+        onToggleGroup={vi.fn()}
+      />
+    );
+    const { rerender } = render(buildElement(buildBulkSelection({ mode: false })));
+    const buttonBefore = screen.getByRole("button", { name: /alpha feed/ });
+    const rowsContainerBefore = screen.getByTestId("subscriptions-folder-rows-ungrouped");
+
+    rerender(buildElement(buildBulkSelection({ mode: true })));
+
+    expect(screen.getByRole("button", { name: /alpha feed/ })).toBe(buttonBefore);
+    expect(screen.getByTestId("subscriptions-folder-rows-ungrouped")).toBe(rowsContainerBefore);
+    expect(rowsContainerBefore.className).not.toContain("grid");
+  });
+
+  it("toggles from the checkbox strip without selecting the row, exactly once per click", async () => {
+    const user = userEvent.setup();
+    const onToggleFeed = vi.fn();
+    const onSelectFeed = vi.fn();
+    renderListPane(buildBulkRows(), {
+      onSelectFeed,
+      bulkSelection: buildBulkSelection({ onToggleFeed }),
+    });
+
+    const checkbox = screen.getByRole("checkbox", { name: "alpha feedを選択" });
+    const strip = checkbox.closest("label");
+    expect(strip).not.toBeNull();
+
+    await user.click(strip as HTMLElement);
+    expect(onToggleFeed).toHaveBeenCalledExactlyOnceWith("alpha");
+    expect(onSelectFeed).not.toHaveBeenCalled();
+
+    await user.click(checkbox);
+    expect(onToggleFeed).toHaveBeenCalledTimes(2);
+    expect(onSelectFeed).not.toHaveBeenCalled();
+  });
+
   it("reflects the select-all state as checked or indeterminate and toggles it", async () => {
     const user = userEvent.setup();
     const onToggleAllVisible = vi.fn();
