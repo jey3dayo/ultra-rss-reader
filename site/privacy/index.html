@@ -201,7 +201,7 @@
       <div class="eyebrow">Privacy</div>
       <div class="hero-copy">
         <h1>Privacy in Ultra RSS Reader</h1>
-        <p>This page summarizes the current privacy and feed content policy based on the public source of Ultra RSS Reader.</p>
+        <p>This page summarizes where Ultra RSS Reader stores data, how it connects to the network, and its current feed content policy.</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="/support/">Support</a>
           <a class="btn btn-secondary" href="mailto:support@jey3dayo.net">support@jey3dayo.net</a>
@@ -213,20 +213,20 @@
       <div class="card">
         <div class="section-heading">
           <h2>What data is stored</h2>
-          <p>These are the storage behaviors that can be confirmed from the current public source.</p>
+          <p>App data stays on your device by default.</p>
         </div>
         <ul class="card-list">
           <li>
             <span class="mini-label">Credentials</span>
-            <p>FreshRSS passwords and tokens are stored in the OS keyring, not in SQLite.</p>
+            <p>FreshRSS passwords, tokens, and optional Cloudflare Access credentials are stored in the OS keyring by default, not in SQLite (an optional local-file mode is also available in Settings).</p>
           </li>
           <li>
             <span class="mini-label">Local data</span>
-            <p>App data such as feed and article data is stored through an embedded SQLite database.</p>
+            <p>Subscriptions, fetched articles, and read or starred state are stored in an embedded SQLite database on your machine.</p>
           </li>
           <li>
             <span class="mini-label">Article content</span>
-            <p>Reader mode uses HTML that has already been sanitized on the Rust side.</p>
+            <p>Reader mode renders HTML that has been sanitized on the Rust side.</p>
           </li>
         </ul>
       </div>
@@ -301,24 +301,24 @@
     <div class="grid-two">
       <div class="card">
         <div class="section-heading">
-          <h2>Pages</h2>
-          <p>Each app is separated by path, so support, downloads, and privacy can all grow on the same host.</p>
+          <h2>Related pages</h2>
+          <p>Quick links to support, downloads, and privacy information.</p>
         </div>
         <ul class="card-list">
           <li>
             <span class="mini-label">Support</span>
             <a class="route-chip" href="/support/">/support/</a>
-            <p>A public page with contact information, FAQs, and troubleshooting guidance.</p>
+            <p>Contact information, FAQs, and troubleshooting guidance.</p>
           </li>
           <li>
             <span class="mini-label">Download</span>
             <a class="route-chip" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">GitHub Releases</a>
-            <p>The public download route. Check GitHub Releases for the latest release availability.</p>
+            <p>Latest installers and release notes on GitHub Releases.</p>
           </li>
           <li>
             <span class="mini-label">Privacy</span>
             <a class="route-chip" href="/privacy/">/privacy/</a>
-            <p>A public page summarizing the current privacy policy and feed content policy.</p>
+            <p>This page: data storage, network behavior, and feed content policy.</p>
           </li>
         </ul>
       </div>

@@ -64,7 +64,7 @@ To build from source instead, see [CONTRIBUTING.md](CONTRIBUTING.md).
 - 🗂️ **Folders & tags** — Organize feeds into folders, tag articles, mute keywords
 - 🧭 **Command palette** — `⌘K` / `Ctrl+K`, type `@` to jump to any subscription
 - 🌐 **Web Preview** — Embedded publisher pages with dedicated browser controls
-- 🧹 **Subscription review** — A subscriptions index workspace that flags stale feeds and helps you decide Keep / Later / Unsubscribe
+- 🧹 **Subscription review** — A subscriptions index workspace that flags stale feeds and fetch errors, and helps you exclude feeds from review or unsubscribe
 - 📥 **OPML** — Import and export feed lists
 - 🎨 **Theming** — Light/dark with system detection, OKLch color tokens
 - 🇯🇵 **Japanese localization** — In-app copy carefully tuned, not machine-translated
