@@ -10,6 +10,7 @@ type LabeledControlRowA11y = {
 type LabeledControlRowProps = {
   label: string;
   description?: string;
+  descriptionPlacement?: "column" | "below";
   children?: ReactNode | ((a11y: LabeledControlRowA11y) => ReactNode);
   htmlFor?: string;
   labelId?: string;
@@ -20,37 +21,29 @@ type LabeledControlRowProps = {
   labelClassName?: string;
 };
 
-export function LabeledControlRow({
+type LabeledControlRowLabelColumnProps = {
+  label: string;
+  descriptionInColumn: ReactNode;
+  htmlFor?: string;
+  labelId?: string;
+  leading?: ReactNode;
+  labelAccessory?: ReactNode;
+  labelClassName?: string;
+};
+
+function LabeledControlRowLabelColumn({
   label,
-  description,
-  children,
+  descriptionInColumn,
   htmlFor,
   labelId,
-  descriptionId,
-  className,
   leading,
   labelAccessory,
   labelClassName,
-}: LabeledControlRowProps) {
-  const generatedDescriptionId = useId();
-  const resolvedDescriptionId = description ? (descriptionId ?? generatedDescriptionId) : undefined;
+}: LabeledControlRowLabelColumnProps) {
   const labelClasses = cn(
     "select-none font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]",
     labelClassName,
   );
-  const resolvedChildren =
-    typeof children === "function" ? children({ descriptionId: resolvedDescriptionId }) : children;
-  const descriptionContent = description ? (
-    <span
-      id={resolvedDescriptionId}
-      className={cn(
-        "font-sans text-(length:--font-size-sm) leading-[1.5] text-foreground-soft",
-        PHRASE_AWARE_TEXT_CLASS_NAME,
-      )}
-    >
-      {description}
-    </span>
-  ) : null;
   const titleContent = htmlFor ? (
     <label htmlFor={htmlFor}>
       <span id={labelId} className={labelClasses}>
@@ -68,17 +61,17 @@ export function LabeledControlRow({
         {titleContent}
         <span className="ml-1 inline-flex align-middle">{labelAccessory}</span>
       </span>
-      {descriptionContent}
+      {descriptionInColumn}
     </span>
   ) : (
     <span className="flex min-w-0 flex-col gap-1.5">
       <span id={labelId} className={labelClasses}>
         {label}
       </span>
-      {descriptionContent}
+      {descriptionInColumn}
     </span>
   );
-  const labelContent = leading ? (
+  return leading ? (
     <span className="flex min-w-0 items-center gap-3">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
         {leading}
@@ -87,6 +80,48 @@ export function LabeledControlRow({
     </span>
   ) : (
     labelTextContent
+  );
+}
+
+export function LabeledControlRow({
+  label,
+  description,
+  descriptionPlacement = "column",
+  children,
+  htmlFor,
+  labelId,
+  descriptionId,
+  className,
+  leading,
+  labelAccessory,
+  labelClassName,
+}: LabeledControlRowProps) {
+  const generatedDescriptionId = useId();
+  const resolvedDescriptionId = description ? (descriptionId ?? generatedDescriptionId) : undefined;
+  const resolvedChildren =
+    typeof children === "function" ? children({ descriptionId: resolvedDescriptionId }) : children;
+  const descriptionContent = description ? (
+    <span
+      id={resolvedDescriptionId}
+      className={cn(
+        "font-sans text-(length:--font-size-sm) leading-[1.5] text-foreground-soft",
+        PHRASE_AWARE_TEXT_CLASS_NAME,
+      )}
+    >
+      {description}
+    </span>
+  ) : null;
+  const descriptionBelow = descriptionPlacement === "below" ? descriptionContent : null;
+  const labelContent = (
+    <LabeledControlRowLabelColumn
+      label={label}
+      descriptionInColumn={descriptionBelow === null ? descriptionContent : null}
+      htmlFor={htmlFor}
+      labelId={labelId}
+      leading={leading}
+      labelAccessory={labelAccessory}
+      labelClassName={labelClassName}
+    />
   );
   const rowLabel = labelAccessory ? (
     labelContent
@@ -108,6 +143,7 @@ export function LabeledControlRow({
     >
       {rowLabel}
       <div className="min-w-0 overflow-visible lg:flex lg:items-center lg:justify-end lg:pr-2">{resolvedChildren}</div>
+      {descriptionBelow ? <div className="col-span-full">{descriptionBelow}</div> : null}
     </div>
   );
 }

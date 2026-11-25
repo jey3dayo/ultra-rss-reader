@@ -38,6 +38,29 @@ describe("LabeledControlRow", () => {
     expect(control).toHaveAttribute("aria-describedby", description.id);
   });
 
+  it("renders the description below the row at full width when placement is below", () => {
+    render(
+      <LabeledControlRow
+        label="Sync"
+        description="Long prose that must not sit in the label column."
+        descriptionPlacement="below"
+      >
+        {({ descriptionId }) => (
+          <button type="button" aria-describedby={descriptionId}>
+            Control
+          </button>
+        )}
+      </LabeledControlRow>,
+    );
+
+    const description = screen.getByText("Long prose that must not sit in the label column.");
+    const control = screen.getByRole("button", { name: "Control" });
+
+    expect(description.parentElement).toHaveClass("col-span-full");
+    expect(control).toHaveAttribute("aria-describedby", description.id);
+    expect(control.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("keeps a label accessory outside the native label and preserves control association", async () => {
     const user = userEvent.setup();
     const inputClick = vi.fn();
