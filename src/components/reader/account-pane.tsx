@@ -19,6 +19,8 @@ import {
   focusSidebarSmartViewTargetWhenReady,
   scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { AccountContextMenuTrigger } from "./account-context-menu-trigger";
 import { shouldShowKindLabel } from "./account-kind-label";
@@ -30,6 +32,8 @@ export function AccountPane() {
   const accountStatusLabels = useSidebarAccountStatusLabels(accounts);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const accountPaneOpen = useUiStore((state) => state.accountPaneOpen);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({ platformKind, hasTauriRuntime: hasTauriRuntime() });
   const selectAccount = useUiStore((state) => state.selectAccount);
   const openSettingsAddAccount = useUiStore((state) => state.openSettingsAddAccount);
   useEffect(() => {
@@ -88,7 +92,9 @@ export function AccountPane() {
       className="flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground"
       onKeyDown={handleKeyDown}
     >
-      <div className="px-4 pt-4 pb-3">
+      <div
+        className={cn("px-4 pb-3", useDesktopOverlay ? "pt-[calc(var(--desktop-titlebar-offset)+0.75rem)]" : "pt-4")}
+      >
         <p className="system-micro text-sidebar-foreground/54">{t("accounts")}</p>
       </div>
 

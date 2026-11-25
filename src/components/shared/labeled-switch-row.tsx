@@ -5,6 +5,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 type LabeledSwitchRowProps = {
   label: string;
   description?: string;
+  descriptionPlacement?: "column" | "below";
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
@@ -16,6 +17,7 @@ type LabeledSwitchRowProps = {
 export function LabeledSwitchRow({
   label,
   description,
+  descriptionPlacement,
   checked,
   onChange,
   disabled,
@@ -27,6 +29,7 @@ export function LabeledSwitchRow({
     <LabeledControlRow
       label={label}
       description={description}
+      descriptionPlacement={descriptionPlacement}
       className={rowClassName}
       labelClassName={labelClassName}
       labelAccessory={labelAccessory}

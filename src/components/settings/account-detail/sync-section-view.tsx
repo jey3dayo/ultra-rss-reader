@@ -83,6 +83,7 @@ export function AccountSyncSectionView(props: AccountSyncSectionViewProps) {
           <LabeledSwitchRow
             label={syncEnabled.label}
             description={syncEnabled.description}
+            descriptionPlacement="below"
             checked={syncEnabled.checked}
             onChange={syncEnabled.onChange}
             disabled={syncEnabled.disabled}

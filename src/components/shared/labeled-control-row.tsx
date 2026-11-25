@@ -10,6 +10,7 @@ type LabeledControlRowA11y = {
 type LabeledControlRowProps = {
   label: string;
   description?: string;
+  descriptionPlacement?: "column" | "below";
   children?: ReactNode | ((a11y: LabeledControlRowA11y) => ReactNode);
   htmlFor?: string;
   labelId?: string;
@@ -23,6 +24,7 @@ type LabeledControlRowProps = {
 export function LabeledControlRow({
   label,
   description,
+  descriptionPlacement = "column",
   children,
   htmlFor,
   labelId,
@@ -62,20 +64,21 @@ export function LabeledControlRow({
       {label}
     </span>
   );
+  const descriptionBelow = descriptionPlacement === "below" ? descriptionContent : null;
   const labelTextContent = labelAccessory ? (
     <span className="flex min-w-0 flex-col gap-1.5">
       <span className="block leading-[1.35]">
         {titleContent}
         <span className="ml-1 inline-flex align-middle">{labelAccessory}</span>
       </span>
-      {descriptionContent}
+      {descriptionBelow === null ? descriptionContent : null}
     </span>
   ) : (
     <span className="flex min-w-0 flex-col gap-1.5">
       <span id={labelId} className={labelClasses}>
         {label}
       </span>
-      {descriptionContent}
+      {descriptionBelow === null ? descriptionContent : null}
     </span>
   );
   const labelContent = leading ? (
@@ -108,6 +111,7 @@ export function LabeledControlRow({
     >
       {rowLabel}
       <div className="min-w-0 overflow-visible lg:flex lg:items-center lg:justify-end lg:pr-2">{resolvedChildren}</div>
+      {descriptionBelow ? <div className="col-span-full">{descriptionBelow}</div> : null}
     </div>
   );
 }

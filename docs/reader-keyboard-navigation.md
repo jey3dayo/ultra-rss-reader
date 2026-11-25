@@ -211,6 +211,8 @@ Pointer target inventory:
 
 Pointer target verification should inventory compact toolbar buttons, feed tree rows, tag chips, settings action buttons, and browser overlay controls together. A smaller visual treatment is acceptable only when padding or row geometry preserves the interactive target.
 
+Filter chips follow the tag chip contract: 32px high on desktop pointers, returning to 44px on coarse pointers (`pointer-coarse:min-h-11` on the filter chip variant).
+
 Dense display width and tooltip policy:
 
 - Feed, folder, account, and tag names created by the user must truncate inside the row content lane. They must not push trailing counts, inline actions, or context controls outside the row.
