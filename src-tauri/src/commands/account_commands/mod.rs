@@ -163,6 +163,12 @@ pub fn update_account_sync(
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
+    if !existing.sync_enabled && account.sync_enabled {
+        crate::commands::sync_commands::enable_automatic_sync(
+            state.automatic_sync_enabled.as_ref(),
+            state.automatic_sync_notify.as_ref(),
+        );
+    }
     account_dto_from_repo(&repo, account)
 }
 

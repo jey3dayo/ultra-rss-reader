@@ -77,6 +77,7 @@ use progress::{
     next_sync_progress_completed, next_sync_progress_session_id, sync_event_emit_warning, SyncGuard,
 };
 pub use remote_feed_health::get_remote_feed_sync_statuses;
+pub(crate) use scheduler::enable_automatic_sync;
 #[cfg(test)]
 use scheduler::{
     clear_scheduler_sync_status, enable_automatic_sync, map_account_sync_status,
