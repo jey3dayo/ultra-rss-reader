@@ -268,6 +268,38 @@ describe("ArticleListScreenView", () => {
     );
   });
 
+  it("gives the direct-mounted setup empty state the shared content-swap entrance", () => {
+    render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isActivePane
+        isLoading={false}
+        emptyStateVariant="setup"
+        emptyMessage="Add an account and your articles will appear here."
+        emptyDescription="The list stays empty until the initial setup is complete."
+        loadingMessage="Loading articles"
+        groups={[]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    const motionWrapper = screen
+      .getByText("Add an account and your articles will appear here.")
+      .closest(".motion-content-swap");
+
+    expect(motionWrapper).not.toBeNull();
+    expect(motionWrapper).toHaveAttribute("data-motion-phase", "entering");
+    expect(motionWrapper).toHaveClass("h-full");
+    expect(motionWrapper?.getAttribute("style")).toContain("--motion-duration-content-swap: 260ms");
+    expect(motionWrapper?.getAttribute("style")).toContain("--motion-content-swap-offset: 10px");
+  });
+
   it("keeps article rows inside a dedicated scroll content lane so the scrollbar does not overlap selections", () => {
     render(
       <ArticleListScreenView

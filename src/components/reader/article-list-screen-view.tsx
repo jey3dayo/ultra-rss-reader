@@ -91,14 +91,16 @@ export function ArticleListScreenView({
   if (groups.length === 0 && !keepContentMountedWhileLoading && !keepContentMotionMountedWhileEmpty) {
     return (
       <ScrollArea className="h-full" viewportRef={mergedViewportRef}>
-        <ArticleListEmptyState
-          variant={emptyStateVariant}
-          passiveCard={passiveCard}
-          message={emptyMessage}
-          description={emptyDescription}
-          actionLabel={emptyActionLabel}
-          onAction={onEmptyAction}
-        />
+        <div className="motion-content-swap h-full" data-motion-phase="entering" style={LIST_MOTION_STYLE}>
+          <ArticleListEmptyState
+            variant={emptyStateVariant}
+            passiveCard={passiveCard}
+            message={emptyMessage}
+            description={emptyDescription}
+            actionLabel={emptyActionLabel}
+            onAction={onEmptyAction}
+          />
+        </div>
       </ScrollArea>
     );
   }
