@@ -1,5 +1,3 @@
-import { cn } from "cn";
-import { ChevronDown, Folder } from "lucide-react";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
@@ -9,15 +7,6 @@ import {
   useLayoutEffect,
   useRef,
 } from "react";
-import {
-  MOTION_CONTENT_SWAP_CLASS_NAME,
-  MOTION_DATA_PHASE_ATTRIBUTE,
-  MOTION_DATA_STATE_ATTRIBUTE,
-  MOTION_PHASE_ENTERING,
-  MOTION_STATE_CLOSED,
-  MOTION_STATE_OPEN,
-} from "@/constants/motion";
-import { Button } from "@/design-system";
 import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 import { resolveAdjacentSubscriptionFeedId } from "@/lib/subscriptions/subscription-list-navigation";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
@@ -31,29 +20,19 @@ import {
 } from "./subscriptions-bulk-selection";
 import type { SubscriptionsFilterBarProps } from "./subscriptions-filter-bar";
 import { type SubscriptionsKeptBanner, SubscriptionsKeptBannerView } from "./subscriptions-kept-banner";
+import { SubscriptionsListEmptyState } from "./subscriptions-list-empty-state";
+import { SubscriptionGroupSection } from "./subscriptions-list-group-section";
 import { SubscriptionsListPaneHeader } from "./subscriptions-list-pane-header";
-import {
-  type SubscriptionsActionableStatusLabels,
-  type SubscriptionsKeptMarker,
-  type SubscriptionsLatestArticleLabels,
-  SubscriptionsListRow,
+import type {
+  SubscriptionsActionableStatusLabels,
+  SubscriptionsKeptMarker,
+  SubscriptionsLatestArticleLabels,
 } from "./subscriptions-list-row";
 import { type SubscriptionsListLoadState, SubscriptionsListLoadStatus } from "./subscriptions-load-status";
 import { type SubscriptionsSearchCondition, SubscriptionsSearchConditionView } from "./subscriptions-search-condition";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
 const READY_LOAD_STATE: SubscriptionsListLoadState = { status: "ready" };
-
-// Rows keep one layout in both modes: the selection checkbox overlays the row card,
-// so toggling selection never shifts the cards.
-const SUBSCRIPTION_ROWS_CLASS_NAME = "space-y-1.5 pl-9 pt-1";
-
-type SubscriptionGroupDisclosureButtonProps = {
-  group: SubscriptionListGroup;
-  expanded: boolean;
-  controlsId: string;
-  onToggleGroup: (groupKey: string) => void;
-};
 
 type SubscriptionsListPaneProps = {
   heading: string;
@@ -94,198 +73,6 @@ type SubscriptionsListPaneProps = {
   onSearchQueryChange: (query: string) => void;
   onToggleGroup: (groupKey: string) => void;
 };
-
-function SubscriptionsListEmptyState({
-  emptyLabel,
-  filterBar,
-  searchQuery,
-  searchClearLabel,
-  emptyShowAllLabel,
-  addFeedLabel,
-  onAddFeed,
-  onSearchQueryChange,
-}: Pick<
-  SubscriptionsListPaneProps,
-  | "emptyLabel"
-  | "filterBar"
-  | "searchQuery"
-  | "searchClearLabel"
-  | "emptyShowAllLabel"
-  | "addFeedLabel"
-  | "onAddFeed"
-  | "onSearchQueryChange"
->) {
-  const description = filterBar?.model.activeDescription;
-  const activeFilterKey = filterBar?.model.options.find((option) => option.isActive)?.filterKey ?? "all";
-  const showAllAction = activeFilterKey !== "all" && emptyShowAllLabel && filterBar ? filterBar : null;
-  const showAddFeedAction = Boolean(addFeedLabel && onAddFeed);
-  const hasActions = searchQuery.length > 0 || showAllAction !== null || showAddFeedAction;
-
-  return (
-    <div
-      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft`}
-    >
-      <p role="status" className="text-foreground-soft">
-        {emptyLabel}
-      </p>
-      {description ? <p className="mt-1.5 text-xs leading-[1.5] text-foreground-soft">{description}</p> : null}
-      {hasActions ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {searchQuery.length > 0 ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onSearchQueryChange("")}
-              className="min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
-            >
-              {searchClearLabel}
-            </Button>
-          ) : null}
-          {showAllAction ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => showAllAction.onSelect("all")}
-              className="min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
-            >
-              {emptyShowAllLabel}
-            </Button>
-          ) : null}
-          {showAddFeedAction ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onAddFeed}
-              className="min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
-            >
-              {addFeedLabel}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function SubscriptionGroupDisclosureButton({
-  group,
-  expanded,
-  controlsId,
-  onToggleGroup,
-}: SubscriptionGroupDisclosureButtonProps) {
-  return (
-    <button
-      type="button"
-      data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
-      data-folder-drop-target={group.folderId ? "true" : "false"}
-      aria-expanded={expanded}
-      aria-controls={controlsId}
-      onClick={() => onToggleGroup(group.key)}
-      className={cn(
-        "motion-disclosure-trigger flex min-h-11 w-full items-center justify-between rounded-md border border-transparent px-2.5 py-1.5 text-left text-foreground transition-[background-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
-        expanded ? "bg-[color:var(--subscriptions-list-row-hover)]" : "text-foreground-soft",
-      )}
-    >
-      <span className="flex min-w-0 items-center gap-1.5">
-        <span className="flex size-5 shrink-0 items-center justify-center text-foreground-soft">
-          <ChevronDown
-            aria-hidden="true"
-            className={cn("motion-disclosure-icon size-3.5 shrink-0", expanded ? "rotate-0" : "-rotate-90")}
-          />
-        </span>
-        <span className="flex size-5 shrink-0 items-center justify-center text-foreground-soft">
-          <Folder aria-hidden="true" className="size-3.5" />
-        </span>
-        <h3 className="min-w-0 truncate text-[0.88rem] font-medium tracking-[-0.01em]">{group.label}</h3>
-      </span>
-      <span className="ml-3 shrink-0 text-[0.72rem] font-medium tabular-nums text-foreground-soft">
-        {group.rows.length}
-      </span>
-    </button>
-  );
-}
-
-type SubscriptionGroupSectionProps = Pick<
-  SubscriptionsListPaneProps,
-  | "selectedFeedId"
-  | "kept"
-  | "bulkSelection"
-  | "statusLabels"
-  | "reasonTooltipLabels"
-  | "formatUnreadCountLabel"
-  | "latestArticleLabels"
-  | "onSelectFeed"
-  | "onToggleGroup"
-> & {
-  group: SubscriptionsListPaneProps["groups"][number];
-  fetchErrorLabel: string;
-  remoteFetchFailureLabel: string;
-  expanded: boolean;
-};
-
-function SubscriptionGroupSection({
-  group,
-  expanded,
-  selectedFeedId,
-  kept,
-  bulkSelection,
-  statusLabels,
-  reasonTooltipLabels,
-  fetchErrorLabel,
-  remoteFetchFailureLabel,
-  formatUnreadCountLabel,
-  latestArticleLabels,
-  onSelectFeed,
-  onToggleGroup,
-}: SubscriptionGroupSectionProps) {
-  const groupBodyId = `subscriptions-group-panel-${group.key}`;
-
-  return (
-    <div className="relative space-y-1">
-      <SubscriptionGroupDisclosureButton
-        group={group}
-        expanded={expanded}
-        controlsId={groupBodyId}
-        onToggleGroup={onToggleGroup}
-      />
-      <div
-        id={groupBodyId}
-        {...{
-          [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED,
-        }}
-        aria-hidden={expanded ? "false" : "true"}
-        inert={expanded ? undefined : true}
-        className="motion-disclosure-panel"
-      >
-        <div className="motion-disclosure-body">
-          <div
-            data-testid={`subscriptions-folder-rows-${group.folderId ?? "ungrouped"}`}
-            className={SUBSCRIPTION_ROWS_CLASS_NAME}
-          >
-            {group.rows.map((row) => (
-              <SubscriptionsListRow
-                key={row.feed.id}
-                row={row}
-                selected={selectedFeedId === row.feed.id}
-                kept={kept?.feedIds.has(row.feed.id) ?? false}
-                keptChipLabel={kept?.chipLabel ?? ""}
-                bulkSelection={bulkSelection}
-                statusLabels={statusLabels}
-                reasonTooltipLabels={reasonTooltipLabels}
-                fetchErrorLabel={fetchErrorLabel}
-                remoteFetchFailureLabel={remoteFetchFailureLabel}
-                formatUnreadCountLabel={formatUnreadCountLabel}
-                latestArticleLabels={latestArticleLabels}
-                onSelectFeed={onSelectFeed}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function SubscriptionsListPane({
   heading,
