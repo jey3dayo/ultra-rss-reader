@@ -25,6 +25,7 @@ const SettingsProfileAccountSchema = s.strictObject({
   sync_interval_secs: syncIntervalSecsSchema,
   sync_on_startup: v.boolean(),
   sync_on_wake: v.boolean(),
+  sync_enabled: v.optional(v.boolean()),
   keep_read_items_days: keepReadItemsDaysSchema,
 });
 

@@ -6,6 +6,7 @@ import type {
   AccountSyncStatusRow,
 } from "@/components/settings/account-detail/sync-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
+import { isLocalAccount } from "./account-kind";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";
 
 type SyncSectionProps = ComponentProps<typeof AccountSyncSectionView>;
@@ -61,7 +62,7 @@ function buildSyncSettingControls(
   controller: AccountDetailControllerResult,
   t: TFunction<"settings">,
   disabled: boolean,
-): Pick<SyncSectionProps, "syncInterval" | "syncOnStartup" | "syncOnWake" | "keepReadItems"> {
+): Pick<SyncSectionProps, "syncEnabled" | "syncInterval" | "syncOnStartup" | "syncOnWake" | "keepReadItems"> {
   const statusFor = (field: keyof import("./use-account-detail-sync-controls").UpdateAccountSyncParams) => {
     const status = controller.syncSaveStatus;
     if (status?.field !== field) return undefined;
@@ -74,27 +75,37 @@ function buildSyncSettingControls(
     };
   };
   return {
+    syncEnabled: isLocalAccount(account)
+      ? undefined
+      : {
+          label: t("account.sync_enabled"),
+          description: t("account.sync_enabled_description"),
+          checked: account.sync_enabled,
+          onChange: (value) => controller.handleSyncUpdate({ syncEnabled: value }),
+          disabled,
+          status: statusFor("syncEnabled"),
+        },
     syncInterval: {
       name: "sync-interval",
       label: t("account.sync"),
       value: String(account.sync_interval_secs),
       options: controller.syncIntervalOptions,
       onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
-      disabled,
+      disabled: disabled || !account.sync_enabled,
       status: statusFor("syncIntervalSecs"),
     },
     syncOnStartup: {
       label: t("account.sync_on_startup"),
       checked: account.sync_on_startup,
       onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
-      disabled,
+      disabled: disabled || !account.sync_enabled,
       status: statusFor("syncOnStartup"),
     },
     syncOnWake: {
       label: t("account.sync_on_wake"),
       checked: account.sync_on_wake,
       onChange: (value) => controller.handleSyncUpdate({ syncOnWake: value }),
-      disabled,
+      disabled: disabled || !account.sync_enabled,
       status: statusFor("syncOnWake"),
     },
     keepReadItems: {

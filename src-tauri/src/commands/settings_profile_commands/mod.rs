@@ -56,7 +56,13 @@ struct SettingsProfileAccount {
     sync_interval_secs: i64,
     sync_on_startup: bool,
     sync_on_wake: bool,
+    #[serde(default = "default_true")]
+    sync_enabled: bool,
     keep_read_items_days: i64,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]

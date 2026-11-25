@@ -394,8 +394,12 @@ pub(super) fn retry_after_seconds_from_app_error(error: &AppError) -> Option<u64
 }
 
 #[cfg(any(target_os = "macos", test))]
-fn credential_access_pending(has_lease: bool, last_error: Option<&str>) -> bool {
-    !has_lease && last_error.is_some_and(is_credential_access_required)
+fn credential_access_pending(
+    sync_enabled: bool,
+    has_lease: bool,
+    last_error: Option<&str>,
+) -> bool {
+    sync_enabled && !has_lease && last_error.is_some_and(is_credential_access_required)
 }
 
 /// Once authorization is required, only an explicit connection can resume macOS scheduling.
@@ -413,7 +417,7 @@ pub(crate) fn waiting_for_credential_access(db: &Mutex<DbManager>, account: &Acc
             .ok()
             .flatten()
             .and_then(|state| state.last_error);
-        credential_access_pending(has_lease, last_error.as_deref())
+        credential_access_pending(account.sync_enabled, has_lease, last_error.as_deref())
     }
     #[cfg(not(target_os = "macos"))]
     {
@@ -438,6 +442,7 @@ mod tests {
             sync_interval_secs: 60,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
             connection_verification_status: ConnectionVerificationStatus::Unverified,
             connection_verified_at: None,
@@ -514,12 +519,19 @@ mod tests {
     #[test]
     fn waiting_for_credential_access_ends_once_a_lease_exists() {
         let last_error = needs_auth_error().to_string();
-        assert!(credential_access_pending(false, Some(&last_error)));
-        assert!(!credential_access_pending(true, Some(&last_error)));
-        assert!(!credential_access_pending(false, None));
+        assert!(credential_access_pending(true, false, Some(&last_error)));
+        assert!(!credential_access_pending(true, true, Some(&last_error)));
+        assert!(!credential_access_pending(true, false, None));
         assert!(!credential_access_pending(
+            true,
             false,
             Some("Auth error: HTTP 401 Unauthorized")
         ));
+    }
+
+    #[test]
+    fn disabled_account_never_waits_for_credential_access() {
+        let last_error = needs_auth_error().to_string();
+        assert!(!credential_access_pending(false, false, Some(&last_error)));
     }
 }

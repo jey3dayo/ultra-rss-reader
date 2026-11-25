@@ -287,6 +287,92 @@ async fn run_full_sync_quarantines_invalid_account_rows_like_account_list() {
     assert!(result.failed.is_empty());
     assert!(result.warnings.is_empty());
 }
+
+#[tokio::test]
+async fn run_full_sync_excludes_sync_disabled_accounts() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let syncing = AtomicBool::new(false);
+
+    {
+        let db_guard = db.lock().unwrap();
+        db_guard
+            .writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                rusqlite::params!["enabled-account", "Local", "Enabled"],
+            )
+            .unwrap();
+        db_guard
+            .writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name, sync_enabled) VALUES (?1, ?2, ?3, 0)",
+                rusqlite::params!["disabled-account", "Local", "Disabled"],
+            )
+            .unwrap();
+    }
+
+    let result = run_full_sync(&db, &syncing)
+        .await
+        .expect("full sync should run");
+
+    assert_eq!(result.total, 1);
+    assert!(result
+        .failed
+        .iter()
+        .all(|failure| failure.account_id != "disabled-account"));
+}
+
+fn startup_selector_account(
+    id: &str,
+    kind: ProviderKind,
+    sync_on_startup: bool,
+    sync_enabled: bool,
+) -> Account {
+    Account {
+        id: AccountId(id.to_string()),
+        kind,
+        name: id.to_string(),
+        server_url: None,
+        username: None,
+        sync_interval_secs: 3600,
+        sync_on_startup,
+        sync_on_wake: false,
+        sync_enabled,
+        keep_read_items_days: 30,
+        connection_verification_status: ConnectionVerificationStatus::Unverified,
+        connection_verified_at: None,
+        connection_verification_error: None,
+    }
+}
+
+#[test]
+fn select_startup_sync_accounts_excludes_sync_disabled_accounts() {
+    let accounts = vec![
+        startup_selector_account("startup-on", ProviderKind::FreshRss, true, true),
+        startup_selector_account("startup-off", ProviderKind::FreshRss, false, true),
+        startup_selector_account("disabled", ProviderKind::FreshRss, true, false),
+    ];
+
+    let selected = select_startup_sync_accounts(&accounts);
+
+    assert_eq!(selected.len(), 1);
+    assert_eq!(selected[0].id.as_ref(), "startup-on");
+}
+
+#[test]
+fn select_startup_repair_only_accounts_excludes_sync_disabled_accounts() {
+    let accounts = vec![
+        startup_selector_account("repair-target", ProviderKind::FreshRss, false, true),
+        startup_selector_account("startup-on", ProviderKind::FreshRss, true, true),
+        startup_selector_account("disabled", ProviderKind::FreshRss, false, false),
+        startup_selector_account("local", ProviderKind::Local, false, true),
+    ];
+
+    let selected = select_startup_repair_only_accounts(&accounts);
+
+    assert_eq!(selected.len(), 1);
+    assert_eq!(selected[0].id.as_ref(), "repair-target");
+}
 #[test]
 fn prioritize_startup_sync_accounts_moves_preferred_account_to_the_front() {
     let account_a = Account {
@@ -298,6 +384,7 @@ fn prioritize_startup_sync_accounts_moves_preferred_account_to_the_front() {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,
@@ -312,6 +399,7 @@ fn prioritize_startup_sync_accounts_moves_preferred_account_to_the_front() {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,
@@ -341,6 +429,7 @@ fn prioritize_startup_sync_accounts_keeps_original_order_when_preferred_account_
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,
@@ -355,6 +444,7 @@ fn prioritize_startup_sync_accounts_keeps_original_order_when_preferred_account_
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,

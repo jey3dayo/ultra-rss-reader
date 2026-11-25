@@ -81,6 +81,7 @@ pub use remote_feed_health::get_remote_feed_sync_statuses;
 use scheduler::{
     clear_scheduler_sync_status, enable_automatic_sync, map_account_sync_status,
     prioritize_startup_sync_accounts, record_startup_remote_state_repair_complete,
+    select_startup_repair_only_accounts, select_startup_sync_accounts,
     should_enable_automatic_sync_after_startup, startup_remote_state_repair_succeeded,
 };
 pub use scheduler::{

@@ -83,4 +83,48 @@ describe("buildSyncSection", () => {
     expect(props.secondaryActionLabel).toBeUndefined();
     expect(props.onSecondaryAction).toBeUndefined();
   });
+
+  it("disables the subordinate sync controls while sync is off and keeps retention editable", () => {
+    const controller = createAccountDetailControllerStub();
+    const props = buildSyncSection({
+      account: { ...account, sync_enabled: false },
+      controller,
+      t,
+      syncStatusRows: [],
+      accountSetupErrorMessage: null,
+      isSyncing: false,
+      syncStatus: createSyncStatus({}),
+      canRecoverDevCredentialsStore: false,
+      isSetupSyncing: false,
+      isSetupFailed: false,
+      isSetupActive: false,
+      isQuarantined: false,
+    });
+
+    expect(props.syncEnabled?.checked).toBe(false);
+    expect(props.syncInterval.disabled).toBe(true);
+    expect(props.syncOnStartup.disabled).toBe(true);
+    expect(props.syncOnWake.disabled).toBe(true);
+    expect(props.keepReadItems.disabled).toBeFalsy();
+  });
+
+  it("does not offer the sync toggle for local accounts", () => {
+    const controller = createAccountDetailControllerStub();
+    const props = buildSyncSection({
+      account: { ...sampleAccounts[0], kind: "Local" },
+      controller,
+      t,
+      syncStatusRows: [],
+      accountSetupErrorMessage: null,
+      isSyncing: false,
+      syncStatus: createSyncStatus({}),
+      canRecoverDevCredentialsStore: false,
+      isSetupSyncing: false,
+      isSetupFailed: false,
+      isSetupActive: false,
+      isQuarantined: false,
+    });
+
+    expect(props.syncEnabled).toBeUndefined();
+  });
 });

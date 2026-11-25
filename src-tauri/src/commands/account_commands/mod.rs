@@ -7,7 +7,7 @@ use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
-use crate::repository::account::AccountRepository;
+use crate::repository::account::{AccountRepository, AccountSyncSettingsUpdate};
 
 mod access_credentials;
 mod credentials;
@@ -27,7 +27,7 @@ pub(crate) use credentials::{
 pub(crate) use validation::{
     normalize_new_freshrss_server_url, normalize_updated_account_server_url, validate_account_name,
     validate_account_name_with_excluded_id, validate_account_sync_settings,
-    validate_add_account_args,
+    validate_add_account_args, validate_sync_enabled_for_kind,
 };
 
 #[cfg(test)]
@@ -95,6 +95,7 @@ pub async fn add_account(
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,
@@ -139,17 +140,25 @@ pub fn update_account_sync(
     sync_on_startup: bool,
     sync_on_wake: bool,
     keep_read_items_days: i64,
+    sync_enabled: bool,
 ) -> Result<AccountDto, AppError> {
     validate_account_sync_settings(sync_interval_secs, keep_read_items_days)?;
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     let id = AccountId(account_id);
+    let existing = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        message: "Account not found".into(),
+    })?;
+    validate_sync_enabled_for_kind(existing.kind, sync_enabled)?;
     repo.update_sync_settings(
         &id,
-        sync_interval_secs,
-        sync_on_startup,
-        sync_on_wake,
-        keep_read_items_days,
+        AccountSyncSettingsUpdate {
+            sync_enabled,
+            sync_interval_secs,
+            sync_on_startup,
+            sync_on_wake,
+            keep_read_items_days,
+        },
     )?;
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
@@ -366,6 +375,7 @@ mod connection_probe_tests {
             sync_interval_secs: 3600,
             sync_on_startup: true,
             sync_on_wake: false,
+            sync_enabled: true,
             keep_read_items_days: 30,
             connection_verification_status: status,
             connection_verified_at: (status == ConnectionVerificationStatus::Verified)

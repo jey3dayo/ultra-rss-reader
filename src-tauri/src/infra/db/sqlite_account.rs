@@ -5,7 +5,7 @@ use crate::domain::account::{Account, ConnectionVerificationStatus, FolderOrderM
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
-use crate::repository::account::AccountRepository;
+use crate::repository::account::{AccountRepository, AccountSyncSettingsUpdate};
 
 pub struct SqliteAccountRepository<'a> {
     conn: &'a Connection,
@@ -94,6 +94,7 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
                 sync_interval_secs: row.get(5)?,
                 sync_on_startup: row.get::<_, bool>(6)?,
                 sync_on_wake: row.get::<_, bool>(7)?,
+                sync_enabled: row.get::<_, bool>(12)?,
                 keep_read_items_days: row.get(8)?,
                 connection_verification_status: ConnectionVerificationStatus::Quarantined,
                 connection_verified_at: None,
@@ -113,6 +114,7 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
                 sync_interval_secs: row.get(5)?,
                 sync_on_startup: row.get::<_, bool>(6)?,
                 sync_on_wake: row.get::<_, bool>(7)?,
+                sync_enabled: row.get::<_, bool>(12)?,
                 keep_read_items_days: row.get(8)?,
                 connection_verification_status: ConnectionVerificationStatus::Quarantined,
                 connection_verified_at: None,
@@ -129,6 +131,7 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
         sync_interval_secs: row.get(5)?,
         sync_on_startup: row.get::<_, bool>(6)?,
         sync_on_wake: row.get::<_, bool>(7)?,
+        sync_enabled: row.get::<_, bool>(12)?,
         keep_read_items_days: row.get(8)?,
         connection_verification_status,
         connection_verified_at: row.get(10)?,
@@ -139,7 +142,7 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
 impl AccountRepository for SqliteAccountRepository<'_> {
     fn find_all(&self) -> DomainResult<Vec<Account>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error FROM accounts ORDER BY name COLLATE NOCASE, id",
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error, sync_enabled FROM accounts ORDER BY name COLLATE NOCASE, id",
         )?;
         let mut rows = stmt.query([])?;
         let mut accounts = Vec::new();
@@ -154,7 +157,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
 
     fn find_by_id(&self, id: &AccountId) -> DomainResult<Option<Account>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error FROM accounts WHERE id = ?1",
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error, sync_enabled FROM accounts WHERE id = ?1",
         )?;
         let account = stmt.query_row(params![id.0], row_to_account).optional()?;
         Ok(account)
@@ -197,9 +200,10 @@ impl AccountRepository for SqliteAccountRepository<'_> {
                 keep_read_items_days,
                 connection_verification_status,
                 connection_verified_at,
-                connection_verification_error
+                connection_verification_error,
+                sync_enabled
              )
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
              ON CONFLICT(id) DO UPDATE SET
                 kind = excluded.kind,
                 name = excluded.name,
@@ -211,7 +215,8 @@ impl AccountRepository for SqliteAccountRepository<'_> {
                 keep_read_items_days = excluded.keep_read_items_days,
                 connection_verification_status = excluded.connection_verification_status,
                 connection_verified_at = excluded.connection_verified_at,
-                connection_verification_error = excluded.connection_verification_error",
+                connection_verification_error = excluded.connection_verification_error,
+                sync_enabled = excluded.sync_enabled",
             params![
                 account.id.0,
                 provider_kind_to_str(&account.kind),
@@ -225,6 +230,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
                 verification_status_to_str(account.connection_verification_status),
                 account.connection_verified_at,
                 account.connection_verification_error,
+                account.sync_enabled,
             ],
         )?;
         if remote_identity_changed {
@@ -244,16 +250,20 @@ impl AccountRepository for SqliteAccountRepository<'_> {
     fn update_sync_settings(
         &self,
         id: &AccountId,
-        sync_interval_secs: i64,
-        sync_on_startup: bool,
-        sync_on_wake: bool,
-        keep_read_items_days: i64,
+        update: AccountSyncSettingsUpdate,
     ) -> DomainResult<()> {
-        validate_sync_settings(sync_interval_secs, keep_read_items_days)?;
+        validate_sync_settings(update.sync_interval_secs, update.keep_read_items_days)?;
 
         let rows_affected = self.conn.execute(
-            "UPDATE accounts SET sync_interval_secs = ?1, sync_on_startup = ?2, sync_on_wake = ?3, keep_read_items_days = ?4 WHERE id = ?5",
-            params![sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, id.0],
+            "UPDATE accounts SET sync_interval_secs = ?1, sync_on_startup = ?2, sync_on_wake = ?3, keep_read_items_days = ?4, sync_enabled = ?5 WHERE id = ?6",
+            params![
+                update.sync_interval_secs,
+                update.sync_on_startup,
+                update.sync_on_wake,
+                update.keep_read_items_days,
+                update.sync_enabled,
+                id.0
+            ],
         )?;
         require_account_row_affected(rows_affected, id)
     }

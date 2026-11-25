@@ -4,7 +4,7 @@ export type SidebarSourcesParams = {
   selectedAccountId: string | null;
 };
 
-type SidebarAccountStatusLabelSource = Pick<AccountDto, "id">;
+type SidebarAccountStatusLabelSource = Pick<AccountDto, "id" | "sync_enabled">;
 type SidebarAccountStatusLabels = Record<string, string>;
 export type SidebarAccountStatusLabelsParams = readonly SidebarAccountStatusLabelSource[] | undefined;
 

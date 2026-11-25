@@ -10,6 +10,7 @@ pub(super) fn account_to_profile_account(account: Account) -> SettingsProfileAcc
         sync_interval_secs: account.sync_interval_secs,
         sync_on_startup: account.sync_on_startup,
         sync_on_wake: account.sync_on_wake,
+        sync_enabled: account.sync_enabled,
         keep_read_items_days: account.keep_read_items_days,
     }
 }
@@ -42,6 +43,7 @@ pub(super) fn import_profile_accounts(
                 sync_interval_secs: normalized.sync_interval_secs,
                 sync_on_startup: normalized.sync_on_startup,
                 sync_on_wake: normalized.sync_on_wake,
+                sync_enabled: normalized.sync_enabled,
                 keep_read_items_days: normalized.keep_read_items_days,
                 connection_verification_status: ConnectionVerificationStatus::Unverified,
                 connection_verified_at: None,
@@ -61,6 +63,7 @@ pub(super) fn import_profile_accounts(
                 sync_interval_secs: normalized.sync_interval_secs,
                 sync_on_startup: normalized.sync_on_startup,
                 sync_on_wake: normalized.sync_on_wake,
+                sync_enabled: normalized.sync_enabled,
                 keep_read_items_days: normalized.keep_read_items_days,
                 connection_verification_status: ConnectionVerificationStatus::Unverified,
                 connection_verified_at: None,
@@ -96,6 +99,7 @@ fn normalize_profile_account(
             sync_interval_secs: account.sync_interval_secs,
             sync_on_startup: account.sync_on_startup,
             sync_on_wake: account.sync_on_wake,
+            sync_enabled: true,
             keep_read_items_days: account.keep_read_items_days,
         }),
         ProviderKind::FreshRss => {
@@ -118,6 +122,7 @@ fn normalize_profile_account(
                 sync_interval_secs: account.sync_interval_secs,
                 sync_on_startup: account.sync_on_startup,
                 sync_on_wake: account.sync_on_wake,
+                sync_enabled: account.sync_enabled,
                 keep_read_items_days: account.keep_read_items_days,
             })
         }
@@ -164,11 +169,12 @@ fn upsert_imported_account(
             sync_on_startup,
             sync_on_wake,
             keep_read_items_days,
+            sync_enabled,
             connection_verification_status,
             connection_verified_at,
             connection_verification_error
          )
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'unverified', NULL, NULL)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'unverified', NULL, NULL)
          ON CONFLICT(id) DO UPDATE SET
             kind = excluded.kind,
             name = excluded.name,
@@ -178,6 +184,7 @@ fn upsert_imported_account(
             sync_on_startup = excluded.sync_on_startup,
             sync_on_wake = excluded.sync_on_wake,
             keep_read_items_days = excluded.keep_read_items_days,
+            sync_enabled = excluded.sync_enabled,
             connection_verification_status = 'unverified',
             connection_verified_at = NULL,
             connection_verification_error = NULL",
@@ -191,6 +198,7 @@ fn upsert_imported_account(
             account.sync_on_startup,
             account.sync_on_wake,
             account.keep_read_items_days,
+            account.sync_enabled,
         ],
     )
     .map_err(DomainError::from)?;

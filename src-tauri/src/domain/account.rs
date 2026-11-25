@@ -48,8 +48,15 @@ pub struct Account {
     pub sync_interval_secs: i64,
     pub sync_on_startup: bool,
     pub sync_on_wake: bool,
+    pub sync_enabled: bool,
     pub keep_read_items_days: i64,
     pub connection_verification_status: ConnectionVerificationStatus,
     pub connection_verified_at: Option<String>,
     pub connection_verification_error: Option<String>,
+}
+
+impl Account {
+    pub fn included_in_bulk_sync(&self) -> bool {
+        self.sync_enabled && !matches!(self.kind, ProviderKind::Quarantined)
+    }
 }

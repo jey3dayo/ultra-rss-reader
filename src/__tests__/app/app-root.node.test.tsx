@@ -105,6 +105,7 @@ function createAccount(overrides: Partial<AccountDto> = {}): AccountDto {
     sync_interval_secs: 3600,
     sync_on_startup: true,
     sync_on_wake: true,
+    sync_enabled: true,
     keep_read_items_days: 30,
     ...overrides,
   };

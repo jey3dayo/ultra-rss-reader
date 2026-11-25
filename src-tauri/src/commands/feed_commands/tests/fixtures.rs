@@ -62,6 +62,7 @@ pub(super) fn insert_freshrss_account(db: &DbManager, server_url: &str) -> Accou
         sync_interval_secs: 900,
         sync_on_startup: false,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Verified,
         connection_verified_at: None,

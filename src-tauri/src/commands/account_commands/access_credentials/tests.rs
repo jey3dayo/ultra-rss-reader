@@ -166,6 +166,7 @@ fn account() -> Account {
         sync_interval_secs: 3600,
         sync_on_startup: true,
         sync_on_wake: false,
+        sync_enabled: true,
         keep_read_items_days: 30,
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,

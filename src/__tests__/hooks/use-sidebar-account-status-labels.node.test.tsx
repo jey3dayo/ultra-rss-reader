@@ -81,11 +81,12 @@ describe("useSidebarAccountStatusLabels", () => {
   it("builds no labels for accounts without loaded statuses", () => {
     expect(
       buildSidebarAccountStatusLabels({
-        accounts: [{ id: "acc-1" }],
+        accounts: [{ id: "acc-1", sync_enabled: true }],
         accountSyncStatuses: {},
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
+          syncOff: "sync-off",
         },
       }),
     ).toEqual({});
@@ -94,13 +95,14 @@ describe("useSidebarAccountStatusLabels", () => {
   it("omits invalid scheduled retry dates", () => {
     expect(
       buildSidebarAccountStatusLabels({
-        accounts: [{ id: "acc-1" }],
+        accounts: [{ id: "acc-1", sync_enabled: true }],
         accountSyncStatuses: {
           "acc-1": { next_retry_at: "not-a-date" },
         },
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
+          syncOff: "sync-off",
         },
       }),
     ).toEqual({});
@@ -121,9 +123,16 @@ describe("useSidebarAccountStatusLabels", () => {
       return undefined;
     });
 
-    const { result } = renderHook(() => useSidebarAccountStatusLabels([{ id: "acc-1" }, { id: "acc-2" }]), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () =>
+        useSidebarAccountStatusLabels([
+          { id: "acc-1", sync_enabled: true },
+          { id: "acc-2", sync_enabled: true },
+        ]),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await waitFor(() => {
       const retryTime = formatAccountSyncRetryDateTime(retryAt, i18n.language);
@@ -147,9 +156,16 @@ describe("useSidebarAccountStatusLabels", () => {
     });
     setupTauriMocks(recorder.handler);
 
-    const { result } = renderHook(() => useSidebarAccountStatusLabels([{ id: "acc-1" }, { id: "acc-2" }]), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () =>
+        useSidebarAccountStatusLabels([
+          { id: "acc-1", sync_enabled: true },
+          { id: "acc-2", sync_enabled: true },
+        ]),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await waitFor(() => {
       expect(recorder.calls.filter((call) => call.cmd === "get_account_sync_status")).toHaveLength(2);
@@ -160,13 +176,14 @@ describe("useSidebarAccountStatusLabels", () => {
   it("does not project credential or hard failures as scheduled retries", () => {
     expect(
       buildSidebarAccountStatusLabels({
-        accounts: [{ id: "acc-1" }],
+        accounts: [{ id: "acc-1", sync_enabled: true }],
         accountSyncStatuses: {
           "acc-1": { last_error: "Credential check failed", next_retry_at: null },
         },
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
+          syncOff: "sync-off",
         },
       }),
     ).toEqual({});
@@ -175,7 +192,11 @@ describe("useSidebarAccountStatusLabels", () => {
   it("omits blank account ids and ignores statuses that have no account projection", () => {
     expect(
       buildSidebarAccountStatusLabels({
-        accounts: [{ id: "acc-1" }, { id: "" }, { id: "   " }],
+        accounts: [
+          { id: "acc-1", sync_enabled: true },
+          { id: "", sync_enabled: true },
+          { id: "   ", sync_enabled: true },
+        ],
         accountSyncStatuses: {
           "": { next_retry_at: "2099-04-13T03:15:00Z" },
           "   ": { next_retry_at: "2099-04-13T03:15:00Z" },
@@ -185,6 +206,7 @@ describe("useSidebarAccountStatusLabels", () => {
         language: "en",
         labels: {
           scheduledAt: (time) => `scheduled:${time}`,
+          syncOff: "sync-off",
         },
       }),
     ).toEqual({});
@@ -197,7 +219,13 @@ describe("useSidebarAccountStatusLabels", () => {
 
     expect(
       buildSidebarAccountStatusLabels({
-        accounts: [{ id: "acc-1" }, { id: "acc-1" }, { id: "acc-2" }, { id: "" }, { id: "   " }],
+        accounts: [
+          { id: "acc-1", sync_enabled: true },
+          { id: "acc-1", sync_enabled: true },
+          { id: "acc-2", sync_enabled: true },
+          { id: "", sync_enabled: true },
+          { id: "   ", sync_enabled: true },
+        ],
         accountSyncStatuses: {
           "": { next_retry_at: retryAt },
           "   ": { next_retry_at: retryAt },
@@ -208,11 +236,30 @@ describe("useSidebarAccountStatusLabels", () => {
         language: "en",
         labels: {
           scheduledAt,
+          syncOff: "sync-off",
         },
       }),
     ).toEqual({
       "acc-1": `scheduled:${retryTime}`,
     });
     expect(scheduledAt).toHaveBeenCalledTimes(1);
+  });
+
+  it("projects the sync-off label for disabled accounts even when a retry is scheduled", () => {
+    expect(
+      buildSidebarAccountStatusLabels({
+        accounts: [{ id: "acc-1", sync_enabled: false }],
+        accountSyncStatuses: {
+          "acc-1": { next_retry_at: "2099-04-13T03:15:00Z" },
+        },
+        language: "en",
+        labels: {
+          scheduledAt: (time) => `scheduled:${time}`,
+          syncOff: "sync-off",
+        },
+      }),
+    ).toEqual({
+      "acc-1": "sync-off",
+    });
   });
 });

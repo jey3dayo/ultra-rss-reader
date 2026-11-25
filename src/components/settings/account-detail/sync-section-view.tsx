@@ -35,6 +35,7 @@ type AccountSyncSectionViewProps = {
   heading: string;
   note?: string;
   saveNote?: string;
+  syncEnabled?: AccountSwitchControl & { description?: string };
   syncInterval: AccountSelectControl;
   syncOnStartup: AccountSwitchControl;
   syncOnWake: AccountSwitchControl;
@@ -61,12 +62,34 @@ type AccountSelectRowProps = {
 };
 
 export function AccountSyncSectionView(props: AccountSyncSectionViewProps) {
-  const { heading, note, saveNote, syncInterval, syncOnStartup, syncOnWake, keepReadItems, statusRows, errorMessage } =
-    props;
+  const {
+    heading,
+    note,
+    saveNote,
+    syncEnabled,
+    syncInterval,
+    syncOnStartup,
+    syncOnWake,
+    keepReadItems,
+    statusRows,
+    errorMessage,
+  } = props;
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
       {saveNote && <p className="text-sm text-foreground-soft">{saveNote}</p>}
+      {syncEnabled ? (
+        <>
+          <LabeledSwitchRow
+            label={syncEnabled.label}
+            description={syncEnabled.description}
+            checked={syncEnabled.checked}
+            onChange={syncEnabled.onChange}
+            disabled={syncEnabled.disabled}
+          />
+          <SyncSaveStatus status={syncEnabled.status} />
+        </>
+      ) : null}
       <AccountSelectRow control={syncInterval} />
       <LabeledSwitchRow
         label={syncOnStartup.label}

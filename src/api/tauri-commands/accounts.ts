@@ -46,6 +46,7 @@ export const updateAccountSync = (
   syncOnStartup: boolean,
   syncOnWake: boolean,
   keepReadItemsDays: number,
+  syncEnabled: boolean,
 ) =>
   safeInvoke(
     "update_account_sync",
@@ -56,6 +57,7 @@ export const updateAccountSync = (
       syncOnStartup,
       syncOnWake,
       keepReadItemsDays,
+      syncEnabled,
     },
   );
 

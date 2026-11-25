@@ -13,6 +13,7 @@ import {
   type UpdateAccountSyncParams,
   useAccountDetailSyncControls,
 } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import { createFetchErrorsToastAction } from "@/lib/actions";
 import { queryClient as appQueryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -67,6 +68,7 @@ function makeUpdatedAccount(account: AccountDetailAccount, partial: UpdateAccoun
     sync_interval_secs: partial.syncIntervalSecs ?? account.sync_interval_secs,
     sync_on_startup: partial.syncOnStartup ?? account.sync_on_startup,
     sync_on_wake: partial.syncOnWake ?? account.sync_on_wake,
+    sync_enabled: partial.syncEnabled ?? account.sync_enabled,
     keep_read_items_days: partial.keepReadItemsDays ?? account.keep_read_items_days,
   };
 }
@@ -109,6 +111,30 @@ describe("useAccountDetailSyncControls", () => {
     expect(result.current.syncSaveStatus).toEqual({ field: "syncIntervalSecs", state: "saved" });
     expect(queryClient.getQueryData<AccountDetailAccount[]>(queryKeys.accounts.root)?.[0]).toEqual(
       expect.objectContaining({ sync_interval_secs: 900 }),
+    );
+  });
+
+  it("sends the current values for the other sync settings when only syncEnabled changes", async () => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
+    updateAccountSyncMock.mockResolvedValueOnce(Result.succeed({ ...account, sync_enabled: false }));
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useAccountDetailSyncControls({ account, queryClient, t }));
+    await act(async () => {
+      await result.current.handleSyncUpdate({ syncEnabled: false });
+    });
+    expect(updateAccountSyncMock).toHaveBeenCalledWith(
+      account.id,
+      account.sync_interval_secs,
+      account.sync_on_startup,
+      account.sync_on_wake,
+      account.keep_read_items_days,
+      false,
+    );
+    expect(result.current.syncSaveStatus).toEqual({ field: "syncEnabled", state: "saved" });
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: accountSyncStatusQueryKey(account.id) }),
     );
   });
 

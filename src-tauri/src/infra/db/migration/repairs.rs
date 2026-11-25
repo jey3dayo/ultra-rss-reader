@@ -11,8 +11,8 @@ use super::consts::{
     V28_READ_CHANGED_AT_COLUMN, V28_READ_CHANGED_AT_SQL, V28_STAMP_TRIGGERS_SQL,
     V28_STARRED_CHANGED_AT_COLUMN, V28_STARRED_CHANGED_AT_SQL, V29_ARTICLE_TAGS_CHANGED_AT_SQL,
     V29_CHANGED_AT_COLUMN, V29_FEEDS_CHANGED_AT_SQL, V29_FOLDERS_CHANGED_AT_SQL,
-    V29_LOCAL_SYNC_TABLES_SQL, V29_TAGS_CHANGED_AT_SQL, V29_TRIGGERS_SQL, V8_READER_MODE_COLUMN,
-    V8_WEB_PREVIEW_MODE_COLUMN,
+    V29_LOCAL_SYNC_TABLES_SQL, V29_TAGS_CHANGED_AT_SQL, V29_TRIGGERS_SQL, V31_SYNC_ENABLED_COLUMN,
+    V31_SYNC_ENABLED_SQL, V8_READER_MODE_COLUMN, V8_WEB_PREVIEW_MODE_COLUMN,
 };
 use super::{set_schema_version, table_exists, table_has_column};
 
@@ -182,6 +182,18 @@ pub(super) fn apply_v27_account_folder_order_mode(conn: &Connection) -> DomainRe
     )?;
 
     set_schema_version(conn, 27)?;
+    Ok(())
+}
+
+pub(super) fn apply_v31_account_sync_enabled(conn: &Connection) -> DomainResult<()> {
+    add_column_if_missing(
+        conn,
+        "accounts",
+        V31_SYNC_ENABLED_COLUMN,
+        V31_SYNC_ENABLED_SQL,
+    )?;
+
+    set_schema_version(conn, 31)?;
     Ok(())
 }
 

@@ -77,6 +77,7 @@ export const updateAccountSyncArgs = s.object({
   syncOnStartup: v.boolean(),
   syncOnWake: v.boolean(),
   keepReadItemsDays: keepReadItemsDaysSchema,
+  syncEnabled: v.boolean(),
 });
 
 export const updateAccountCredentialsArgs = v.pipe(
