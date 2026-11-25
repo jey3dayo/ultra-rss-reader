@@ -79,7 +79,7 @@ Common keys:
 | Enter | `key code 36` |
 | Next article | `keystroke "j"` |
 | Previous article | `keystroke "k"` |
-| Open in-app browser | `keystroke "v"` |
+| Open Web Preview | `keystroke "v"` |
 | Reload app | `keystroke "r" using command down` |
 
 Before sending keys, state which focus surface is under test: main WebView, child browser WebView, native chrome, or another app. WebView focus is not the same as main WebView focus. When the child browser WebView owns focus, key events may be handled by the page or the native shortcut bridge before the main React keyboard hook sees them.
