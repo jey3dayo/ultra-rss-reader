@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
 import { readerPassiveCardPaddingClassName } from "@/components/reader/reader-passive-card";
+import { MOTION_CONTENT_SWAP_SLOW_DURATION_MS, MOTION_CONTENT_SWAP_SLOW_OFFSET_PX } from "@/constants";
 
 describe("ArticleListScreenView", () => {
   it("renders the loading state inside the article list body", () => {
@@ -291,13 +292,17 @@ describe("ArticleListScreenView", () => {
 
     const motionWrapper = screen
       .getByText("Add an account and your articles will appear here.")
-      .closest(".motion-content-swap");
+      .closest<HTMLElement>(".motion-content-swap");
 
     expect(motionWrapper).not.toBeNull();
     expect(motionWrapper).toHaveAttribute("data-motion-phase", "entering");
     expect(motionWrapper).toHaveClass("h-full");
-    expect(motionWrapper?.getAttribute("style")).toContain("--motion-duration-content-swap: 260ms");
-    expect(motionWrapper?.getAttribute("style")).toContain("--motion-content-swap-offset: 10px");
+    expect(motionWrapper?.style.getPropertyValue("--motion-duration-content-swap")).toBe(
+      MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+    );
+    expect(motionWrapper?.style.getPropertyValue("--motion-content-swap-offset")).toBe(
+      MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+    );
   });
 
   it("keeps article rows inside a dedicated scroll content lane so the scrollbar does not overlap selections", () => {
