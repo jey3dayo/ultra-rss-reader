@@ -21,6 +21,68 @@ type LabeledControlRowProps = {
   labelClassName?: string;
 };
 
+type LabeledControlRowLabelColumnProps = {
+  label: string;
+  descriptionInColumn: ReactNode;
+  htmlFor?: string;
+  labelId?: string;
+  leading?: ReactNode;
+  labelAccessory?: ReactNode;
+  labelClassName?: string;
+};
+
+function LabeledControlRowLabelColumn({
+  label,
+  descriptionInColumn,
+  htmlFor,
+  labelId,
+  leading,
+  labelAccessory,
+  labelClassName,
+}: LabeledControlRowLabelColumnProps) {
+  const labelClasses = cn(
+    "select-none font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]",
+    labelClassName,
+  );
+  const titleContent = htmlFor ? (
+    <label htmlFor={htmlFor}>
+      <span id={labelId} className={labelClasses}>
+        {label}
+      </span>
+    </label>
+  ) : (
+    <span id={labelId} className={labelClasses}>
+      {label}
+    </span>
+  );
+  const labelTextContent = labelAccessory ? (
+    <span className="flex min-w-0 flex-col gap-1.5">
+      <span className="block leading-[1.35]">
+        {titleContent}
+        <span className="ml-1 inline-flex align-middle">{labelAccessory}</span>
+      </span>
+      {descriptionInColumn}
+    </span>
+  ) : (
+    <span className="flex min-w-0 flex-col gap-1.5">
+      <span id={labelId} className={labelClasses}>
+        {label}
+      </span>
+      {descriptionInColumn}
+    </span>
+  );
+  return leading ? (
+    <span className="flex min-w-0 items-center gap-3">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
+        {leading}
+      </span>
+      {labelTextContent}
+    </span>
+  ) : (
+    labelTextContent
+  );
+}
+
 export function LabeledControlRow({
   label,
   description,
@@ -36,10 +98,6 @@ export function LabeledControlRow({
 }: LabeledControlRowProps) {
   const generatedDescriptionId = useId();
   const resolvedDescriptionId = description ? (descriptionId ?? generatedDescriptionId) : undefined;
-  const labelClasses = cn(
-    "select-none font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]",
-    labelClassName,
-  );
   const resolvedChildren =
     typeof children === "function" ? children({ descriptionId: resolvedDescriptionId }) : children;
   const descriptionContent = description ? (
@@ -53,43 +111,17 @@ export function LabeledControlRow({
       {description}
     </span>
   ) : null;
-  const titleContent = htmlFor ? (
-    <label htmlFor={htmlFor}>
-      <span id={labelId} className={labelClasses}>
-        {label}
-      </span>
-    </label>
-  ) : (
-    <span id={labelId} className={labelClasses}>
-      {label}
-    </span>
-  );
   const descriptionBelow = descriptionPlacement === "below" ? descriptionContent : null;
-  const labelTextContent = labelAccessory ? (
-    <span className="flex min-w-0 flex-col gap-1.5">
-      <span className="block leading-[1.35]">
-        {titleContent}
-        <span className="ml-1 inline-flex align-middle">{labelAccessory}</span>
-      </span>
-      {descriptionBelow === null ? descriptionContent : null}
-    </span>
-  ) : (
-    <span className="flex min-w-0 flex-col gap-1.5">
-      <span id={labelId} className={labelClasses}>
-        {label}
-      </span>
-      {descriptionBelow === null ? descriptionContent : null}
-    </span>
-  );
-  const labelContent = leading ? (
-    <span className="flex min-w-0 items-center gap-3">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
-        {leading}
-      </span>
-      {labelTextContent}
-    </span>
-  ) : (
-    labelTextContent
+  const labelContent = (
+    <LabeledControlRowLabelColumn
+      label={label}
+      descriptionInColumn={descriptionBelow === null ? descriptionContent : null}
+      htmlFor={htmlFor}
+      labelId={labelId}
+      leading={leading}
+      labelAccessory={labelAccessory}
+      labelClassName={labelClassName}
+    />
   );
   const rowLabel = labelAccessory ? (
     labelContent
