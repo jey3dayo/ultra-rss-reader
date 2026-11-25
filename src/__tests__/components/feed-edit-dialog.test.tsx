@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createSampleAccounts } from "@tests/helpers/api-fixtures";
 import { expectTauriCommandError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
@@ -19,6 +20,11 @@ vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
     title: string;
     titleErrorMessage?: string;
     saveErrorMessages?: readonly string[];
+    feedUrlField?: {
+      label: string;
+      value: string;
+      onChange: (value: string) => void;
+    };
     onTitleChange: (value: string) => void;
     onDisplayModeChange: (value: string) => void;
     urlFields: Array<{
@@ -58,6 +64,17 @@ vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
             onChange={(event) => props.onTitleChange(event.target.value)}
           />
         </label>
+        {props.feedUrlField ? (
+          <label>
+            {props.feedUrlField.label}
+            <input
+              aria-label={props.feedUrlField.label}
+              data-testid="feed-url-field"
+              value={props.feedUrlField.value}
+              onChange={(event) => props.feedUrlField?.onChange(event.target.value)}
+            />
+          </label>
+        ) : null}
         {props.titleErrorMessage ? <p>{props.titleErrorMessage}</p> : null}
         {props.saveErrorMessages?.length ? <div role="alert">{props.saveErrorMessages.join(" / ")}</div> : null}
         <button type="button" onClick={() => props.onDisplayModeChange("preview")}>
@@ -746,5 +763,44 @@ describe("FeedEditDialog", () => {
     });
 
     renameFeedSpy.mockRestore();
+  });
+
+  it("shows an editable feed URL field when the feed belongs to a Local account", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        // The backend serializes the account kind as "Local" (PascalCase).
+        return createSampleAccounts().map((account) =>
+          account.id === "acc-1" ? { ...account, kind: "Local" } : account,
+        );
+      }
+      return undefined;
+    });
+
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    const field = await screen.findByTestId("feed-url-field");
+    expect(field).toHaveValue("https://example.com/feed.xml");
+  });
+
+  it("keeps the feed URL read-only when the feed belongs to a FreshRss account", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return createSampleAccounts().map((account) =>
+          account.id === "acc-1" ? { ...account, kind: "FreshRss" } : account,
+        );
+      }
+      return undefined;
+    });
+
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Copy feed URL" })).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("feed-url-field")).not.toBeInTheDocument();
   });
 });

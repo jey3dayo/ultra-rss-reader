@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Fixed
+
+- ローカルフィードの編集ダイアログで、フィードURLを書き換える欄が表示されなかった問題を直しました。
+
 ## [0.67.41] - 2026-11-25
 
 ### Changed

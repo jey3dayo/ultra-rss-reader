@@ -47,7 +47,7 @@ export function FeedEditDialog({ feed, open, onOpenChange, accountScope }: FeedE
   };
 
   const { data: accounts } = useAccounts();
-  const feedUrlEditable = accounts?.find((account) => account.id === feed.account_id)?.kind === "local";
+  const feedUrlEditable = accounts?.find((account) => account.id === feed.account_id)?.kind === "Local";
 
   const controller = useFeedEditDialogController({
     feed,
