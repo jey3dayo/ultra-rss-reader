@@ -42,11 +42,11 @@ describe("buildCredentialFailureNotice", () => {
   it.each([
     [
       "unreadable",
-      "Cloudflare Access の認証情報は別のビルドが保存したため、キーチェーンから読み込めません。入力し直して保存してください。",
+      "Cloudflare Access の認証情報は別のビルドで保存されたため、キーチェーンから読み込めません。入力し直して保存してください。",
     ],
     [
       "unwritable",
-      "Cloudflare Access の認証情報は別のビルドが保存したため、キーチェーンで読み込めず、削除もできませんでした。キーチェーンアクセスで該当項目を削除するか、署名付きビルドで起動してから、もう一度保存してください。",
+      "Cloudflare Access の認証情報は別のビルドで保存されたため、キーチェーンで読み込みも削除もできませんでした。キーチェーンアクセスから該当項目を削除するか、署名付きビルドで起動してから再度保存してください。",
     ],
   ] as const)("explains %s as another build's item, not a refusal, in Japanese", (cause, expected) => {
     const notice: CredentialFailureNotice = { target: "cloudflare_access", cause, operation: "save" };

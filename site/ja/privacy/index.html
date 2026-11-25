@@ -4,17 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>プライバシー — Ultra RSS Reader</title>
-<meta name="description" content="Ultra RSS Reader のプライバシー方針の要点。" />
+<meta name="description" content="Ultra RSS Reader におけるデータの保存先、通信、プライバシー方針の要点をご案内します。" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="プライバシー — Ultra RSS Reader" />
-<meta property="og:description" content="Ultra RSS Reader のプライバシー方針の要点。" />
+<meta property="og:description" content="Ultra RSS Reader におけるデータの保存先、通信、プライバシー方針の要点をご案内します。" />
 <meta property="og:url" content="https://ultra-rss.jey3dayo.net/ja/privacy/" />
 <meta property="og:image" content="https://ultra-rss.jey3dayo.net/assets/ja/screenshot-reader-light-mac.jpg" />
 <meta property="og:locale" content="ja_JP" />
 <meta property="og:locale:alternate" content="en_US" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="プライバシー — Ultra RSS Reader" />
-<meta name="twitter:description" content="Ultra RSS Reader のプライバシー方針の要点。" />
+<meta name="twitter:description" content="Ultra RSS Reader におけるデータの保存先、通信、プライバシー方針の要点をご案内します。" />
 <link rel="canonical" href="https://ultra-rss.jey3dayo.net/ja/privacy/" />
 <link rel="alternate" hreflang="en" href="https://ultra-rss.jey3dayo.net/privacy/" />
 <link rel="alternate" hreflang="ja" href="https://ultra-rss.jey3dayo.net/ja/privacy/" />
@@ -200,10 +200,9 @@
     <section class="page-hero">
       <div class="eyebrow">Privacy</div>
       <div class="hero-copy">
-        <h1>Ultra RSS Reader のプライバシー概要</h1>
+        <h1>Ultra RSS Reader のプライバシー方針</h1>
         <p>
-          このページは、Ultra RSS Reader の公開ソースにあるプライバシー / フィードコンテンツポリシーの要点を、
-          利用者向けに簡潔にまとめたものです。
+          Ultra RSS Reader が扱うデータの保存先、外部との通信、および現在のフィードコンテンツ方針の要点をまとめています。
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="/ja/support/">サポートページ</a>
@@ -216,20 +215,22 @@
       <div class="card">
         <div class="section-heading">
           <h2>保存されるデータ</h2>
-          <p>現在の公開情報から確認できる保存先と扱いをまとめています。</p>
+          <p>アプリが扱うデータは、原則としてお使いの端末内に保存されます。</p>
         </div>
         <ul class="card-list">
           <li>
             <span class="mini-label">認証情報</span>
-            <p>FreshRSS のパスワード / トークンは SQLite ではなく OS のキーリングに保存されます。</p>
+            <p>
+              FreshRSS のパスワードやトークン、任意の Cloudflare Access 認証情報は、既定で SQLite ではなく OS のキーリングに保存されます（設定からローカルファイル保存に切り替えることもできます）。
+            </p>
           </li>
           <li>
             <span class="mini-label">ローカルデータ</span>
-            <p>フィードデータや記事データなど、アプリが扱うデータは SQLite ベースで保持されます。</p>
+            <p>購読フィードや取得した記事、既読・スター状態などは、端末内の SQLite データベースに保存されます。</p>
           </li>
           <li>
             <span class="mini-label">記事本文</span>
-            <p>本文表示では Rust 側でサニタイズ済みの HTML を利用します。</p>
+            <p>本文表示では、Rust 側でサニタイズした HTML のみを描画します。</p>
           </li>
         </ul>
       </div>
@@ -237,20 +238,20 @@
       <div class="card">
         <div class="section-heading">
           <h2>通信について</h2>
-          <p>本文表示と Webプレビューの挙動は、プライバシー上まったく同じではありません。</p>
+          <p>本文表示と Webプレビューでは、プライバシー上の挙動が異なります。</p>
         </div>
         <ul class="card-list">
           <li>
             <span class="mini-label">本文表示</span>
-            <p>サニタイズ済みの記事を開いても、配信元が管理するリモート画像を読み込む場合があります。</p>
+            <p>サニタイズ済みの記事を開いた場合でも、本文内に含まれる配信元ホストのリモート画像を読み込むことがあります。</p>
           </li>
           <li>
             <span class="mini-label">Webプレビュー</span>
-            <p>Webプレビューは埋め込みブラウザとして扱われ、配信元のページを開く操作に近い前提です。</p>
+            <p>Webプレビューはアプリ内の埋め込みブラウザとして動作するため、配信元の Web ページを直接開く場合と同様に通信が発生します。</p>
           </li>
           <li>
-            <span class="mini-label">通信で見える情報</span>
-            <p>リモートメディアへのリクエストにより、IPアドレス、ユーザーエージェント、タイミングなどが第三者ホストに見える可能性があります。</p>
+            <span class="mini-label">通信先へ伝わる情報</span>
+            <p>リモート画像やページを読み込む際、IP アドレス、ユーザーエージェント、アクセス日時などが配信元や第三者ホストへ伝わることがあります。</p>
           </li>
         </ul>
       </div>
@@ -259,21 +260,21 @@
     <div class="grid-two">
       <div class="card">
         <div class="section-heading">
-          <h2>現在のポリシー</h2>
-          <p>利用前に知っておいてほしい、現在の前提を明示します。</p>
+          <h2>現在の方針</h2>
+          <p>ご利用前に把握しておいていただきたい、現在の設計上の前提です。</p>
         </div>
         <ul class="card-list">
           <li>
-            <span class="mini-label">現在の方針</span>
-            <p>Ultra RSS Reader は現時点で、互換性を優先するフィードコンテンツポリシーを採っています。</p>
+            <span class="mini-label">互換性重視のポリシー</span>
+            <p>現在、記事コンテンツの表示においては読みやすさと表示互換性を優先する方針を採っています。</p>
           </li>
           <li>
-            <span class="mini-label">守っていること</span>
-            <p>アプリのスクリプトは <code>'self'</code> のまま維持し、本文表示の HTML はサニタイズ済みコンテンツを前提にしています。</p>
+            <span class="mini-label">保護している領域</span>
+            <p>アプリ自身のスクリプト実行は <code>'self'</code> に制限し、本文表示にはサニタイズ済みの HTML のみを使用します。</p>
           </li>
           <li>
-            <span class="mini-label">約束していないこと</span>
-            <p>記事を開いても第三者へのリクエストが一切発生しない、という保証は現在の挙動ではしていません。</p>
+            <span class="mini-label">現時点で保証していないこと</span>
+            <p>記事を開いた際に、第三者ホストへの通信が一切発生しないことは現在の仕様では保証していません。</p>
           </li>
         </ul>
       </div>
@@ -281,20 +282,20 @@
       <div class="card">
         <div class="section-heading">
           <h2>今後の方向性</h2>
-          <p>プライバシーを強化する場合も、互換性を見ながら段階的に進める方針です。</p>
+          <p>プライバシー保護を強化する際も、表示互換性とのバランスを見ながら段階的に進めます。</p>
         </div>
         <ul class="card-list">
           <li>
-            <span class="mini-label">一括遮断はしない</span>
-            <p>リモート画像やフレームを即座に全面遮断すると、読みやすさやプレビューの互換性を大きく損なう可能性があります。</p>
+            <span class="mini-label">一律遮断を行わない理由</span>
+            <p>リモート画像や埋め込み要素を一度にすべて遮断すると、記事の可読性やプレビューの互換性を大きく損なうおそれがあるため、急激な全面制限は行っていません。</p>
           </li>
           <li>
-            <span class="mini-label">段階的な強化</span>
-            <p>プライバシー強化は段階的に進める方針で、本文表示と Webプレビューを同じスイッチで扱わない方向が示されています。</p>
+            <span class="mini-label">段階的な見直し</span>
+            <p>プライバシー機能の強化は段階的に進め、本文表示と Webプレビューの設定は分けて管理できる形を目指しています。</p>
           </li>
           <li>
-            <span class="mini-label">変更前の確認</span>
-            <p>プライバシーポリシーを厳しくする変更は、本文表示、Webプレビュー、パッケージビルドでの検証が前提です。</p>
+            <span class="mini-label">変更前の検証</span>
+            <p>制限を強める変更を行う際は、本文表示・Webプレビュー・配布用パッケージビルドでの動作確認を前提とします。</p>
           </li>
         </ul>
       </div>
@@ -303,32 +304,32 @@
     <div class="grid-two">
       <div class="card">
         <div class="section-heading">
-          <h2>ページ一覧</h2>
-          <p>各アプリはパスごとに分かれているため、サポート・ダウンロード・プライバシーを同じホスト上で育てていけます。</p>
+          <h2>関連ページ</h2>
+          <p>サポート窓口やダウンロードページへはこちらから移動できます。</p>
         </div>
         <ul class="card-list">
           <li>
-            <span class="mini-label">Support</span>
+            <span class="mini-label">サポート</span>
             <a class="route-chip" href="/ja/support/">/ja/support/</a>
-            <p>問い合わせ窓口、FAQ、トラブルシュート案内をまとめた公開ページです。</p>
+            <p>お問い合わせ窓口、よくある質問、トラブルシューティングをまとめています。</p>
           </li>
           <li>
-            <span class="mini-label">Download</span>
+            <span class="mini-label">ダウンロード</span>
             <a class="route-chip" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">GitHub Releases</a>
-            <p>公開ダウンロード導線の案内ページです。最新版の提供状況は GitHub Releases 基準で確認します。</p>
+            <p>最新版のインストーラーとリリースノートは GitHub Releases で公開しています。</p>
           </li>
           <li>
-            <span class="mini-label">Privacy</span>
+            <span class="mini-label">プライバシー</span>
             <a class="route-chip" href="/ja/privacy/">/ja/privacy/</a>
-            <p>現在のプライバシーポリシーとフィードコンテンツポリシーの要点をまとめた公開ページです。</p>
+            <p>このページです。データ保存と通信に関する方針をまとめています。</p>
           </li>
         </ul>
       </div>
 
       <div class="card">
         <div class="section-heading">
-          <h2>問い合わせ先</h2>
-          <p>プライバシーに関する個別の質問や懸念があれば、サポート窓口からご連絡ください。</p>
+          <h2>お問い合わせ</h2>
+          <p>プライバシーやデータの扱いについてご不明な点がありましたら、メールまたはサポートページからご連絡ください。</p>
         </div>
         <div class="cta-row">
           <a class="btn btn-primary" href="mailto:support@jey3dayo.net">support@jey3dayo.net</a>
@@ -343,10 +344,10 @@
   <div class="wrap footer-row">
     <div class="footer-links">
       <a href="/ja/">ホーム</a>
-      <a href="/ja/privacy/">Privacy</a>
-      <a href="/ja/support/">Support</a>
+      <a href="/ja/privacy/">プライバシー</a>
+      <a href="/ja/support/">サポート</a>
       <a href="https://github.com/jey3dayo/ultra-rss-reader">GitHub</a>
-      <a href="https://github.com/jey3dayo/ultra-rss-reader/releases">Releases</a>
+      <a href="https://github.com/jey3dayo/ultra-rss-reader/releases">リリース</a>
       <a href="https://github.com/jey3dayo/ultra-rss-reader/blob/main/LICENSE">ライセンス (MIT)</a>
       <a href="/privacy/" hreflang="en">English</a>
     </div>
