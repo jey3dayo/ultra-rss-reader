@@ -663,41 +663,48 @@ describe("buildSubscriptionReviewCandidates", () => {
   });
 
   it("orders never-fetched feeds after feeds with a known latest article", () => {
-    const candidates = buildSubscriptionReviewCandidates({
-      feeds: [
-        { ...feeds[0], id: "feed-recent-order", title: "Middle", unread_count: 0 },
-        { ...feeds[0], id: "feed-fresh-order", title: "Zebra", unread_count: 0 },
-        { ...feeds[0], id: "feed-never-fetched-order", title: "Aardvark", unread_count: 0 },
-        { ...feeds[0], id: "feed-never-fetched-order-2", title: "Bumblebee", unread_count: 0 },
-      ],
-      folders,
-      feedArticleSummaries: [
-        {
-          feed_id: "feed-fresh-order",
-          latest_article_at: "2026-04-05T00:00:00Z",
-          last_seen_article_at: null,
-          starred_count: 0,
-          recent_article_count: 0,
-        },
-        {
-          feed_id: "feed-recent-order",
-          latest_article_at: "2026-03-31T00:00:00Z",
-          last_seen_article_at: null,
-          starred_count: 0,
-          recent_article_count: 0,
-        },
-      ],
-      now: new Date("2026-04-05T00:00:00Z"),
-    });
-
-    expect(candidates.map((candidate) => candidate.feedId)).toEqual([
+    const orderedFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-recent-order", title: "Middle", unread_count: 0 },
+      { ...feeds[0], id: "feed-fresh-order", title: "Zebra", unread_count: 0 },
+      { ...feeds[0], id: "feed-never-fetched-order", title: "Aardvark", unread_count: 0 },
+      { ...feeds[0], id: "feed-never-fetched-order-2", title: "Bumblebee", unread_count: 0 },
+    ];
+    const feedArticleSummariesForOrder: FeedArticleSummaryDto[] = [
+      {
+        feed_id: "feed-fresh-order",
+        latest_article_at: "2026-04-05T00:00:00Z",
+        last_seen_article_at: null,
+        starred_count: 0,
+        recent_article_count: 0,
+      },
+      {
+        feed_id: "feed-recent-order",
+        latest_article_at: "2026-03-31T00:00:00Z",
+        last_seen_article_at: null,
+        starred_count: 0,
+        recent_article_count: 0,
+      },
+    ];
+    const expectedOrder = [
       "feed-recent-order",
       "feed-fresh-order",
       "feed-never-fetched-order",
       "feed-never-fetched-order-2",
-    ]);
-    expect(candidates[2]).toMatchObject({ staleDays: null, reasonKeys: [] });
-    expect(candidates[3]).toMatchObject({ staleDays: null, reasonKeys: [] });
+    ];
+
+    // Both input orders are exercised so the comparator sees never-fetched feeds on each side of a comparison.
+    for (const feedsInOrder of [orderedFeeds, [...orderedFeeds].reverse()]) {
+      const candidates = buildSubscriptionReviewCandidates({
+        feeds: feedsInOrder,
+        folders,
+        feedArticleSummaries: feedArticleSummariesForOrder,
+        now: new Date("2026-04-05T00:00:00Z"),
+      });
+
+      expect(candidates.map((candidate) => candidate.feedId)).toEqual(expectedOrder);
+      expect(candidates[2]).toMatchObject({ staleDays: null, reasonKeys: [] });
+      expect(candidates[3]).toMatchObject({ staleDays: null, reasonKeys: [] });
+    }
   });
 
   it("summarizes candidate urgency for the review panel", () => {
