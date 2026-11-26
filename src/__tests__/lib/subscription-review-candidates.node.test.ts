@@ -665,9 +665,10 @@ describe("buildSubscriptionReviewCandidates", () => {
   it("orders never-fetched feeds after feeds with a known latest article", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
-        { ...feeds[0], id: "feed-never-fetched-order", title: "Aardvark", unread_count: 0 },
-        { ...feeds[0], id: "feed-fresh-order", title: "Zebra", unread_count: 0 },
         { ...feeds[0], id: "feed-recent-order", title: "Middle", unread_count: 0 },
+        { ...feeds[0], id: "feed-fresh-order", title: "Zebra", unread_count: 0 },
+        { ...feeds[0], id: "feed-never-fetched-order", title: "Aardvark", unread_count: 0 },
+        { ...feeds[0], id: "feed-never-fetched-order-2", title: "Bumblebee", unread_count: 0 },
       ],
       folders,
       feedArticleSummaries: [
@@ -693,8 +694,10 @@ describe("buildSubscriptionReviewCandidates", () => {
       "feed-recent-order",
       "feed-fresh-order",
       "feed-never-fetched-order",
+      "feed-never-fetched-order-2",
     ]);
     expect(candidates[2]).toMatchObject({ staleDays: null, reasonKeys: [] });
+    expect(candidates[3]).toMatchObject({ staleDays: null, reasonKeys: [] });
   });
 
   it("summarizes candidate urgency for the review panel", () => {
