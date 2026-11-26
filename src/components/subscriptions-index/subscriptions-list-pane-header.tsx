@@ -4,6 +4,7 @@ import { Button, Input } from "@/design-system";
 import { type SubscriptionsBulkRunStatus, SubscriptionsBulkRunStatusView } from "./subscriptions-bulk-run-status";
 import type { SubscriptionsBulkSelection } from "./subscriptions-bulk-selection";
 import { SubscriptionsFilterBar, type SubscriptionsFilterBarProps } from "./subscriptions-filter-bar";
+import { type SubscriptionsKeptBanner, SubscriptionsKeptBannerView } from "./subscriptions-kept-banner";
 
 type SubscriptionsListPaneHeaderProps = {
   heading: string;
@@ -15,6 +16,7 @@ type SubscriptionsListPaneHeaderProps = {
   addFeedLabel?: string;
   onAddFeed?: () => void;
   filterBar?: SubscriptionsFilterBarProps;
+  keptBanner?: SubscriptionsKeptBanner | null;
   bulkSelection?: SubscriptionsBulkSelection;
   bulkRunStatus?: SubscriptionsBulkRunStatus | null;
   bulkToggleDisabled: boolean;
@@ -31,6 +33,7 @@ export function SubscriptionsListPaneHeader({
   addFeedLabel,
   onAddFeed,
   filterBar,
+  keptBanner,
   bulkSelection,
   bulkRunStatus,
   bulkToggleDisabled,
@@ -97,7 +100,16 @@ export function SubscriptionsListPaneHeader({
         )}
       </div>
       {bulkRunStatus ? <SubscriptionsBulkRunStatusView status={bulkRunStatus} /> : null}
-      {filterBar ? <SubscriptionsFilterBar {...filterBar} /> : null}
+      {filterBar ? (
+        <SubscriptionsFilterBar
+          {...filterBar}
+          trailing={keptBanner ? <SubscriptionsKeptBannerView banner={keptBanner} /> : undefined}
+        />
+      ) : keptBanner ? (
+        <div className="flex flex-wrap justify-end">
+          <SubscriptionsKeptBannerView banner={keptBanner} />
+        </div>
+      ) : null}
     </div>
   );
 }

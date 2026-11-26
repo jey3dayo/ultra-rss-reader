@@ -1671,11 +1671,11 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(await screen.findByRole("button", { name: /90日以上未更新/ }));
     const banner = await screen.findByTestId("subscriptions-kept-banner");
     expect(screen.getByText("「90日以上未更新」に一致する購読はありません")).toBeInTheDocument();
-    expect(within(banner).getByText("見直し対象外にした1件を隠しています")).toBeInTheDocument();
+    expect(within(banner).getByText("見直し対象外 1件を非表示")).toBeInTheDocument();
 
     await user.click(within(banner).getByRole("button", { name: "表示する" }));
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toHaveTextContent("見直し対象外");
-    expect(within(banner).getByText("見直し対象外の1件を表示しています")).toBeInTheDocument();
+    expect(within(banner).getByText("見直し対象外 1件を表示中")).toBeInTheDocument();
 
     await user.click(within(banner).getByRole("button", { name: "すべて取り消す" }));
     const dialog = await screen.findByRole("dialog");

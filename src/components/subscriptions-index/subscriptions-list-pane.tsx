@@ -19,7 +19,7 @@ import {
   type SubscriptionsBulkSelection,
 } from "./subscriptions-bulk-selection";
 import type { SubscriptionsFilterBarProps } from "./subscriptions-filter-bar";
-import { type SubscriptionsKeptBanner, SubscriptionsKeptBannerView } from "./subscriptions-kept-banner";
+import type { SubscriptionsKeptBanner } from "./subscriptions-kept-banner";
 import { SubscriptionsListEmptyState } from "./subscriptions-list-empty-state";
 import { SubscriptionGroupSection } from "./subscriptions-list-group-section";
 import { SubscriptionsListPaneHeader } from "./subscriptions-list-pane-header";
@@ -283,6 +283,7 @@ export function SubscriptionsListPane({
         addFeedLabel={addFeedLabel}
         onAddFeed={onAddFeed}
         filterBar={filterBar}
+        keptBanner={showKeptBanner ? keptBanner : null}
         bulkSelection={bulkSelection}
         bulkRunStatus={bulkRunStatus}
         bulkToggleDisabled={loading || listUnavailable}
@@ -296,7 +297,6 @@ export function SubscriptionsListPane({
       >
         <SubscriptionsListLoadStatus loadState={loadState} />
         {showKeptBanner ? <SubscriptionsSearchConditionView condition={searchCondition} /> : null}
-        <SubscriptionsKeptBannerView banner={showKeptBanner ? keptBanner : null} />
         {bulkSelection && selecting && showRows ? (
           <SubscriptionsBulkSelectAllRow bulkSelection={bulkSelection} visibleRowCount={totalRowCount} />
         ) : null}

@@ -40,12 +40,12 @@ export function SubscriptionsBulkSelectAllRow({ bulkSelection, visibleRowCount }
   const checkboxId = useId();
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-9 pt-1">
+    <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-2.5 py-1.5">
       <label
         htmlFor={checkboxId}
-        className="group flex min-h-11 min-w-0 cursor-pointer items-center gap-3 border border-transparent pr-2 pl-3.5 text-[0.88rem] font-medium text-foreground"
+        className="group flex min-w-0 cursor-pointer items-center gap-1.5 text-[0.88rem] font-medium text-foreground"
       >
-        <span className="flex size-9 shrink-0 items-center justify-center">
+        <span className="flex size-5 shrink-0 items-center justify-center">
           <Checkbox
             id={checkboxId}
             checked={allVisibleCheckState === "all"}
@@ -64,9 +64,7 @@ export function SubscriptionsBulkSelectAllRow({ bulkSelection, visibleRowCount }
         <span className="min-w-0 tabular-nums">{labels.selectAllVisible(visibleRowCount)}</span>
       </label>
       {skippedKeptCount > 0 ? (
-        <span className="text-(length:--font-size-2xs) text-foreground-soft">
-          {labels.skippedKept(skippedKeptCount)}
-        </span>
+        <span className="ml-auto text-[0.72rem] text-foreground-soft">{labels.skippedKept(skippedKeptCount)}</span>
       ) : null}
     </div>
   );

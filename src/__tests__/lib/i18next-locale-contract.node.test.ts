@@ -703,8 +703,8 @@ describe("i18next locale contract", () => {
     const pluralCountCases = [
       {
         key: "subscriptions:kept_banner_summary",
-        en: { one: "1 feed is excluded from review", other: "2 feeds are excluded from review" },
-        ja: { one: "見直し対象外のフィードが1件あります", other: "見直し対象外のフィードが2件あります" },
+        en: { one: "1 excluded from review", other: "2 excluded from review" },
+        ja: { one: "見直し対象外 1件", other: "見直し対象外 2件" },
       },
     ] as const;
 
