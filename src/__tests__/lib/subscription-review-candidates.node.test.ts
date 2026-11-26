@@ -600,6 +600,113 @@ describe("buildSubscriptionReviewCandidates", () => {
     ]);
   });
 
+  it("orders candidates by stale days before reason count or title", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-staler", title: "Zulu", unread_count: 5 },
+        { ...feeds[0], id: "feed-more-reasons", title: "Alpha", unread_count: 0 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-staler",
+          latest_article_at: "2025-12-26T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 0,
+        },
+        {
+          feed_id: "feed-more-reasons",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 0,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+    });
+
+    expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-staler", "feed-more-reasons"]);
+    expect(candidates[0]).toMatchObject({ staleDays: 100, reasonKeys: ["stale_90d"] });
+    expect(candidates[1]).toMatchObject({ staleDays: 94, reasonKeys: ["stale_90d", "quiet_no_unread"] });
+  });
+
+  it("orders equally stale candidates by unread count before title", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-alpha-unread", title: "Alpha", unread_count: 5 },
+        { ...feeds[0], id: "feed-zulu-unread", title: "Zulu", unread_count: 1 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-alpha-unread",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 0,
+        },
+        {
+          feed_id: "feed-zulu-unread",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 0,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+    });
+
+    expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-zulu-unread", "feed-alpha-unread"]);
+    expect(candidates[0]?.reasonKeys).toEqual(["stale_90d"]);
+    expect(candidates[1]?.reasonKeys).toEqual(["stale_90d"]);
+  });
+
+  it("orders never-fetched feeds after feeds with a known latest article", () => {
+    const orderedFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-recent-order", title: "Middle", unread_count: 0 },
+      { ...feeds[0], id: "feed-fresh-order", title: "Zebra", unread_count: 0 },
+      { ...feeds[0], id: "feed-never-fetched-order", title: "Aardvark", unread_count: 0 },
+      { ...feeds[0], id: "feed-never-fetched-order-2", title: "Bumblebee", unread_count: 0 },
+    ];
+    const feedArticleSummariesForOrder: FeedArticleSummaryDto[] = [
+      {
+        feed_id: "feed-fresh-order",
+        latest_article_at: "2026-04-05T00:00:00Z",
+        last_seen_article_at: null,
+        starred_count: 0,
+        recent_article_count: 0,
+      },
+      {
+        feed_id: "feed-recent-order",
+        latest_article_at: "2026-03-31T00:00:00Z",
+        last_seen_article_at: null,
+        starred_count: 0,
+        recent_article_count: 0,
+      },
+    ];
+    const expectedOrder = [
+      "feed-recent-order",
+      "feed-fresh-order",
+      "feed-never-fetched-order",
+      "feed-never-fetched-order-2",
+    ];
+
+    // Both input orders are exercised so the comparator sees never-fetched feeds on each side of a comparison.
+    for (const feedsInOrder of [orderedFeeds, [...orderedFeeds].reverse()]) {
+      const candidates = buildSubscriptionReviewCandidates({
+        feeds: feedsInOrder,
+        folders,
+        feedArticleSummaries: feedArticleSummariesForOrder,
+        now: new Date("2026-04-05T00:00:00Z"),
+      });
+
+      expect(candidates.map((candidate) => candidate.feedId)).toEqual(expectedOrder);
+      expect(candidates[2]).toMatchObject({ staleDays: null, reasonKeys: [] });
+      expect(candidates[3]).toMatchObject({ staleDays: null, reasonKeys: [] });
+    }
+  });
+
   it("summarizes candidate urgency for the review panel", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
@@ -671,6 +778,26 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
   });
 
+  it("summarizes attention-only candidates as low urgency attention copy", () => {
+    const candidate = {
+      feedId: "feed-attention",
+      title: "Attention Feed",
+      folderId: null,
+      folderName: null,
+      latestArticleAt: "2026-03-01T00:00:00Z",
+      staleDays: 35,
+      unreadCount: 2,
+      starredCount: 0,
+    };
+
+    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["attention_30d"] })).toEqual({
+      tone: "low",
+      titleKey: "attention",
+      summaryKey: "attention_low_activity",
+    });
+    expect(resolveSubscriptionCleanupRecommendation({ ...candidate, reasonKeys: ["attention_30d"] })).toBe("retain");
+  });
+
   it("separates cleanup recommendation from review reason signals", () => {
     const candidate = {
       feedId: "feed-signals",
@@ -717,6 +844,7 @@ describe("buildSubscriptionReviewCandidates", () => {
   });
 
   it("resolves review summary translation keys", () => {
+    expect(resolveSubscriptionReviewSummaryTranslationKey("attention_low_activity")).toBe("detail_reason_attention");
     expect(resolveSubscriptionReviewSummaryTranslationKey("stale_and_inactive")).toBe(
       "detail_reason_stale_and_inactive",
     );
@@ -827,5 +955,14 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(resolveLatestKnownArticleAt({ latest_article_at: null, last_seen_article_at: null })).toBeNull();
     expect(resolveLatestKnownArticleAt(null)).toBeNull();
     expect(resolveLatestKnownArticleAt(undefined)).toBeNull();
+  });
+
+  it("resolveLatestKnownArticleAt keeps the stored latest article when both timestamps are the same instant", () => {
+    expect(
+      resolveLatestKnownArticleAt({
+        latest_article_at: "2026-04-01T00:00:00Z",
+        last_seen_article_at: "2026-04-01T09:00:00+09:00",
+      }),
+    ).toBe("2026-04-01T00:00:00Z");
   });
 });
