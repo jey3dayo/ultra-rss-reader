@@ -112,6 +112,16 @@ describe("extractSiteHost", () => {
     expect(Result.unwrapError(result)).toEqual({ type: "missing_url" });
   });
 
+  it("treats whitespace-only urls as missing instead of invalid", () => {
+    const siteResult = extractSiteHost("   ", "");
+    expect(Result.isFailure(siteResult)).toBe(true);
+    expect(Result.unwrapError(siteResult)).toEqual({ type: "missing_url" });
+
+    const feedResult = extractSiteHost("", "   ");
+    expect(Result.isFailure(feedResult)).toBe(true);
+    expect(Result.unwrapError(feedResult)).toEqual({ type: "missing_url" });
+  });
+
   it("resolves a host label without exposing Result handling to callers", () => {
     expect(resolveSiteHostLabel("https://example.com/path", "https://fallback.com/feed.xml")).toBe("example.com");
     expect(resolveSiteHostLabel("", "not-a-url")).toBe("");
