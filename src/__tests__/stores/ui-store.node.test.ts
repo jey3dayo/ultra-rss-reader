@@ -2,6 +2,7 @@ import { is, safeParse } from "valibot";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { SyncProgressRuntimeEventDto } from "@/api/schemas";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
+import type { ToastCoalesceItem, ToastData } from "@/lib/ui/toast.types";
 import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
 import type {
   SyncProgressEventDto,
@@ -2216,6 +2217,123 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().toastMessage).toBe(failure);
     useUiStore.getState().showToast({ message: "Retry failed", severity: "error" });
     expect(useUiStore.getState().toastMessage?.message).toBe("Retry failed");
+  });
+
+  describe("coalescing toasts", () => {
+    const joinLabels = (items: ToastCoalesceItem[]) => items.map((item) => item.label).join("/");
+
+    const keepToast = (id: string, unkeep: (id: string) => void = () => {}): ToastData => {
+      const compose = (items: ToastCoalesceItem[]) => ({
+        message: `Kept ${joinLabels(items)}`,
+        actions: [
+          {
+            label: "Undo",
+            onClick: () => {
+              for (const item of items) unkeep(item.id);
+            },
+          },
+        ],
+      });
+      const items = [{ id, label: id.toUpperCase() }];
+      return { ...compose(items), coalesce: { key: "keep", items, compose } };
+    };
+
+    it("merges consecutive same-key toasts into one listing every name", () => {
+      useUiStore.getState().showToast(keepToast("a"));
+      useUiStore.getState().showToast(keepToast("b"));
+      useUiStore.getState().showToast(keepToast("c"));
+
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept A/B/C");
+    });
+
+    it("does not list the same item twice", () => {
+      useUiStore.getState().showToast(keepToast("a"));
+      useUiStore.getState().showToast(keepToast("a"));
+
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept A");
+    });
+
+    it("starts over once the previous toast has been dismissed", () => {
+      vi.useFakeTimers();
+      useUiStore.getState().showToast(keepToast("a"));
+      vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS);
+      useUiStore.getState().showToast(keepToast("b"));
+
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept B");
+    });
+
+    it("does not coalesce across an intervening toast", () => {
+      useUiStore.getState().showToast(keepToast("a"));
+      useUiStore.getState().showToast("Copied");
+      useUiStore.getState().showToast(keepToast("b"));
+
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept B");
+    });
+
+    it("does not merge a toast with a different coalescing key", () => {
+      useUiStore.getState().showToast(keepToast("a"));
+      const other = keepToast("b");
+      useUiStore.getState().showToast({
+        ...other,
+        coalesce: other.coalesce && { ...other.coalesce, key: "other" },
+      });
+
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept B");
+    });
+
+    it("never merges persistent or error toasts", () => {
+      useUiStore.getState().showToast(keepToast("a"));
+      useUiStore.getState().showToast({ ...keepToast("b"), severity: "error" });
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept B");
+
+      useUiStore.getState().showToast(keepToast("c"));
+      useUiStore.getState().showToast({ ...keepToast("d"), persistent: true });
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept D");
+    });
+
+    it("lets a sync-recovery toast win over a coalescing toast", () => {
+      const failure = { message: "Needs access", persistent: true, variant: "sync-recovery" } as const;
+      useUiStore.getState().showToast(failure);
+      useUiStore.getState().showToast(keepToast("a"));
+      useUiStore.getState().showToast(keepToast("b"));
+
+      expect(useUiStore.getState().toastMessage).toBe(failure);
+    });
+
+    it("creates a new toast object and re-arms the dismiss timer on every merge", () => {
+      vi.useFakeTimers();
+      useUiStore.getState().showToast(keepToast("a"));
+      const first = useUiStore.getState().toastMessage;
+      vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS - 1);
+
+      useUiStore.getState().showToast(keepToast("b"));
+      expect(useUiStore.getState().toastMessage).not.toBe(first);
+
+      vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS - 1);
+      expect(useUiStore.getState().toastMessage?.message).toBe("Kept A/B");
+      vi.advanceTimersByTime(1);
+      expect(useUiStore.getState().toastMessage).toBeNull();
+    });
+
+    it("undoes every coalesced item from the merged toast", () => {
+      const unkeep = vi.fn();
+      useUiStore.getState().showToast(keepToast("a", unkeep));
+      useUiStore.getState().showToast(keepToast("b", unkeep));
+
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+
+      expect(unkeep.mock.calls.map(([id]) => id)).toEqual(["a", "b"]);
+    });
+
+    it("announces each coalesced toast separately", () => {
+      useUiStore.getState().showToast(keepToast("a"));
+      useUiStore.getState().showToast(keepToast("b"));
+
+      expect(useUiStore.getState().toastAnnouncements.map((announcement) => announcement.message)).toEqual([
+        "Kept A",
+        "Kept B",
+      ]);
+    });
   });
 
   it("clears pending toast dismiss timers when manually clearing a toast", () => {
