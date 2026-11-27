@@ -847,11 +847,14 @@ fn windows_fullscreen_key_is_unmodified_f11_only() {
     const VK_F11: u32 = 0x7A;
     const VK_F10: u32 = 0x79;
 
-    assert!(is_fullscreen_toggle_key(VK_F11, false, false, false));
-    assert!(!is_fullscreen_toggle_key(VK_F10, false, false, false));
-    assert!(!is_fullscreen_toggle_key(VK_F11, true, false, false));
-    assert!(!is_fullscreen_toggle_key(VK_F11, false, true, false));
-    assert!(!is_fullscreen_toggle_key(VK_F11, false, false, true));
+    assert!(is_fullscreen_toggle_key(VK_F11, false, false, false, false));
+    assert!(!is_fullscreen_toggle_key(
+        VK_F10, false, false, false, false
+    ));
+    assert!(!is_fullscreen_toggle_key(VK_F11, true, false, false, false));
+    assert!(!is_fullscreen_toggle_key(VK_F11, false, true, false, false));
+    assert!(!is_fullscreen_toggle_key(VK_F11, false, false, true, false));
+    assert!(!is_fullscreen_toggle_key(VK_F11, false, false, false, true));
 }
 
 #[test]

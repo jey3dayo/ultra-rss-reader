@@ -83,10 +83,11 @@ pub(super) fn is_fullscreen_toggle_key(
     command_or_control: bool,
     shift: bool,
     alt: bool,
+    windows_key: bool,
 ) -> bool {
     const VK_F11: u32 = 0x7A;
 
-    virtual_key == VK_F11 && !command_or_control && !shift && !alt
+    virtual_key == VK_F11 && !command_or_control && !shift && !alt && !windows_key
 }
 
 #[cfg(any(test, target_os = "macos"))]
@@ -175,7 +176,9 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
         WebMessageReceivedEventHandler,
     };
     use windows::core::{Interface, HSTRING, PWSTR};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_MENU, VK_SHIFT};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+        GetKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+    };
 
     let app_handle = app_handle.clone();
     let prefs = load_browser_preview_prefs(&app_handle)?;
@@ -265,7 +268,15 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                     let command_or_control = GetKeyState(VK_CONTROL.0 as i32) < 0;
                     let shift = GetKeyState(VK_SHIFT.0 as i32) < 0;
                     let alt = GetKeyState(VK_MENU.0 as i32) < 0;
-                    if is_fullscreen_toggle_key(virtual_key, command_or_control, shift, alt) {
+                    let windows_key =
+                        GetKeyState(VK_LWIN.0 as i32) < 0 || GetKeyState(VK_RWIN.0 as i32) < 0;
+                    if is_fullscreen_toggle_key(
+                        virtual_key,
+                        command_or_control,
+                        shift,
+                        alt,
+                        windows_key,
+                    ) {
                         let mut key_status = COREWEBVIEW2_PHYSICAL_KEY_STATUS::default();
                         args.PhysicalKeyStatus(&mut key_status)?;
                         args.SetHandled(true)?;

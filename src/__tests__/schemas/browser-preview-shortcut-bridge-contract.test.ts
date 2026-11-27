@@ -190,9 +190,10 @@ describe("browser preview shortcut bridge contract", () => {
     expect(emitCount).toBe(4);
     const fullscreenKeyBlock = extractBlock(
       backendSource,
-      /(if is_fullscreen_toggle_key\([\s\S]*?return Ok\(\(\)\);)/,
-      "Windows AcceleratorKeyPressed F11 branch",
+      /(AcceleratorKeyPressedEventHandler::create\([\s\S]*?add_AcceleratorKeyPressed)/,
+      "Windows AcceleratorKeyPressed registered handler",
     );
+    expect(fullscreenKeyBlock).toContain("if is_fullscreen_toggle_key(");
     expect(fullscreenKeyBlock).toContain("emit(MENU_ACTION_EVENT, FULLSCREEN_TOGGLE_ACTION)");
     const acceleratorHandlerBlock = extractBlock(
       backendSource,
