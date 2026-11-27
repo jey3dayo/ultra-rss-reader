@@ -52,6 +52,7 @@ export function makeTarget(feedId: string, wasKept = false): BulkUnsubscribeTarg
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   };
   const [row] = buildSubscriptionListRows({
     feeds: [feed],

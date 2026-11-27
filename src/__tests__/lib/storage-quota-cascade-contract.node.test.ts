@@ -38,6 +38,7 @@ const feeds: FeedDto[] = [
     unread_count: 1,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ];
 

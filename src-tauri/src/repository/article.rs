@@ -52,6 +52,9 @@ pub struct FeedArticleSummary {
     pub latest_article_at: Option<String>,
     /// Newest recorded publication time, retained across article purges.
     pub last_seen_article_at: Option<String>,
+    /// True once a provider confirmed the feed's remote stream has no dated entry.
+    /// Only GReader provider-managed feeds are ever probed.
+    pub last_seen_article_probe_completed: bool,
     pub starred_count: i32,
     /// Number of visible articles published within the recent activity window
     /// (last `RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS` days, future-dated rows excluded).

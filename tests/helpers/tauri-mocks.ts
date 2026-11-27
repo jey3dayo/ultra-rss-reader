@@ -202,6 +202,7 @@ function createDefaultHandler(): MockHandler {
               feed_id: feed.id,
               latest_article_at: latestArticleAt,
               last_seen_article_at: latestArticleAt,
+              last_seen_article_probe_completed: false,
               starred_count: feedArticles.filter((article) => article.is_starred).length,
               // Deterministic stand-in for the backend's 30-day windowed count:
               // the mock article set is small and recent, so total-per-feed is a fine proxy.
@@ -445,6 +446,7 @@ function createDefaultHandler(): MockHandler {
           unread_count: 0,
           reader_mode: "inherit",
           web_preview_mode: "inherit",
+          created_at: null,
         };
       case "test_account_connection":
         return createSampleAccounts().find((account) => account.id === args.accountId) ?? createSampleAccounts()[0];

@@ -165,9 +165,11 @@ export function SubscriptionGroupDisclosureSpecimen() {
             attention_30d: "注意",
             stale_90d: "長期未更新",
             quiet_no_unread: "静か",
+            no_articles: "記事なし",
           }}
           reasonTooltipLabels={{
-            no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
+            no_articles_yet: "記事がまだ取れていないため、見直し候補にはしていません",
+            no_articles: "登録から90日以上、記事を1件も取得できていません",
             attention_30d: "RSS上の最終記事から30日以上たっているため注意表示です",
             stale_90d: "RSS上の最終記事から90日以上経過しています",
             quiet_no_unread: "RSS上の最終記事から60日以上なく、未読もありません",

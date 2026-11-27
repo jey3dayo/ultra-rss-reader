@@ -26,6 +26,7 @@ const feeds: FeedDto[] = [
     unread_count: 3,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-b",
@@ -39,6 +40,7 @@ const feeds: FeedDto[] = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-c",
@@ -52,6 +54,7 @@ const feeds: FeedDto[] = [
     unread_count: 1,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ];
 
@@ -146,6 +149,7 @@ describe("getVisibleSidebarFeedTreeData", () => {
             ...feeds[1],
             reader_mode: "on",
             web_preview_mode: "off",
+            created_at: null,
           },
         ],
         {

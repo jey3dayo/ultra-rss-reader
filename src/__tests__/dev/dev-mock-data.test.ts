@@ -45,6 +45,7 @@ function buildMockFeedArticleSummaries() {
       feed_id: feed.id,
       latest_article_at: latestArticleAt ?? null,
       last_seen_article_at: latestArticleAt ?? null,
+      last_seen_article_probe_completed: false,
       starred_count: feedArticles.filter((article) => article.is_starred).length,
       recent_article_count: feedArticles.length,
     };
@@ -206,6 +207,8 @@ describe("dev mock data", () => {
 
     const feedArticleSummaries = buildMockFeedArticleSummaries();
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds: mockFeeds,
       folders: mockFolders,
       feedArticleSummaries,

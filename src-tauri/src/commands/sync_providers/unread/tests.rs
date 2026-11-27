@@ -54,6 +54,7 @@ fn test_feed(account_id: &AccountId, remote_id: &str, url: &str) -> Feed {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 

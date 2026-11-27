@@ -704,8 +704,31 @@ describe("DTO schemas", () => {
       unread_count: 5,
       reader_mode: "on",
       web_preview_mode: "off",
+      created_at: null,
     };
     expect(parse(FeedDtoSchema, data)).toEqual(data);
+  });
+  it("requires FeedDto created_at to be an ISO timestamp or null", () => {
+    const data = {
+      id: "feed-1",
+      account_id: "acc-1",
+      folder_id: null,
+      remote_id: null,
+      title: "Blog",
+      url: "https://example.com/feed.xml",
+      site_url: "https://example.com",
+      icon_url: null,
+      unread_count: 0,
+      reader_mode: "on",
+      web_preview_mode: "off",
+      created_at: "2026-01-02T03:04:05.000Z",
+    };
+
+    expect(parse(FeedDtoSchema, data)).toEqual(data);
+    expect(parse(FeedDtoSchema, { ...data, created_at: null })).toEqual({ ...data, created_at: null });
+    expect(() => parse(FeedDtoSchema, { ...data, created_at: "yesterday" })).toThrow();
+    const { created_at: _omitted, ...withoutCreatedAt } = data;
+    expect(() => parse(FeedDtoSchema, withoutCreatedAt)).toThrow();
   });
   it("rejects FeedDto when icon_url is omitted", () => {
     const data = {
@@ -719,6 +742,7 @@ describe("DTO schemas", () => {
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
+      created_at: null,
     };
 
     expect(() => parse(FeedDtoSchema, data)).toThrow();
@@ -735,6 +759,7 @@ describe("DTO schemas", () => {
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
+      created_at: null,
     };
 
     expect(parse(FeedDtoSchema, { ...data, icon_url: null })).toEqual({ ...data, icon_url: null });
@@ -756,6 +781,7 @@ describe("DTO schemas", () => {
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
+      created_at: null,
     };
 
     expect(() => parse(FeedDtoSchema, { ...data, id: "" })).toThrow();
@@ -778,6 +804,7 @@ describe("DTO schemas", () => {
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
+      created_at: null,
     };
 
     expect(() => parse(FeedDtoSchema, { ...data, url: "" })).toThrow();
@@ -818,6 +845,7 @@ describe("DTO schemas", () => {
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
+      created_at: null,
     };
 
     expect(() => parse(FeedDtoSchema, { ...data, unread_count: -1 })).toThrow();
@@ -830,6 +858,7 @@ describe("DTO schemas", () => {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
       last_seen_article_at: "2026-04-01T10:00:00Z",
+      last_seen_article_probe_completed: false,
       starred_count: 2,
       recent_article_count: 12,
     };
@@ -841,6 +870,7 @@ describe("DTO schemas", () => {
     expect(parse(FeedArticleSummaryDtoSchema, { ...data, last_seen_article_at: null })).toEqual({
       ...data,
       last_seen_article_at: null,
+      last_seen_article_probe_completed: false,
     });
   });
   it("rejects invalid feed summary starred counts", () => {
@@ -848,6 +878,7 @@ describe("DTO schemas", () => {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
       last_seen_article_at: "2026-04-01T10:00:00Z",
+      last_seen_article_probe_completed: false,
       starred_count: 0,
       recent_article_count: 0,
     };
@@ -879,11 +910,27 @@ describe("DTO schemas", () => {
       }),
     ).toThrow();
   });
+  it("requires a boolean last_seen_article_probe_completed", () => {
+    const data = {
+      feed_id: "feed-1",
+      latest_article_at: null,
+      last_seen_article_at: null,
+      last_seen_article_probe_completed: true,
+      starred_count: 0,
+      recent_article_count: 0,
+    };
+
+    expect(parse(FeedArticleSummaryDtoSchema, data)).toEqual(data);
+    const { last_seen_article_probe_completed: _omitted, ...withoutProbe } = data;
+    expect(() => parse(FeedArticleSummaryDtoSchema, withoutProbe)).toThrow();
+    expect(() => parse(FeedArticleSummaryDtoSchema, { ...data, last_seen_article_probe_completed: "yes" })).toThrow();
+  });
   it("requires a nonnegative integer recent_article_count", () => {
     const data = {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
       last_seen_article_at: "2026-04-01T10:00:00Z",
+      last_seen_article_probe_completed: false,
       starred_count: 0,
       recent_article_count: 0,
     };

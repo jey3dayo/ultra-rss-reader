@@ -42,6 +42,7 @@ const feeds: FeedDto[] = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-active",
@@ -55,6 +56,7 @@ const feeds: FeedDto[] = [
     unread_count: 3,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-mid",
@@ -68,6 +70,7 @@ const feeds: FeedDto[] = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-dormant",
@@ -81,6 +84,7 @@ const feeds: FeedDto[] = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ];
 
@@ -166,6 +170,7 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
     feed_id: "feed-stale",
     latest_article_at: "2025-11-01T10:00:00Z",
     last_seen_article_at: null,
+    last_seen_article_probe_completed: false,
     starred_count: 1,
     recent_article_count: 0,
   },
@@ -173,6 +178,7 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
     feed_id: "feed-active",
     latest_article_at: "2026-04-01T09:00:00Z",
     last_seen_article_at: null,
+    last_seen_article_probe_completed: false,
     starred_count: 1,
     recent_article_count: 0,
   },
@@ -180,6 +186,7 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
     feed_id: "feed-mid",
     latest_article_at: "2026-01-01T12:00:00Z",
     last_seen_article_at: null,
+    last_seen_article_probe_completed: false,
     starred_count: 0,
     recent_article_count: 0,
   },
@@ -187,6 +194,7 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
     feed_id: "feed-dormant",
     latest_article_at: "2026-03-15T12:00:00Z",
     last_seen_article_at: null,
+    last_seen_article_probe_completed: false,
     starred_count: 0,
     recent_article_count: 0,
   },
@@ -219,6 +227,7 @@ describe("subscriptions index helpers", () => {
       folderName: null,
       latestArticleAt: null,
       staleDays: 120,
+      sinceCreatedDays: null,
       unreadCount: 0,
       starredCount: 0,
       reasonKeys,
@@ -246,6 +255,7 @@ describe("subscriptions index helpers", () => {
             feed_id: "frequent-kept",
             latest_article_at: null,
             last_seen_article_at: null,
+            last_seen_article_probe_completed: false,
             starred_count: 0,
             recent_article_count: 90,
           },
@@ -274,6 +284,8 @@ describe("subscriptions index helpers", () => {
 
   it("calculates stale days from UTC calendar days across timezone offsets", () => {
     const [candidate] = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds: [{ ...feeds[0], unread_count: 1 }],
       folders,
       feedArticleSummaries: [
@@ -281,6 +293,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-stale",
           latest_article_at: "2026-01-01T23:30:00-02:00",
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -291,6 +304,7 @@ describe("subscriptions index helpers", () => {
     expect(candidate).toMatchObject({
       feedId: "feed-stale",
       staleDays: 89,
+      sinceCreatedDays: null,
       reasonKeys: ["attention_30d"],
     });
   });
@@ -303,6 +317,7 @@ describe("subscriptions index helpers", () => {
       folderName: "Work",
       latestArticleAt: "2025-11-01T10:00:00Z",
       staleDays: 155,
+      sinceCreatedDays: null,
       unreadCount: 0,
       starredCount: 1,
       reasonKeys: ["stale_90d"],
@@ -311,6 +326,7 @@ describe("subscriptions index helpers", () => {
       ...firstCandidate,
       title: "Second duplicate",
       staleDays: 94,
+      sinceCreatedDays: null,
       reasonKeys: ["stale_90d", "quiet_no_unread"],
     };
     const candidateMap = buildSubscriptionReviewCandidateMap([firstCandidate, secondCandidate]);
@@ -325,6 +341,7 @@ describe("subscriptions index helpers", () => {
           folderName: "Work",
           latestArticleAt: firstCandidate.latestArticleAt,
           latestArticleDays: firstCandidate.staleDays,
+          inactiveDays: firstCandidate.staleDays,
           recentArticleCount: 0,
           status: { labelKey: "stale_90d" },
           reasonTooltipKey: "stale_90d",
@@ -337,6 +354,8 @@ describe("subscriptions index helpers", () => {
 
   it("derives row status from review candidates only", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -371,6 +390,7 @@ describe("subscriptions index helpers", () => {
           folderName: null,
           latestArticleAt: "2026-04-01T00:00:00Z",
           staleDays: 4,
+          sinceCreatedDays: null,
           unreadCount: 2,
           starredCount: 0,
           reasonKeys: [],
@@ -381,6 +401,8 @@ describe("subscriptions index helpers", () => {
 
   it("labels 30-day feeds as attention without making them decision candidates", () => {
     const [attentionCandidate] = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds: [{ ...feeds[0], id: "feed-attention", unread_count: 0 }],
       folders,
       feedArticleSummaries: [
@@ -388,6 +410,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-attention",
           latest_article_at: "2026-03-06T00:00:00Z",
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -518,6 +541,7 @@ describe("subscriptions index helpers", () => {
       feed_id: "feed-stale",
       latest_article_at: "2025-01-01T00:00:00Z",
       last_seen_article_at: null,
+      last_seen_article_probe_completed: false,
       starred_count: 7,
       recent_article_count: 0,
     };
@@ -569,6 +593,8 @@ describe("subscriptions index helpers", () => {
 
   it("builds list rows with folder names and candidate status", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -587,6 +613,7 @@ describe("subscriptions index helpers", () => {
       folderName: "Work",
       latestArticleAt: "2025-11-01T10:00:00Z",
       latestArticleDays: 155,
+      inactiveDays: 155,
       status: { labelKey: "stale_90d" },
       reasonTooltipKey: "stale_90d",
     });
@@ -683,7 +710,7 @@ describe("subscriptions index helpers", () => {
         latestArticleAt: null,
         status: { labelKey: "normal" },
       }),
-    ).toBe("no_articles");
+    ).toBe("no_articles_yet");
     expect(
       resolveSubscriptionRowReasonTooltipKey({
         latestArticleAt: "2026-04-01T09:00:00Z",
@@ -717,6 +744,7 @@ describe("subscriptions index helpers", () => {
               unreadCount: 0,
               starredCount: 1,
               staleDays: 155,
+              sinceCreatedDays: null,
               reasonKeys: [reasonKey],
             },
           ],
@@ -795,6 +823,8 @@ describe("subscriptions index helpers", () => {
 
   it("hides a kept stale feed from the stale filter", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -832,6 +862,8 @@ describe("subscriptions index helpers", () => {
 
   it("keeps a failed stale feed in activity filters and visible after a review decision", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -876,6 +908,8 @@ describe("subscriptions index helpers", () => {
 
   it("treats a remote fetch failure like a fetch error in filters and kept visibility", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -966,6 +1000,8 @@ describe("subscriptions index helpers", () => {
 
   it("keeps decided rows only for the all summary filter", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -1017,6 +1053,7 @@ describe("subscriptions index helpers", () => {
             feed_id: "feed-quiet-overloaded",
             latest_article_at: null,
             last_seen_article_at: null,
+            last_seen_article_probe_completed: false,
             starred_count: 0,
             recent_article_count: 90,
           },
@@ -1027,6 +1064,7 @@ describe("subscriptions index helpers", () => {
             feed_id: "feed-active",
             latest_article_at: null,
             last_seen_article_at: null,
+            last_seen_article_probe_completed: false,
             starred_count: 0,
             recent_article_count: 89,
           },
@@ -1056,6 +1094,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-active",
           latest_article_at: null,
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 90,
         },
@@ -1066,6 +1105,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-mid",
           latest_article_at: null,
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 95,
         },
@@ -1076,6 +1116,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-stale",
           latest_article_at: null,
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 95,
         },
@@ -1086,6 +1127,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-dormant",
           latest_article_at: null,
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 95,
         },
@@ -1202,6 +1244,8 @@ describe("subscriptions index helpers", () => {
 
   it("sorts rows with invalid update dates after valid update dates", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -1244,6 +1288,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-invalid-z",
           latest_article_at: "not-a-date",
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -1251,6 +1296,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-valid",
           latest_article_at: "2026-04-01T09:00:00Z",
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -1258,6 +1304,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-invalid-a",
           latest_article_at: "",
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -1265,6 +1312,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-invalid-b",
           latest_article_at: "invalid-date",
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -1303,6 +1351,7 @@ describe("subscriptions index helpers", () => {
           feed_id: feed.id,
           latest_article_at: "2026-04-01T09:00:00Z",
           last_seen_article_at: null,
+          last_seen_article_probe_completed: false,
           starred_count: 0,
           recent_article_count: 0,
         })),
@@ -1405,7 +1454,11 @@ describe("subscriptions index helpers", () => {
       candidateMap: new Map(),
       feedArticleSummaryMap: new Map(),
       folderNameById: new Map(),
-    }).map((row) => ({ ...row, ...staleFacts[row.feed.id] }));
+    }).map((row) => ({
+      ...row,
+      ...staleFacts[row.feed.id],
+      inactiveDays: staleFacts[row.feed.id].latestArticleDays,
+    }));
 
     const visibleRows = buildVisibleSubscriptionRows({
       rows,
@@ -1656,7 +1709,7 @@ describe("subscriptions index helpers", () => {
       resolveSelectedSubscriptionDisplayModeLabel({
         selectedRow: {
           ...baseRow,
-          feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "off" },
+          feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "off", created_at: null },
         },
         labels,
       }),
@@ -1665,7 +1718,7 @@ describe("subscriptions index helpers", () => {
       resolveSelectedSubscriptionDisplayModeLabel({
         selectedRow: {
           ...baseRow,
-          feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "on" },
+          feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "on", created_at: null },
         },
         labels,
       }),
@@ -1674,6 +1727,8 @@ describe("subscriptions index helpers", () => {
 
   it("builds detail candidate copy from review facts", () => {
     const candidates = buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds,
       folders,
       feedArticleSummaries,
@@ -1688,6 +1743,7 @@ describe("subscriptions index helpers", () => {
         folderName: "Work",
         latestArticleAt: selectedCandidate?.latestArticleAt ?? null,
         latestArticleDays: selectedCandidate?.staleDays ?? null,
+        inactiveDays: selectedCandidate?.staleDays ?? null,
         recentArticleCount: 0,
         status: { labelKey: "stale_90d" },
         reasonTooltipKey: "stale_90d",
@@ -1717,6 +1773,7 @@ describe("subscriptions index helpers", () => {
         folderName: "Work",
         latestArticleAt: null,
         latestArticleDays: null,
+        inactiveDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: "normal",
@@ -1741,6 +1798,7 @@ describe("subscriptions index helpers", () => {
         folderName: null,
         latestArticleAt: null,
         latestArticleDays: null,
+        inactiveDays: null,
         recentArticleCount: 0,
         status: { labelKey: "normal" },
         reasonTooltipKey: "normal",
@@ -1752,6 +1810,7 @@ describe("subscriptions index helpers", () => {
         folderName: null,
         latestArticleAt: null,
         staleDays: null,
+        sinceCreatedDays: null,
         unreadCount: 3,
         starredCount: 0,
         reasonKeys: [],
@@ -1765,5 +1824,75 @@ describe("subscriptions index helpers", () => {
     });
 
     expect(detail?.reasonBoxBody).toBeNull();
+  });
+});
+
+describe("no_articles rows in the stale filter", () => {
+  const now = new Date("2026-04-05T12:00:00Z");
+  const daysAgoIso = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
+
+  function buildRows() {
+    const specs = [
+      { id: "stale-120", latest: daysAgoIso(120), created: null },
+      { id: "empty-200", latest: null, created: daysAgoIso(200) },
+      { id: "stale-95", latest: daysAgoIso(95), created: null },
+      { id: "empty-100", latest: null, created: daysAgoIso(100) },
+      { id: "empty-young", latest: null, created: daysAgoIso(10) },
+      { id: "fresh", latest: daysAgoIso(1), created: null },
+    ];
+    const rowFeeds = specs.map(({ id, created }) => ({ ...feeds[0], id, title: id, created_at: created }));
+    const summaries = specs.map(({ id, latest }) => ({
+      feed_id: id,
+      latest_article_at: latest,
+      last_seen_article_at: null,
+      last_seen_article_probe_completed: false,
+      starred_count: 0,
+      recent_article_count: 0,
+    }));
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: rowFeeds,
+      folders: [],
+      feedArticleSummaries: summaries,
+      now,
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
+    });
+    return buildSubscriptionListRows({
+      feeds: rowFeeds,
+      candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      feedArticleSummaryMap: buildFeedArticleSummaryMap(summaries),
+      folderNameById: new Map(),
+    });
+  }
+
+  it("includes no-articles feeds in the stale filter and its count, ordered with stale feeds by inactivity", () => {
+    const rows = buildRows();
+
+    const visible = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "stale",
+      keptFeedIds: new Set(),
+      showKept: false,
+      searchQuery: "",
+      sortKey: resolveSubscriptionSortKey("stale"),
+    });
+
+    expect(visible.map((row) => row.feed.id)).toEqual(["empty-200", "stale-120", "empty-100", "stale-95"]);
+    expect(countSubscriptionFilterRows(rows, new Set()).stale).toBe(4);
+  });
+
+  it("labels the row as no_articles without a latest-article day count", () => {
+    const row = buildRows().find((candidateRow) => candidateRow.feed.id === "empty-200");
+
+    expect(row?.status).toEqual({ labelKey: "no_articles" });
+    expect(row?.reasonTooltipKey).toBe("no_articles");
+    expect(row?.latestArticleDays).toBeNull();
+  });
+
+  it("keeps a young empty feed out of the stale filter and explains it with the not-yet tooltip", () => {
+    const row = buildRows().find((candidateRow) => candidateRow.feed.id === "empty-young");
+
+    expect(row?.status).toEqual({ labelKey: "normal" });
+    expect(row?.reasonTooltipKey).toBe("no_articles_yet");
   });
 });

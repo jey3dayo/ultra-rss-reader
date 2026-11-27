@@ -139,6 +139,7 @@ pub(crate) fn import_opml_in_db(
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
+            created_at: None,
         };
 
         feed_repo.save(&feed).map_err(AppError::from)?;

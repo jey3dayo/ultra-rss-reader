@@ -537,6 +537,7 @@ export function setupDevMocks(): RestoreDevMocks {
           unread_count: 3,
           reader_mode: "inherit",
           web_preview_mode: "inherit",
+          created_at: getCurrentIsoTimestamp(),
         };
         mockFeeds.push(feed);
         if (mockAccounts.find((account) => account.id === accountId)?.kind.toLowerCase() === "local") {
@@ -611,6 +612,7 @@ export function setupDevMocks(): RestoreDevMocks {
             feed_id: feed.id,
             latest_article_at: findLatestPublishedAt(feedArticles),
             last_seen_article_at: findLatestPublishedAt(mockArticles.filter((article) => article.feed_id === feed.id)),
+            last_seen_article_probe_completed: false,
             starred_count: feedArticles.filter((article) => article.is_starred).length,
             recent_article_count: feedArticles.filter((article) => {
               const publishedMs = getDateInputTimeMs(article.published_at);

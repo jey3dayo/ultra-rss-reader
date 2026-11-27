@@ -106,6 +106,7 @@ pub(super) fn save_greader_subscriptions(
                 .as_ref()
                 .map(|f| f.web_preview_mode.clone())
                 .unwrap_or_else(|| "inherit".to_string()),
+            created_at: None,
         };
         tx_feed_repo.save(&feed)?;
         // Keep the in-memory indices in sync so a later remote subscription
@@ -356,6 +357,7 @@ mod tests {
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
+            created_at: None,
         };
         {
             let db_guard = db.lock().unwrap();

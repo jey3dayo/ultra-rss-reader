@@ -46,6 +46,7 @@ export const sampleFeedSeeds: ReadonlyFixtureSeed<FeedFixture> = [
     unread_count: 5,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-2",
@@ -59,6 +60,7 @@ export const sampleFeedSeeds: ReadonlyFixtureSeed<FeedFixture> = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-3",
@@ -72,6 +74,7 @@ export const sampleFeedSeeds: ReadonlyFixtureSeed<FeedFixture> = [
     unread_count: 2,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ];
 

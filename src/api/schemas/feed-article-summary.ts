@@ -7,6 +7,8 @@ export const FeedArticleSummaryDtoSchema = s.strictObject({
   latest_article_at: v.nullable(IsoDateTimeStringSchema),
   // Retained across article purges.
   last_seen_article_at: v.nullable(IsoDateTimeStringSchema),
+  // True once a provider confirmed the remote stream has no dated entry; only GReader provider-managed feeds are probed.
+  last_seen_article_probe_completed: v.boolean(),
   starred_count: NonnegativeIntegerSchema,
   // Count of visible articles published in the recent activity window (last 30 days,
   // future-dated rows excluded). Backend source of truth: RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS.

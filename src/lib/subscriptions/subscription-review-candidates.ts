@@ -2,7 +2,7 @@ import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-comm
 import { getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-count";
 
-export type SubscriptionReviewReasonKey = "attention_30d" | "stale_90d" | "quiet_no_unread";
+export type SubscriptionReviewReasonKey = "attention_30d" | "stale_90d" | "quiet_no_unread" | "no_articles";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
 export type SubscriptionReviewTitleKey = "attention" | "review_now" | "consider" | "keep";
 export type SubscriptionCleanupRecommendation = "cleanup_candidate" | "watch" | "retain";
@@ -11,6 +11,7 @@ export type SubscriptionReviewSummaryKey =
   | "stale_and_inactive"
   | "quiet_without_unread"
   | "stale_but_supported"
+  | "no_articles_since_subscribed"
   | "healthy_feed";
 
 export type SubscriptionReviewReasonFactKey = "unread_count";
@@ -20,6 +21,7 @@ type SubscriptionReviewSummaryTranslationKey =
   | "detail_reason_stale_and_inactive"
   | "detail_reason_quiet_without_unread"
   | "detail_reason_stale_but_supported"
+  | "detail_reason_no_articles"
   | "detail_reason_normal";
 type SubscriptionReviewReasonFactTranslationKey = "fact_unread_count";
 
@@ -28,6 +30,7 @@ const SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY = {
   stale_and_inactive: "detail_reason_stale_and_inactive",
   quiet_without_unread: "detail_reason_quiet_without_unread",
   stale_but_supported: "detail_reason_stale_but_supported",
+  no_articles_since_subscribed: "detail_reason_no_articles",
   healthy_feed: "detail_reason_normal",
 } satisfies Record<SubscriptionReviewSummaryKey, SubscriptionReviewSummaryTranslationKey>;
 
@@ -46,6 +49,8 @@ export type SubscriptionReviewCandidate = {
   folderName: string | null;
   latestArticleAt: string | null;
   staleDays: number | null;
+  /** Subscription age, set only for `no_articles` candidates. Not a stale-days value: there is no article date to age from. */
+  sinceCreatedDays: number | null;
   unreadCount: number;
   starredCount: number;
   reasonKeys: SubscriptionReviewReasonKey[];
@@ -56,7 +61,18 @@ export type BuildSubscriptionReviewCandidatesParams = {
   folders: FolderDto[];
   feedArticleSummaries: FeedArticleSummaryDto[];
   now: Date;
+  /** Provider feeds are only judged by `no_articles` after the latest-article probe completes. */
+  isLocalAccount: boolean;
+  /** A feed that is never synced cannot show its articles, so `no_articles` does not apply. */
+  isAccountSyncEnabled: boolean;
 };
+
+/** Days a feed is judged on: article staleness, or subscription age when no article was ever seen. */
+export function resolveSubscriptionReviewInactiveDays(
+  candidate: Pick<SubscriptionReviewCandidate, "staleDays" | "sinceCreatedDays">,
+): number | null {
+  return candidate.staleDays ?? candidate.sinceCreatedDays;
+}
 
 export function hasSubscriptionReviewReason(
   candidate: SubscriptionReviewCandidate,
@@ -67,7 +83,9 @@ export function hasSubscriptionReviewReason(
 
 export function isSubscriptionReviewCandidate(candidate: SubscriptionReviewCandidate): boolean {
   return (
-    hasSubscriptionReviewReason(candidate, "stale_90d") || hasSubscriptionReviewReason(candidate, "quiet_no_unread")
+    hasSubscriptionReviewReason(candidate, "stale_90d") ||
+    hasSubscriptionReviewReason(candidate, "quiet_no_unread") ||
+    hasSubscriptionReviewReason(candidate, "no_articles")
   );
 }
 
@@ -91,6 +109,14 @@ export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionRevi
   const hasStale = hasSubscriptionReviewReason(candidate, "stale_90d");
   const hasQuietNoUnread = hasSubscriptionReviewReason(candidate, "quiet_no_unread");
   const hasAttention = hasSubscriptionReviewReason(candidate, "attention_30d");
+
+  if (hasSubscriptionReviewReason(candidate, "no_articles")) {
+    return {
+      tone: "medium",
+      titleKey: "consider",
+      summaryKey: "no_articles_since_subscribed",
+    };
+  }
 
   if (hasStale && hasQuietNoUnread) {
     return {
@@ -195,13 +221,19 @@ function calculateSubscriptionReviewStaleDays(now: Date, latestArticleDate: Date
 
 function resolveSubscriptionReviewReasonKeys({
   staleDays,
+  sinceCreatedDays,
   unreadCount,
   hasFetchedArticle,
 }: {
   staleDays: number | null;
+  sinceCreatedDays: number | null;
   unreadCount: number;
   hasFetchedArticle: boolean;
 }): SubscriptionReviewReasonKey[] {
+  if (sinceCreatedDays !== null) {
+    return ["no_articles"];
+  }
+
   if (staleDays === null) {
     return [];
   }
@@ -247,11 +279,47 @@ export function resolveLatestKnownArticleAt(
   return lastSeenTime > latestTime ? lastSeenArticleAt : latestArticleAt;
 }
 
+/**
+ * Subscription age for a feed that never produced an article, or null when it is not a `no_articles` candidate.
+ * A missing summary row is not evidence of "no articles": the summary query returns a row for every feed, so a missing
+ * row means the summaries have not loaded.
+ */
+function resolveNoArticlesSinceCreatedDays({
+  feed,
+  summary,
+  now,
+  isLocalAccount,
+  isAccountSyncEnabled,
+}: {
+  feed: FeedDto;
+  summary: FeedArticleSummaryDto | undefined;
+  now: Date;
+  isLocalAccount: boolean;
+  isAccountSyncEnabled: boolean;
+}): number | null {
+  if (!isAccountSyncEnabled || summary === undefined || resolveLatestKnownArticleAt(summary) !== null) {
+    return null;
+  }
+  if (!isLocalAccount && !summary.last_seen_article_probe_completed) {
+    return null;
+  }
+
+  const createdAt = parseDateInput(feed.created_at);
+  if (createdAt === null) {
+    return null;
+  }
+
+  const sinceCreatedDays = calculateSubscriptionReviewStaleDays(now, createdAt);
+  return sinceCreatedDays >= SUBSCRIPTION_REVIEW_STALE_DAYS ? sinceCreatedDays : null;
+}
+
 export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
   feedArticleSummaries,
   now,
+  isLocalAccount,
+  isAccountSyncEnabled,
 }: BuildSubscriptionReviewCandidatesParams): SubscriptionReviewCandidate[] {
   const folderNameById = buildFolderNameByIdMap(folders);
   const summaryByFeedId = buildFeedArticleSummaryByFeedIdMap(feedArticleSummaries);
@@ -266,7 +334,19 @@ export function buildSubscriptionReviewCandidates({
     const unreadCount = normalizeSubscriptionCount(feed.unread_count);
     const starredCount = normalizeSubscriptionCount(summary?.starred_count ?? 0);
     const hasFetchedArticle = latestArticleAt !== null;
-    const reasonKeys = resolveSubscriptionReviewReasonKeys({ staleDays, unreadCount, hasFetchedArticle });
+    const sinceCreatedDays = resolveNoArticlesSinceCreatedDays({
+      feed,
+      summary,
+      now,
+      isLocalAccount,
+      isAccountSyncEnabled,
+    });
+    const reasonKeys = resolveSubscriptionReviewReasonKeys({
+      staleDays,
+      sinceCreatedDays,
+      unreadCount,
+      hasFetchedArticle,
+    });
 
     candidates.push({
       feedId: feed.id,
@@ -275,6 +355,7 @@ export function buildSubscriptionReviewCandidates({
       folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
       latestArticleAt,
       staleDays,
+      sinceCreatedDays,
       unreadCount,
       starredCount,
       reasonKeys,
@@ -282,7 +363,8 @@ export function buildSubscriptionReviewCandidates({
   }
 
   return candidates.sort((left, right) => {
-    const staleDelta = (right.staleDays ?? -1) - (left.staleDays ?? -1);
+    const staleDelta =
+      (resolveSubscriptionReviewInactiveDays(right) ?? -1) - (resolveSubscriptionReviewInactiveDays(left) ?? -1);
     if (staleDelta !== 0) {
       return staleDelta;
     }

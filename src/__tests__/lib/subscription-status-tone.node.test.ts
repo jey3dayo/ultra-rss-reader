@@ -24,6 +24,7 @@ const feed = {
   unread_count: 3,
   reader_mode: "inherit",
   web_preview_mode: "inherit",
+  created_at: null,
 } satisfies FeedDto;
 
 function buildCandidate(reasonKeys: SubscriptionReviewReasonKey[]): SubscriptionReviewCandidate {
@@ -34,6 +35,7 @@ function buildCandidate(reasonKeys: SubscriptionReviewReasonKey[]): Subscription
     folderName: null,
     latestArticleAt: "2026-01-01T00:00:00Z",
     staleDays: 120,
+    sinceCreatedDays: null,
     unreadCount: 3,
     starredCount: 0,
     reasonKeys,
@@ -48,6 +50,7 @@ function buildDetailToneFor(candidate: SubscriptionReviewCandidate) {
     folderName: null,
     latestArticleAt: candidate.latestArticleAt,
     latestArticleDays: candidate.staleDays,
+    inactiveDays: candidate.staleDays,
     recentArticleCount: 0,
     status,
     reasonTooltipKey: status.labelKey,

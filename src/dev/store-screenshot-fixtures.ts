@@ -91,6 +91,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-systems-journal",
@@ -104,6 +105,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-daily-signal-wire",
@@ -117,6 +119,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-north-star-report",
@@ -130,6 +133,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-dev-weekly",
@@ -143,6 +147,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-frontend-notes",
@@ -156,6 +161,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-video-lab",
@@ -169,6 +175,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-indie-dev-cast",
@@ -182,6 +189,7 @@ const storeFeedSeeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ] satisfies readonly FeedDto[];
 

@@ -219,6 +219,7 @@ export function useSidebarFeedSectionController({
             unread_count: feed.unreadCount,
             reader_mode: feed.readerMode,
             web_preview_mode: feed.webPreviewMode,
+            created_at: null,
           }))}
           folderOrderMode={resolvedFolderOrderMode}
           onResetFolderOrder={resetFolderOrder}

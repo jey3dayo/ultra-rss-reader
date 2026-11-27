@@ -472,6 +472,7 @@ describe("useAddFeedDialogActions", () => {
         unread_count: 0,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       }),
     );
     vi.mocked(updateFeedFolder).mockResolvedValue(Result.succeed(null));
@@ -550,6 +551,7 @@ describe("useAddFeedDialogActions", () => {
         unread_count: 0,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       }),
     );
     vi.mocked(updateFeedFolder).mockResolvedValue(
@@ -733,6 +735,7 @@ describe("useAddFeedDialogActions", () => {
           unread_count: 0,
           reader_mode: "inherit",
           web_preview_mode: "inherit",
+          created_at: null,
         }),
       );
       await firstSubmit;
@@ -831,6 +834,7 @@ describe("useAddFeedDialogActions", () => {
           unread_count: 0,
           reader_mode: "inherit",
           web_preview_mode: "inherit",
+          created_at: null,
         }),
       );
       await submit;
@@ -977,6 +981,7 @@ describe("useAddFeedDialogActions", () => {
           unread_count: 0,
           reader_mode: "inherit",
           web_preview_mode: "inherit",
+          created_at: null,
         }),
       );
       await submit;

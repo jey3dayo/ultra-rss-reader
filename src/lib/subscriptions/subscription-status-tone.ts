@@ -5,6 +5,7 @@ const STATUS_TONE_BY_LABEL_KEY = {
   attention_30d: "neutral",
   quiet_no_unread: "warning",
   stale_90d: "danger",
+  no_articles: "warning",
 } as const satisfies Record<SubscriptionRowStatus["labelKey"], SubscriptionStatusTone>;
 
 const FEED_DETAIL_TONE_BY_STATUS_TONE = {

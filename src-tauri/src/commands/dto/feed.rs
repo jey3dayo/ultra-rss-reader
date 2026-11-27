@@ -51,6 +51,7 @@ pub struct FeedDto {
     pub unread_count: i32,
     pub reader_mode: String,
     pub web_preview_mode: String,
+    pub created_at: Option<String>,
 }
 
 fn normalize_feed_unread_count(count: i32) -> i32 {
@@ -221,6 +222,7 @@ impl From<crate::domain::feed::Feed> for FeedDto {
             unread_count: normalize_feed_unread_count(f.unread_count),
             reader_mode: f.reader_mode,
             web_preview_mode: f.web_preview_mode,
+            created_at: f.created_at,
         }
     }
 }
@@ -445,11 +447,35 @@ mod tests {
             unread_count: 3,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
+            created_at: None,
         };
 
         let value = serde_json::to_value(FeedDto::from(feed)).expect("feed dto should serialize");
 
         assert_eq!(value["remote_id"], "feed/https://example.com/rss.xml");
+    }
+
+    #[test]
+    fn feed_dto_exposes_created_at() {
+        let feed = crate::domain::feed::Feed {
+            id: crate::domain::types::FeedId("feed-1".to_string()),
+            account_id: crate::domain::types::AccountId("acc-1".to_string()),
+            folder_id: None,
+            remote_id: None,
+            title: "Example".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            icon_url: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+            created_at: Some("2026-01-02T03:04:05.000Z".to_string()),
+        };
+
+        let value = serde_json::to_value(FeedDto::from(feed)).expect("feed dto should serialize");
+
+        assert_eq!(value["created_at"], "2026-01-02T03:04:05.000Z");
     }
 
     #[test]
@@ -467,6 +493,7 @@ mod tests {
             unread_count: -1,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
+            created_at: None,
         };
 
         let value = serde_json::to_value(FeedDto::from(feed)).expect("feed dto should serialize");

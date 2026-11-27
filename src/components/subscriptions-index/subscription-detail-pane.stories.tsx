@@ -47,6 +47,7 @@ const feed = {
   unread_count: 0,
   reader_mode: "inherit",
   web_preview_mode: "inherit",
+  created_at: null,
 } satisfies FeedDto;
 
 const fetchError = {
@@ -96,6 +97,7 @@ const statusLabels = {
   attention_30d: "Attention",
   stale_90d: "Long-term inactive",
   quiet_no_unread: "Quiet",
+  no_articles: "No articles",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
 
 const summaryTexts = {
@@ -103,6 +105,8 @@ const summaryTexts = {
   stale_and_inactive: "This RSS feed has been quiet for a long stretch and no unread backlog is keeping it active.",
   quiet_without_unread: "This RSS feed has had no updates for 60+ days and has no unread items.",
   stale_but_supported: "This RSS feed has had no updates for 90+ days and should be checked as long-term inactive.",
+  no_articles_since_subscribed:
+    "No article has ever been fetched from this feed since you subscribed 90+ days ago. It may be dead or misconfigured.",
   healthy_feed: "This subscription still looks healthy and can stay where it is.",
 } satisfies Record<SubscriptionReviewSummaryKey, string>;
 
@@ -117,11 +121,14 @@ function buildStoryDetail({
   const feedArticleSummary = {
     feed_id: storyFeed.id,
     last_seen_article_at: null,
+    last_seen_article_probe_completed: false,
     recent_article_count: 0,
     ...summary,
   } satisfies FeedArticleSummaryDto;
   const candidateMap = buildSubscriptionReviewCandidateMap(
     buildSubscriptionReviewCandidates({
+      isLocalAccount: true,
+      isAccountSyncEnabled: true,
       feeds: [storyFeed],
       folders,
       feedArticleSummaries: [feedArticleSummary],

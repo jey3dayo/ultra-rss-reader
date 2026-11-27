@@ -2102,6 +2102,7 @@ describe("ArticleView", () => {
                 unread_count: 0,
                 reader_mode: "inherit",
                 web_preview_mode: "inherit",
+                created_at: null,
               },
             ];
           case "list_articles":
@@ -2175,6 +2176,7 @@ describe("ArticleView", () => {
               unread_count: 3,
               reader_mode: "inherit",
               web_preview_mode: "inherit",
+              created_at: null,
             },
           ];
         case "list_account_articles":
@@ -2239,6 +2241,7 @@ describe("ArticleView", () => {
               unread_count: 3,
               reader_mode: "inherit",
               web_preview_mode: "inherit",
+              created_at: null,
             },
           ];
         case "list_account_articles":
@@ -2301,6 +2304,7 @@ describe("ArticleView", () => {
               unread_count: 3,
               reader_mode: "inherit",
               web_preview_mode: "inherit",
+              created_at: null,
             },
           ];
         case "list_account_articles":

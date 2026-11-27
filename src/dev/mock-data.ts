@@ -128,6 +128,7 @@ const mockFeedSeeds = [
     unread_count: 199,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-hatima",
@@ -141,6 +142,7 @@ const mockFeedSeeds = [
     unread_count: 239,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-yumenavi",
@@ -154,6 +156,7 @@ const mockFeedSeeds = [
     unread_count: 152,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-publickey",
@@ -167,6 +170,7 @@ const mockFeedSeeds = [
     unread_count: 70,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-techno",
@@ -180,6 +184,7 @@ const mockFeedSeeds = [
     unread_count: 1,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-nhk",
@@ -193,6 +198,7 @@ const mockFeedSeeds = [
     unread_count: 187,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-hatena",
@@ -206,6 +212,7 @@ const mockFeedSeeds = [
     unread_count: 432,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-jxck",
@@ -219,6 +226,7 @@ const mockFeedSeeds = [
     unread_count: 1,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-npaka",
@@ -232,6 +240,7 @@ const mockFeedSeeds = [
     unread_count: 128,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-chimolog",
@@ -245,6 +254,7 @@ const mockFeedSeeds = [
     unread_count: 1,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-zakkukukan",
@@ -258,6 +268,7 @@ const mockFeedSeeds = [
     unread_count: 11,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-internet-watch",
@@ -271,6 +282,7 @@ const mockFeedSeeds = [
     unread_count: 119,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-pc-parts",
@@ -284,6 +296,7 @@ const mockFeedSeeds = [
     unread_count: 187,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-v",
@@ -297,6 +310,7 @@ const mockFeedSeeds = [
     unread_count: 3,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-uchiran",
@@ -310,6 +324,7 @@ const mockFeedSeeds = [
     unread_count: 11,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-tanoshii",
@@ -323,6 +338,7 @@ const mockFeedSeeds = [
     unread_count: 20,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ] satisfies readonly FeedDto[];
 

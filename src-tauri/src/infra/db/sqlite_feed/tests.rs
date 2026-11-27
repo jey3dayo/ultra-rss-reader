@@ -30,6 +30,7 @@ fn make_feed(account_id: &AccountId, title: &str, url: &str) -> Feed {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 
@@ -897,6 +898,7 @@ fn save_updates_existing_feed_when_account_and_url_match_updates_remote_folder_a
         unread_count: 0,
         reader_mode: "on".to_string(),
         web_preview_mode: "off".to_string(),
+        created_at: None,
     };
     repo.save(&existing_feed).unwrap();
 
@@ -920,6 +922,7 @@ fn save_updates_existing_feed_when_account_and_url_match_updates_remote_folder_a
         unread_count: 12,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
 
     repo.save(&replacement_feed).unwrap();
@@ -960,6 +963,7 @@ fn save_primary_key_conflict_does_not_move_feed_to_incoming_account() {
         unread_count: 3,
         reader_mode: "off".to_string(),
         web_preview_mode: "on".to_string(),
+        created_at: None,
     };
 
     repo.save(&incoming_feed).unwrap();
@@ -1005,6 +1009,7 @@ fn save_rejects_account_url_upsert_when_incoming_folder_belongs_to_another_accou
         unread_count: 0,
         reader_mode: "on".to_string(),
         web_preview_mode: "off".to_string(),
+        created_at: None,
     };
     repo.save(&existing_feed).unwrap();
 
@@ -1028,6 +1033,7 @@ fn save_rejects_account_url_upsert_when_incoming_folder_belongs_to_another_accou
         unread_count: 3,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
 
     let error = repo
@@ -1063,6 +1069,7 @@ fn save_duplicate_account_url_preserves_existing_id_and_local_display_modes() {
         unread_count: 7,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
     repo.save(&existing_feed).unwrap();
 
@@ -1079,6 +1086,7 @@ fn save_duplicate_account_url_preserves_existing_id_and_local_display_modes() {
         unread_count: 0,
         reader_mode: "off".to_string(),
         web_preview_mode: "on".to_string(),
+        created_at: None,
     };
 
     repo.save(&incoming_feed).unwrap();
@@ -1322,4 +1330,105 @@ fn changing_a_feed_url_tombstones_the_old_url_and_stamps_the_feed() {
         changed_at.as_str() > "2000-01-01T00:00:00.000Z",
         "a changed URL changes the sync identity, so the change time must move: {changed_at}"
     );
+}
+
+const FIXED_CREATED_AT: &str = "2020-01-01T00:00:00.000Z";
+
+fn stored_created_at(db: &DbManager, feed_id: &FeedId) -> Option<String> {
+    db.writer()
+        .query_row(
+            "SELECT created_at FROM feeds WHERE id = ?1",
+            params![feed_id.0],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+#[test]
+fn save_stamps_created_at_for_new_feed() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+
+    let feed = make_feed(&account_id, "Rust Blog", "http://rust.com/feed");
+    repo.save(&feed).unwrap();
+
+    let stored = repo.find_by_id(&feed.id).unwrap().unwrap();
+    let created_at = stored
+        .created_at
+        .expect("a newly saved feed should carry the database-assigned creation time");
+    assert!(
+        chrono::DateTime::parse_from_rfc3339(&created_at).is_ok(),
+        "created_at should be RFC 3339: {created_at}"
+    );
+}
+
+#[test]
+fn save_keeps_created_at_when_feed_is_updated_by_id_or_by_url() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+
+    let feed = make_feed(&account_id, "Rust Blog", "http://rust.com/feed");
+    repo.save(&feed).unwrap();
+    db.writer()
+        .execute(
+            "UPDATE feeds SET created_at = ?1 WHERE id = ?2",
+            params![FIXED_CREATED_AT, feed.id.0],
+        )
+        .unwrap();
+
+    let renamed = Feed {
+        title: "Renamed".to_string(),
+        ..feed.clone()
+    };
+    repo.save(&renamed).unwrap();
+    assert_eq!(
+        stored_created_at(&db, &feed.id).as_deref(),
+        Some(FIXED_CREATED_AT),
+        "conflict on id must not restamp the feed"
+    );
+
+    let same_url_other_id = Feed {
+        id: FeedId::new(),
+        title: "Same URL".to_string(),
+        ..feed.clone()
+    };
+    repo.save(&same_url_other_id).unwrap();
+    assert_eq!(
+        stored_created_at(&db, &feed.id).as_deref(),
+        Some(FIXED_CREATED_AT),
+        "conflict on (account, url) must not restamp the feed"
+    );
+}
+
+#[test]
+fn find_by_account_returns_created_at_with_and_without_mute_keywords() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+
+    let feed = make_feed(&account_id, "Rust Blog", "http://rust.com/feed");
+    repo.save(&feed).unwrap();
+    db.writer()
+        .execute(
+            "UPDATE feeds SET created_at = ?1 WHERE id = ?2",
+            params![FIXED_CREATED_AT, feed.id.0],
+        )
+        .unwrap();
+
+    let without_mutes = repo.find_by_account(&account_id).unwrap();
+    assert_eq!(
+        without_mutes[0].created_at.as_deref(),
+        Some(FIXED_CREATED_AT)
+    );
+
+    db.writer()
+        .execute(
+            "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+            params![uuid::Uuid::new_v4().to_string(), "anything", "title"],
+        )
+        .unwrap();
+    let with_mutes = repo.find_by_account(&account_id).unwrap();
+    assert_eq!(with_mutes[0].created_at.as_deref(), Some(FIXED_CREATED_AT));
 }

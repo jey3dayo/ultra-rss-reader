@@ -167,6 +167,7 @@ pub(super) fn test_feed(account_id: &AccountId) -> Feed {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 
@@ -203,6 +204,7 @@ pub(super) fn make_test_feed(
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 
@@ -262,6 +264,7 @@ pub(super) fn test_local_feed(account_id: &AccountId, feed_url: &str) -> Feed {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 

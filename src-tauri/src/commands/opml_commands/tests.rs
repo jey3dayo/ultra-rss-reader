@@ -82,6 +82,7 @@ fn feed(id: &str, folder_id: Option<&FolderId>, title: &str) -> Feed {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 

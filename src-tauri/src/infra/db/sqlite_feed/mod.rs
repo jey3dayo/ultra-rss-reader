@@ -71,7 +71,7 @@ impl<'a> SqliteFeedRepository<'a> {
     }
 }
 
-const SELECT_COLS: &str = "id, account_id, folder_id, remote_id, title, url, site_url, icon, icon_url, unread_count, reader_mode, web_preview_mode";
+const SELECT_COLS: &str = "id, account_id, folder_id, remote_id, title, url, site_url, icon, icon_url, unread_count, reader_mode, web_preview_mode, created_at";
 
 impl FeedRepository for SqliteFeedRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Feed>> {
@@ -103,7 +103,8 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                           AND {mute_clause}
                     ) AS unread_count,
                     f.reader_mode,
-                    f.web_preview_mode
+                    f.web_preview_mode,
+                    f.created_at
                  FROM feeds f
                  WHERE f.account_id = ?1
                  ORDER BY f.title COLLATE NOCASE, f.id"

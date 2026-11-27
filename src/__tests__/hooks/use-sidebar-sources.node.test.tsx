@@ -66,6 +66,7 @@ const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   unread_count: 0,
   reader_mode: "on",
   web_preview_mode: "off",
+  created_at: null,
   icon_url: null,
   ...overrides,
 });
@@ -75,6 +76,7 @@ const makeFeedArticleSummary = (
 ): FeedArticleSummaryDto => ({
   latest_article_at: null,
   last_seen_article_at: null,
+  last_seen_article_probe_completed: false,
   starred_count: 0,
   recent_article_count: 0,
   ...overrides,

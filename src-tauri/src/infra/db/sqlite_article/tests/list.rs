@@ -555,3 +555,32 @@ fn list_feed_article_summaries_keeps_last_seen_after_articles_are_purged() {
         "a feed that was never fetched has no last seen article time"
     );
 }
+
+#[test]
+fn list_feed_article_summaries_reports_completed_last_seen_probe() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let probed_feed_id = insert_test_feed(&db, &account_id);
+    let unprobed_feed_id = insert_test_feed(&db, &account_id);
+    db.writer()
+        .execute(
+            "UPDATE feeds SET last_seen_article_probe_completed = 1 WHERE id = ?1",
+            params![probed_feed_id.0],
+        )
+        .unwrap();
+    let repo = SqliteArticleRepository::new(db.writer());
+
+    let summaries = repo
+        .list_feed_article_summaries_by_account(&account_id)
+        .unwrap();
+    let probe_completed_for = |feed_id: &FeedId| {
+        summaries
+            .iter()
+            .find(|summary| &summary.feed_id == feed_id)
+            .expect("every feed in the account should have a summary row")
+            .last_seen_article_probe_completed
+    };
+
+    assert!(probe_completed_for(&probed_feed_id));
+    assert!(!probe_completed_for(&unprobed_feed_id));
+}

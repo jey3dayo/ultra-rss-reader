@@ -18,6 +18,7 @@ function buildFeed(overrides: Partial<FeedDto> = {}): FeedDto {
     unread_count: 3,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
     ...overrides,
     icon_url: overrides.icon_url ?? null,
   };
@@ -30,6 +31,7 @@ function buildRow(): SubscriptionListRow {
     folderName: null,
     latestArticleAt: null,
     latestArticleDays: null,
+    inactiveDays: null,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
