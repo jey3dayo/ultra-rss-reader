@@ -32,7 +32,8 @@ export function renderAppRootMissingFallback(ownerDocument: Document = document)
   return fallback;
 }
 
-export function resolveAppRoot(ownerDocument: Document = document): HTMLElement | null {
+/** Boot-time lookup with side effects: on a missing or duplicated root it logs `console.error` and appends the fallback alert to the document. */
+export function resolveAppRootOrRenderFallback(ownerDocument: Document = document): HTMLElement | null {
   const rootElements = ownerDocument.querySelectorAll<HTMLElement>(APP_ROOT_SELECTOR);
 
   if (rootElements.length === 1) {
@@ -45,7 +46,7 @@ export function resolveAppRoot(ownerDocument: Document = document): HTMLElement 
 }
 
 export function mountApp(
-  rootElement: HTMLElement | null = resolveAppRoot(),
+  rootElement: HTMLElement | null = resolveAppRootOrRenderFallback(),
   { errorHandlersEnabled = monitoringEnabled }: { errorHandlersEnabled?: boolean } = {},
 ) {
   if (!rootElement) {
