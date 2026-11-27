@@ -654,6 +654,22 @@ fn import_refreshes_query_statistics_after_creating_feeds() {
 }
 
 #[test]
+fn import_returns_feeds_with_the_stored_created_at() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Rust Blog".to_string(),
+        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+        html_url: None,
+        folder: None,
+    }];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert!(feeds[0].created_at.is_some());
+}
+
+#[test]
 fn import_keeps_committed_feeds_when_query_statistics_refresh_fails() {
     let db = test_db();
     let account_id = insert_test_account(&db, "Primary");

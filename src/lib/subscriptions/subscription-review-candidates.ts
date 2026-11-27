@@ -300,7 +300,7 @@ function resolveNoArticlesSinceCreatedDays({
   if (!isAccountSyncEnabled || summary === undefined || resolveLatestKnownArticleAt(summary) !== null) {
     return null;
   }
-  if (!isLocalAccount && !summary.last_seen_article_probe_completed) {
+  if (!isLocalAccount && feed.remote_id !== null && !summary.last_seen_article_probe_completed) {
     return null;
   }
 
@@ -309,7 +309,7 @@ function resolveNoArticlesSinceCreatedDays({
     return null;
   }
 
-  const sinceCreatedDays = calculateSubscriptionReviewStaleDays(now, createdAt);
+  const sinceCreatedDays = Math.max(0, Math.floor((now.getTime() - createdAt.getTime()) / 86_400_000));
   return sinceCreatedDays >= SUBSCRIPTION_REVIEW_STALE_DAYS ? sinceCreatedDays : null;
 }
 

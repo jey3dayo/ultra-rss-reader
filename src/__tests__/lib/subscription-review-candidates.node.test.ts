@@ -1134,12 +1134,35 @@ describe("no_articles review candidates", () => {
     expect(withLastSeen.sinceCreatedDays).toBeNull();
   });
 
-  it("waits for the latest-article probe on provider accounts", () => {
-    const beforeProbe = buildOne({ isLocalAccount: false, summary: { last_seen_article_probe_completed: false } });
-    const afterProbe = buildOne({ isLocalAccount: false, summary: { last_seen_article_probe_completed: true } });
+  it("waits for the latest-article probe on provider-managed feeds", () => {
+    const feed = { remote_id: "remote-1" };
+    const beforeProbe = buildOne({
+      feed,
+      isLocalAccount: false,
+      summary: { last_seen_article_probe_completed: false },
+    });
+    const afterProbe = buildOne({ feed, isLocalAccount: false, summary: { last_seen_article_probe_completed: true } });
 
     expect(beforeProbe.reasonKeys).toEqual([]);
     expect(afterProbe.reasonKeys).toEqual(["no_articles"]);
+  });
+
+  it("does not wait for a probe on feeds without a remote id, which provider accounts fetch locally", () => {
+    const candidate = buildOne({
+      feed: { remote_id: null },
+      isLocalAccount: false,
+      summary: { last_seen_article_probe_completed: false },
+    });
+
+    expect(candidate.reasonKeys).toEqual(["no_articles"]);
+  });
+
+  it("counts 90 elapsed days rather than UTC calendar-day boundaries", () => {
+    const justUnder = buildOne({
+      feed: { created_at: new Date(now.getTime() - 90 * 86_400_000 + 60_000).toISOString() },
+    });
+
+    expect(justUnder.reasonKeys).toEqual([]);
   });
 
   it("does not need a probe on local accounts, which never run one", () => {
