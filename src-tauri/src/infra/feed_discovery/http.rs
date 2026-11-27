@@ -1,6 +1,10 @@
 use std::net::IpAddr;
 use std::sync::Arc;
 
+use quick_xml::events::Event;
+use quick_xml::name::{Namespace, ResolveResult};
+use quick_xml::NsReader;
+
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{is_private_host, validate_user_provided_feed_url};
 use crate::infra::provider::http_defaults;
@@ -146,18 +150,7 @@ fn is_json_feed_content_type(ct: &str) -> bool {
 }
 
 fn validate_xml_feed_body(body: &str) -> DomainResult<()> {
-    let trimmed = body.trim_start();
-    let without_decl = trimmed
-        .strip_prefix('\u{feff}')
-        .unwrap_or(trimmed)
-        .trim_start();
-    let after_decl = without_decl
-        .strip_prefix("<?xml")
-        .and_then(|rest| rest.find("?>").map(|end| &rest[end + 2..]))
-        .unwrap_or(without_decl)
-        .trim_start();
-
-    if after_decl.starts_with("<rss") || after_decl.starts_with("<feed") {
+    if is_feed_body_fallback(body) {
         Ok(())
     } else {
         Err(invalid_feed_document_error())
@@ -210,5 +203,52 @@ pub(crate) fn is_feed_body_fallback(body: &str) -> bool {
         .and_then(|rest| rest.find("?>").map(|end| &rest[end + 2..]))
         .unwrap_or(without_decl)
         .trim_start();
-    after_decl.starts_with("<rss") || after_decl.starts_with("<feed")
+    after_decl.starts_with("<rss")
+        || after_decl.starts_with("<feed")
+        || is_rss_1_0_document(without_decl)
+}
+
+const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+const RSS_1_0_NAMESPACE: &str = "http://purl.org/rss/1.0/";
+
+fn is_rss_1_0_document(body: &str) -> bool {
+    let mut reader = NsReader::from_str(body);
+    let mut depth = 0usize;
+    let mut has_channel = false;
+    let mut has_root = false;
+    loop {
+        let Ok((namespace, event)) = reader.read_resolved_event() else {
+            return false;
+        };
+        let (element, opens_scope) = match event {
+            Event::Start(element) => (element, true),
+            Event::Empty(element) => (element, false),
+            Event::End(_) => {
+                depth = depth.saturating_sub(1);
+                continue;
+            }
+            Event::Eof => return has_channel && depth == 0,
+            Event::Text(text) if depth == 0 && !text.trim_ascii().is_empty() => return false,
+            Event::CData(_) if depth == 0 => return false,
+            _ => continue,
+        };
+        let local_name = element.local_name();
+        let name = local_name.as_ref();
+        match depth {
+            0 if has_root => return false,
+            0 if namespace != ResolveResult::Bound(Namespace(RDF_NAMESPACE)) || name != "RDF" => {
+                return false;
+            }
+            1 if namespace == ResolveResult::Bound(Namespace(RSS_1_0_NAMESPACE))
+                && name == "channel" =>
+            {
+                has_channel = true;
+            }
+            _ => {}
+        }
+        has_root = true;
+        if opens_scope {
+            depth += 1;
+        }
+    }
 }
