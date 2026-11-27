@@ -309,3 +309,16 @@ CI にも lefthook にも入っていないので、reintroduction を止める�
 | files | 31 | 29 |
 
 `no-ref-current-in-render` は4件から1件に減り、sidebar の3件が解消した。残る1件は `src/components/reader/hooks/article-list/use-article-list-data.ts:79`。`no-prop-callback-in-render` の1件は既存の test による。pinned baseline は過去 SHA を参照するため、変更していない。
+
+## 2026-11-28 react-doctor 0.9.23 の effect-needs-cleanup
+
+0.9.18 から 0.9.23 へ上げると、scanSha `4b7c5977c` の木で error が 2 件から 5 件に増え、追加の 3 件はすべて新ルール `effect-needs-cleanup` だった。現在の main では同ルールが 4 件を報告する。
+
+| サイト | 実際の後始末 |
+| --- | --- |
+| `src/components/reader/hooks/sidebar/use-sidebar-account-switcher.ts` の `addEventListener` | return する cleanup が登録した全 listener を `removeEventListener` で外す |
+| `src/components/reader/hooks/sidebar/use-sidebar-sync.ts` の `setTimeout` | cleanup が `disposed` を立て、`window.clearTimeout(timer)` で保留中の timer を止める |
+| `src/dev/use-dev-intent.ts` の `setTimeout` | cleanup が `cancelled` を立て、`window.clearTimeout(timeoutId)` で止める |
+| `src/hooks/use-updater.ts` の `setTimeout` | cleanup が `window.clearTimeout(startupCheckTimer)` で止める |
+
+どのサイトにも上の後始末があり、ルールがそれを認識できない理由は未確認（2026-11-28）。分類：**false-positive**（3 件、現在の main では 4 件）。must-fix はない。
