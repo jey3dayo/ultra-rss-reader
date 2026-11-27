@@ -985,6 +985,14 @@ fn validates_feed_body_before_accepting_xml_or_json_feed_content_types() {
             "application/feed+json",
         ),
         (r#"{"items":[]}"#, "application/feed+json"),
+        (
+            r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="https://example.com/"/></rdf:RDF>"#,
+            "application/xml",
+        ),
+        (
+            r#"<rdf:RDFExample xmlns="http://purl.org/rss/1.0/"></rdf:RDFExample>"#,
+            "application/xml",
+        ),
     ] {
         assert!(
             matches!(
@@ -1043,6 +1051,8 @@ fn test_feed_body_fallback_accepts_rss_atom_and_xml_when_content_type_is_mislead
 fn test_feed_body_fallback_rejects_html_when_content_type_is_misleading_or_missing() {
     for body in [
         r#"<html><head><title>Site</title></head><body></body></html>"#,
+        r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="https://example.com/"/></rdf:RDF>"#,
+        r#"<rdf:RDFExample xmlns="http://purl.org/rss/1.0/"></rdf:RDFExample>"#,
         r#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
         "",
     ] {

@@ -201,5 +201,14 @@ pub(crate) fn is_feed_body_fallback(body: &str) -> bool {
         .trim_start();
     after_decl.starts_with("<rss")
         || after_decl.starts_with("<feed")
-        || after_decl.starts_with("<rdf:RDF")
+        || is_rss_1_0_document(after_decl)
+}
+
+const RSS_1_0_NAMESPACE: &str = "http://purl.org/rss/1.0/";
+
+fn is_rss_1_0_document(after_decl: &str) -> bool {
+    after_decl
+        .strip_prefix("<rdf:RDF")
+        .is_some_and(|rest| rest.starts_with(|c: char| c == '>' || c.is_whitespace()))
+        && after_decl.contains(RSS_1_0_NAMESPACE)
 }
