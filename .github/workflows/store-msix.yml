@@ -155,7 +155,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2.9.2
         with:
           workspaces: src-tauri
-          shared-key: store-msix-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          shared-key: store-msix-${{ runner.os }}
+          save-if: false
 
       - run: pnpm install --frozen-lockfile
 
