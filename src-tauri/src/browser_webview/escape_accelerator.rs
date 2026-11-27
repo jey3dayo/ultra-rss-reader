@@ -72,6 +72,24 @@ fn is_browser_close_grace_action(action: &str) -> bool {
     )
 }
 
+#[cfg(windows)]
+const FULLSCREEN_TOGGLE_ACTION: &str = "toggle-fullscreen";
+
+/// F11 is the fixed Windows fullscreen key, not a preview shortcut preference. The preview
+/// webview owns keyboard focus, so the main window never sees it.
+#[cfg(any(test, windows))]
+pub(super) fn is_fullscreen_toggle_key(
+    virtual_key: u32,
+    command_or_control: bool,
+    shift: bool,
+    alt: bool,
+    windows_key: bool,
+) -> bool {
+    const VK_F11: u32 = 0x7A;
+
+    virtual_key == VK_F11 && !command_or_control && !shift && !alt && !windows_key
+}
+
 #[cfg(any(test, target_os = "macos"))]
 pub(super) fn should_handle_macos_browser_escape_key(
     key_code: u16,
@@ -153,12 +171,14 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
         Microsoft::Web::WebView2::Win32::{
             ICoreWebView2AcceleratorKeyPressedEventArgs, ICoreWebView2Settings3,
             COREWEBVIEW2_KEY_EVENT_KIND, COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN,
-            COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN,
+            COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN, COREWEBVIEW2_PHYSICAL_KEY_STATUS,
         },
         WebMessageReceivedEventHandler,
     };
     use windows::core::{Interface, HSTRING, PWSTR};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_MENU, VK_SHIFT};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+        GetKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+    };
 
     let app_handle = app_handle.clone();
     let prefs = load_browser_preview_prefs(&app_handle)?;
@@ -248,6 +268,23 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                     let command_or_control = GetKeyState(VK_CONTROL.0 as i32) < 0;
                     let shift = GetKeyState(VK_SHIFT.0 as i32) < 0;
                     let alt = GetKeyState(VK_MENU.0 as i32) < 0;
+                    let windows_key =
+                        GetKeyState(VK_LWIN.0 as i32) < 0 || GetKeyState(VK_RWIN.0 as i32) < 0;
+                    if is_fullscreen_toggle_key(
+                        virtual_key,
+                        command_or_control,
+                        shift,
+                        alt,
+                        windows_key,
+                    ) {
+                        let mut key_status = COREWEBVIEW2_PHYSICAL_KEY_STATUS::default();
+                        args.PhysicalKeyStatus(&mut key_status)?;
+                        args.SetHandled(true)?;
+                        if !key_status.WasKeyDown.as_bool() {
+                            let _ = app_handle.emit(MENU_ACTION_EVENT, FULLSCREEN_TOGGLE_ACTION);
+                        }
+                        return Ok(());
+                    }
                     let Some(action) = browser_preview_action_for_virtual_key(
                         &app_handle,
                         virtual_key,

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::bridge::{browser_preview_bridge_message_action, browser_preview_close_bridge_source};
-use super::escape_accelerator::should_handle_macos_browser_escape_key;
+use super::escape_accelerator::{is_fullscreen_toggle_key, should_handle_macos_browser_escape_key};
 use super::navigation::supports_native_navigation;
 use super::prefs::{
     browser_preview_action_for_macos_key_event, browser_preview_action_for_shortcut,
@@ -840,6 +840,21 @@ fn browser_preview_virtual_key_keeps_saved_overrides_when_preferences_load() {
         ),
         Some("toggle-read")
     );
+}
+
+#[test]
+fn windows_fullscreen_key_is_unmodified_f11_only() {
+    const VK_F11: u32 = 0x7A;
+    const VK_F10: u32 = 0x79;
+
+    assert!(is_fullscreen_toggle_key(VK_F11, false, false, false, false));
+    assert!(!is_fullscreen_toggle_key(
+        VK_F10, false, false, false, false
+    ));
+    assert!(!is_fullscreen_toggle_key(VK_F11, true, false, false, false));
+    assert!(!is_fullscreen_toggle_key(VK_F11, false, true, false, false));
+    assert!(!is_fullscreen_toggle_key(VK_F11, false, false, true, false));
+    assert!(!is_fullscreen_toggle_key(VK_F11, false, false, false, true));
 }
 
 #[test]
