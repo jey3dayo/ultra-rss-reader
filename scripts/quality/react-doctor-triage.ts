@@ -158,10 +158,10 @@ const reactDoctorFullScanTriageStatusBase = {
   // The dispositions must total errorCountAtScan (pinned by the baseline test), so re-pinning
   // errorCount without re-classifying fails. mustFix counts fixes still owed.
   errorClassification: {
-    pass: "2026-09-10",
+    pass: "2026-11-28",
     recordPath: "docs/react-doctor-error-triage.md",
     mustFix: 0,
-    falsePositive: 1,
+    falsePositive: 4,
     acceptedRisk: 1,
   },
   // Named so re-pinning a total cannot erase an earlier decision.
