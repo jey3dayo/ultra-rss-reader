@@ -28,12 +28,13 @@ agent-browser --headed open <url> 2>&1 || { agent-browser close 2>/dev/null; age
 Then verify the Agentation toolbar is present and expand it:
 
 ```bash
-# 1. Check toolbar exists on the page (data-feedback-toolbar is the root marker)
-agent-browser eval "document.querySelector('[data-feedback-toolbar]') ? 'toolbar found' : 'NOT FOUND'"
+# 1. Check toolbar exists on the page. Agentation 3.1+ renders inside a shadow root on <agentation-toolbar>,
+#    so query through it (the fallback to document keeps older versions working)
+agent-browser eval "(document.querySelector('agentation-toolbar')?.shadowRoot || document).querySelector('[data-feedback-toolbar]') ? 'toolbar found' : 'NOT FOUND'"
 # If "NOT FOUND": Agentation is not installed on this page — stop and tell the user
 
 # 2. Expand ONLY if collapsed (clicking when already expanded collapses it)
-agent-browser eval "document.querySelector('[data-feedback-toolbar][class*=expanded]') ? 'already expanded' : (document.querySelector('[class*=toggleContent]')?.click(), 'expanding')"
+agent-browser eval "(document.querySelector('agentation-toolbar')?.shadowRoot || document).querySelector('[data-feedback-toolbar][class*=expanded]') ? 'already expanded' : ((document.querySelector('agentation-toolbar')?.shadowRoot || document).querySelector('[class*=toggleContent]')?.click(), 'expanding')"
 
 # 3. Verify: take a snapshot and look for toolbar controls
 agent-browser snapshot -i
@@ -85,7 +86,7 @@ agent-browser click @<addRef>
 If no dialog appears after clicking, the toolbar may have collapsed. Re-expand (only if collapsed) and retry:
 
 ```bash
-agent-browser eval "document.querySelector('[data-feedback-toolbar][class*=expanded]') ? 'ok' : (document.querySelector('[class*=toggleContent]')?.click(), 'expanded')"
+agent-browser eval "(document.querySelector('agentation-toolbar')?.shadowRoot || document).querySelector('[data-feedback-toolbar][class*=expanded]') ? 'ok' : ((document.querySelector('agentation-toolbar')?.shadowRoot || document).querySelector('[class*=toggleContent]')?.click(), 'expanded')"
 ```
 
 ### Building CSS selectors from snapshots
@@ -122,7 +123,7 @@ Work top-to-bottom through the page. For each annotation:
 After submitting each annotation, confirm the count increased:
 
 ```bash
-agent-browser eval "document.querySelectorAll('[data-annotation-marker]').length"
+agent-browser eval "(document.querySelector('agentation-toolbar')?.shadowRoot || document).querySelectorAll('[data-annotation-marker]').length"
 # Should return the expected count (1 after first, 2 after second, etc.)
 ```
 
