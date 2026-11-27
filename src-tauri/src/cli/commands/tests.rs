@@ -63,6 +63,7 @@ fn fixture_feed(id: &str, account_id: &AccountId, url: &str, unread_count: i32) 
         unread_count,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 

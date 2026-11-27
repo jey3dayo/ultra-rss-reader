@@ -5,7 +5,7 @@ import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscripti
 export type SubscriptionSummaryFilterKey = "all" | "stale" | "frequent" | "fetch_errors";
 
 export type SubscriptionRowStatus = {
-  labelKey: "normal" | "attention_30d" | "stale_90d" | "quiet_no_unread";
+  labelKey: "normal" | "attention_30d" | "stale_90d" | "quiet_no_unread" | "no_articles";
 };
 
 export type SubscriptionStatusTone = "neutral" | "warning" | "danger";
@@ -24,9 +24,11 @@ export type SubscriptionListRow = {
   folderName: string | null;
   latestArticleAt: string | null;
   latestArticleDays: number | null;
+  /** Days the stale sort and filter judge the row on: article staleness, or subscription age for `no_articles`. */
+  inactiveDays: number | null;
   recentArticleCount: number;
   status: SubscriptionRowStatus;
-  reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | "fetch_error" | "remote_fetch_error" | null;
+  reasonTooltipKey: "no_articles_yet" | SubscriptionRowStatus["labelKey"] | "fetch_error" | "remote_fetch_error" | null;
   fetchError?: LocalFeedSyncStatusDto;
   remoteFetchFailure?: RemoteFeedFetchFailure;
 };

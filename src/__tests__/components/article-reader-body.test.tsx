@@ -42,6 +42,7 @@ const baseFeed: FeedDto = {
   unread_count: 0,
   reader_mode: "inherit",
   web_preview_mode: "inherit",
+  created_at: null,
 };
 
 describe("ArticleReaderBody", () => {

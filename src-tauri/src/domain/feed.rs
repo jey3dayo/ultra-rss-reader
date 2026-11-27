@@ -16,4 +16,8 @@ pub struct Feed {
     pub unread_count: i32,
     pub reader_mode: String,
     pub web_preview_mode: String,
+    /// Assigned by the database on insert and never overwritten, so callers pass `None`.
+    /// Approximation: a feed recreated by import or re-subscription starts a new clock, and
+    /// feeds that predate the column start at the migration time.
+    pub created_at: Option<String>,
 }

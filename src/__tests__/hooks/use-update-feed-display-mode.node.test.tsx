@@ -66,6 +66,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         unread_count: 5,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       },
     ]);
   }
@@ -90,6 +91,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         id: "feed-1",
         reader_mode: "on",
         web_preview_mode: "on",
+        created_at: null,
       }),
     ]);
     await waitFor(() => {
@@ -113,6 +115,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         id: "feed-1",
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       }),
     ]);
     expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
@@ -138,7 +141,7 @@ describe("useUpdateFeedDisplaySettings", () => {
     expect(onError).toHaveBeenCalledWith({ type: "UserVisible", message: "boom" });
     expect(showToastMock).not.toHaveBeenCalled();
     expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
-      expect.objectContaining({ id: "feed-1", reader_mode: "inherit", web_preview_mode: "inherit" }),
+      expect.objectContaining({ id: "feed-1", reader_mode: "inherit", web_preview_mode: "inherit", created_at: null }),
     ]);
   });
 
@@ -158,6 +161,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         id: "feed-1",
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       }),
     ]);
     expect(showToastMock).not.toHaveBeenCalled();
@@ -178,6 +182,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         unread_count: 5,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       },
     ];
     const deferredRefetch = createDeferred<FeedDto[]>();
@@ -208,6 +213,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         id: "feed-1",
         reader_mode: "on",
         web_preview_mode: "on",
+        created_at: null,
       }),
     ]);
   });
@@ -231,6 +237,7 @@ describe("useUpdateFeedDisplaySettings", () => {
           id: "feed-1",
           reader_mode: "on",
           web_preview_mode: "on",
+          created_at: null,
         }),
       ]);
     });
@@ -244,6 +251,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         id: "feed-1",
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       }),
     ]);
   });
@@ -264,6 +272,7 @@ describe("useUpdateFeedDisplaySettings", () => {
           id: "feed-1",
           reader_mode: "on",
           web_preview_mode: "on",
+          created_at: null,
         }),
       ]);
     });
@@ -275,6 +284,7 @@ describe("useUpdateFeedDisplaySettings", () => {
           id: "feed-1",
           reader_mode: "off",
           web_preview_mode: "off",
+          created_at: null,
         }),
       ]);
     });
@@ -290,6 +300,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         id: "feed-1",
         reader_mode: "off",
         web_preview_mode: "off",
+        created_at: null,
       }),
     ]);
     expect(showToastMock).not.toHaveBeenCalledWith(
@@ -314,6 +325,7 @@ describe("useUpdateFeedDisplaySettings", () => {
           id: "feed-1",
           reader_mode: "on",
           web_preview_mode: "on",
+          created_at: null,
         }),
       ]);
     });
@@ -325,6 +337,7 @@ describe("useUpdateFeedDisplaySettings", () => {
           id: "feed-1",
           reader_mode: "off",
           web_preview_mode: "off",
+          created_at: null,
         }),
       ]);
     });
@@ -354,6 +367,7 @@ describe("useUpdateFeedDisplaySettings", () => {
         id: "feed-1",
         reader_mode: "off",
         web_preview_mode: "off",
+        created_at: null,
       }),
     ]);
     expect(showToastMock).not.toHaveBeenCalled();

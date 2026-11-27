@@ -1,6 +1,6 @@
 use super::super::consts::*;
 use super::super::*;
-use super::{migrate_to_v19, migrate_to_v29, open_in_memory};
+use super::{migrate_to_v19, migrate_to_v29, migrate_to_v31, open_in_memory};
 
 #[test]
 fn version_skip_v1_to_latest() {
@@ -248,7 +248,7 @@ fn v30_backfills_last_seen_article_at_from_stored_articles() {
 
     let result = run_migrations(&mut conn).unwrap();
     assert_eq!(result.from_version, 29);
-    assert_eq!(result.to_version, 31);
+    assert_eq!(result.to_version, LATEST_VERSION);
 
     let sync_enabled: i64 = conn
         .query_row(
@@ -285,5 +285,83 @@ fn v30_backfills_last_seen_article_at_from_stored_articles() {
     assert_eq!(
         empty_last_seen, None,
         "a feed with no stored articles stays unknown until a sync observes one"
+    );
+}
+
+fn feed_created_at(conn: &rusqlite::Connection, feed_id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT created_at FROM feeds WHERE id = ?1",
+        [feed_id],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+#[test]
+fn v32_backfills_existing_feeds_with_migration_time() {
+    let mut conn = open_in_memory();
+    migrate_to_v31(&conn);
+    assert_eq!(get_schema_version(&conn), 31);
+    conn.execute_batch(
+        "INSERT INTO accounts (id, kind, name) VALUES ('acc-1', 'FreshRSS', 'Test');
+         INSERT INTO feeds (id, account_id, title, url, site_url)
+         VALUES ('feed-old', 'acc-1', 'Old', 'https://example.com/old.xml', 'https://example.com');",
+    )
+    .unwrap();
+
+    let result = run_migrations(&mut conn).unwrap();
+    assert_eq!(result.from_version, 31);
+    assert_eq!(result.to_version, 32);
+
+    let backfilled_recently: bool = conn
+        .query_row(
+            "SELECT julianday(created_at) BETWEEN julianday('now', '-1 minute') AND julianday('now', '+1 minute')
+             FROM feeds WHERE id = 'feed-old'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        backfilled_recently,
+        "existing feeds start their age at the migration time"
+    );
+}
+
+#[test]
+fn v32_stamps_feeds_inserted_after_migration_even_during_local_sync_apply() {
+    let mut conn = open_in_memory();
+    run_migrations(&mut conn).unwrap();
+    conn.execute_batch(
+        "INSERT INTO accounts (id, kind, name) VALUES ('acc-1', 'Local', 'Test');
+         INSERT INTO feeds (id, account_id, title, url, site_url)
+         VALUES ('feed-plain', 'acc-1', 'Plain', 'https://example.com/plain.xml', 'https://example.com');
+         UPDATE local_sync_apply_guard SET active = 1;
+         INSERT INTO feeds (id, account_id, title, url, site_url)
+         VALUES ('feed-imported', 'acc-1', 'Imported', 'https://example.com/imported.xml', 'https://example.com');
+         UPDATE local_sync_apply_guard SET active = 0;",
+    )
+    .unwrap();
+
+    assert!(feed_created_at(&conn, "feed-plain").is_some());
+    assert!(
+        feed_created_at(&conn, "feed-imported").is_some(),
+        "the sync-apply guard must not leave imported feeds without a creation time"
+    );
+}
+
+#[test]
+fn v32_keeps_an_explicit_created_at_on_insert() {
+    let mut conn = open_in_memory();
+    run_migrations(&mut conn).unwrap();
+    conn.execute_batch(
+        "INSERT INTO accounts (id, kind, name) VALUES ('acc-1', 'Local', 'Test');
+         INSERT INTO feeds (id, account_id, title, url, site_url, created_at)
+         VALUES ('feed-1', 'acc-1', 'One', 'https://example.com/one.xml', 'https://example.com', '2020-01-01T00:00:00.000Z');",
+    )
+    .unwrap();
+
+    assert_eq!(
+        feed_created_at(&conn, "feed-1").as_deref(),
+        Some("2020-01-01T00:00:00.000Z")
     );
 }

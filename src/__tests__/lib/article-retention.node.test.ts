@@ -136,6 +136,7 @@ describe("article retention", () => {
       folderName: null,
       latestArticleAt: "2026-01-01T00:00:00Z",
       staleDays: 94,
+      sinceCreatedDays: null,
       unreadCount: 0,
       starredCount: 1,
       reasonKeys: ["stale_90d", "quiet_no_unread"],

@@ -474,6 +474,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
                 unread_count: 0,
                 reader_mode: "inherit".into(),
                 web_preview_mode: "inherit".into(),
+                created_at: None,
             })
             .unwrap();
         article_repo

@@ -161,6 +161,7 @@ export function SubscriptionsIndexPage() {
         ref={contentRef}
         accountId={accountId}
         accountName={currentAccount?.name ?? ""}
+        isAccountSyncEnabled={currentAccount?.sync_enabled === true}
         workspaceScrollRef={workspaceScrollRef}
         viewportWidth={viewportWidth}
         onClose={close}
@@ -179,6 +180,7 @@ function SubscriptionsIndexPageForAccount({
   ref,
   accountId: selectedAccountId,
   accountName,
+  isAccountSyncEnabled,
   workspaceScrollRef,
   viewportWidth,
   onClose,
@@ -186,6 +188,7 @@ function SubscriptionsIndexPageForAccount({
   ref: Ref<IndexHandle>;
   accountId: string | null;
   accountName: string;
+  isAccountSyncEnabled: boolean;
   workspaceScrollRef: React.RefObject<HTMLDivElement | null>;
   viewportWidth: number;
   onClose: () => void;
@@ -237,6 +240,7 @@ function SubscriptionsIndexPageForAccount({
     scopedIndexReturnState,
     selectedAccountId,
     isLocalAccount: localFeedSync.isLocalAccount,
+    isAccountSyncEnabled,
     feedSyncStatuses: localFeedSync.statusQuery.data,
     feedSyncStatusesPending: localFeedSync.statusQuery.isPending,
     feedSyncStatusesError: localFeedSync.statusQuery.isError,

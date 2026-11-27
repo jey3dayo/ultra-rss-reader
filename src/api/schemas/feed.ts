@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
-import { isHttpUrl, NonnegativeIntegerSchema } from "./common";
+import { IsoDateTimeStringSchema, isHttpUrl, NonnegativeIntegerSchema } from "./common";
 
 export const FeedDisplayModeSchema = v.picklist(["inherit", "on", "off"]);
 
@@ -30,6 +30,8 @@ export const FeedDtoSchema = s.strictObject({
   unread_count: NonnegativeIntegerSchema,
   reader_mode: FeedDisplayModeSchema,
   web_preview_mode: FeedDisplayModeSchema,
+  // Approximate subscription time; null only when the backend has no stamp. See src-tauri/src/domain/feed.rs.
+  created_at: v.nullable(IsoDateTimeStringSchema),
 });
 
 export const FeedDtoListSchema = v.array(FeedDtoSchema);

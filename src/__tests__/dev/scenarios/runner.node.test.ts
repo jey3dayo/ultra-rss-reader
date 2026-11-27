@@ -183,6 +183,7 @@ const genericFeed: FeedDto = {
   unread_count: 10,
   reader_mode: "off",
   web_preview_mode: "off",
+  created_at: null,
 };
 
 const mangaFeed: FeedDto = {
@@ -197,6 +198,7 @@ const mangaFeed: FeedDto = {
   unread_count: 2,
   reader_mode: "on",
   web_preview_mode: "on",
+  created_at: null,
 };
 
 const readArticle: ArticleDto = {
@@ -602,7 +604,7 @@ describe("runDevScenario", () => {
     expectCachedQuery(queryClient, ["accounts"], [otherAccount, account]);
     expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), [
       genericFeed,
-      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off", created_at: null },
     ]);
     expectCachedQuery(queryClient, queryKeys.articles.byFeed(mangaFeed.id, "all"), [
       overlayPreferredOlderArticle,
@@ -642,7 +644,7 @@ describe("runDevScenario", () => {
 
     expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), [
       genericFeed,
-      { ...mangaFeed, reader_mode: "on", web_preview_mode: "on" },
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "on", created_at: null },
     ]);
     expectCachedQuery(queryClient, queryKeys.articles.byFeed(mangaFeed.id, "all"), [
       overlayPreferredOlderArticle,
@@ -713,7 +715,7 @@ describe("runDevScenario", () => {
     ]);
     expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), [
       blockedRankedFeed,
-      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off", created_at: null },
     ]);
     expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
     expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);

@@ -68,6 +68,7 @@ type UseSubscriptionsIndexViewPropsParams = {
   scopedIndexReturnState: SubscriptionsWorkspaceReturnState | null;
   selectedAccountId: string | null;
   isLocalAccount: boolean;
+  isAccountSyncEnabled: boolean;
   feedSyncStatuses: LocalFeedSyncStatusDto[] | undefined;
   feedSyncStatusesPending: boolean;
   feedSyncStatusesError: boolean;
@@ -107,6 +108,7 @@ export function useSubscriptionsIndexViewProps({
   scopedIndexReturnState,
   selectedAccountId,
   isLocalAccount,
+  isAccountSyncEnabled,
   feedSyncStatuses,
   feedSyncStatusesPending,
   feedSyncStatusesError,
@@ -143,8 +145,10 @@ export function useSubscriptionsIndexViewProps({
         folders,
         feedArticleSummaries,
         now: reviewClock,
+        isLocalAccount,
+        isAccountSyncEnabled,
       }),
-    [feedArticleSummaries, feeds, folders, reviewClock],
+    [feedArticleSummaries, feeds, folders, isAccountSyncEnabled, isLocalAccount, reviewClock],
   );
 
   const candidateMap = useMemo(() => buildSubscriptionReviewCandidateMap(candidates), [candidates]);
@@ -243,7 +247,8 @@ export function useSubscriptionsIndexViewProps({
           statusLabel: (labelKey) => t(`status_${labelKey}`),
           summaryText: (summaryKey) => t(resolveSubscriptionReviewSummaryTranslationKey(summaryKey)),
           reasonFact: (fact) => t(resolveSubscriptionReviewReasonFactTranslationKey(fact.key), { count: fact.value }),
-          reasonLabel: (reasonKey, staleDays) => t(`reason_${reasonKey}`, { count: staleDays ?? 0 }),
+          reasonLabel: (reasonKey, staleDays) =>
+            reasonKey === "no_articles" ? t("reason_no_articles") : t(`reason_${reasonKey}`, { count: staleDays ?? 0 }),
         },
       }),
     [selectedCandidate, state.selectedRow, t],
@@ -441,8 +446,10 @@ export function useSubscriptionsIndexViewProps({
       attention_30d: t("status_attention_30d"),
       stale_90d: t("status_stale_90d"),
       quiet_no_unread: t("status_quiet_no_unread"),
+      no_articles: t("status_no_articles"),
     },
     reasonTooltipLabels: {
+      no_articles_yet: t("tooltip_reason_no_articles_yet"),
       no_articles: t("tooltip_reason_no_articles"),
       attention_30d: t("tooltip_reason_attention_30d"),
       stale_90d: t("tooltip_reason_stale_90d"),

@@ -18,6 +18,7 @@ function buildFeed(overrides: Partial<FeedDto>): FeedDto {
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
     ...overrides,
     icon_url: overrides.icon_url ?? null,
   };
@@ -30,6 +31,7 @@ const rows = [
     folderName: "Work",
     latestArticleAt: "2024-01-01T10:00:00Z",
     latestArticleDays: 820,
+    inactiveDays: 820,
     recentArticleCount: 0,
     status: { labelKey: "stale_90d" },
     reasonTooltipKey: "stale_90d",
@@ -47,6 +49,7 @@ const rows = [
     folderName: "Design",
     latestArticleAt: "2026-04-01T10:00:00Z",
     latestArticleDays: 36,
+    inactiveDays: 36,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -64,6 +67,7 @@ const rows = [
     folderName: null,
     latestArticleAt: null,
     latestArticleDays: null,
+    inactiveDays: null,
     recentArticleCount: 0,
     status: { labelKey: "quiet_no_unread" },
     reasonTooltipKey: "quiet_no_unread",
@@ -88,6 +92,7 @@ const readerAlignedRows = [
     folderName: "Misc",
     latestArticleAt: "2026-05-07T10:00:00Z",
     latestArticleDays: 0,
+    inactiveDays: 0,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -105,9 +110,10 @@ const readerAlignedRows = [
     folderName: "Misc",
     latestArticleAt: null,
     latestArticleDays: null,
+    inactiveDays: null,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
-    reasonTooltipKey: "no_articles",
+    reasonTooltipKey: "no_articles_yet",
   },
   {
     feed: buildFeed({
@@ -122,6 +128,7 @@ const readerAlignedRows = [
     folderName: "News",
     latestArticleAt: "2026-05-07T10:00:00Z",
     latestArticleDays: 0,
+    inactiveDays: 0,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -139,6 +146,7 @@ const readerAlignedRows = [
     folderName: "Tech",
     latestArticleAt: "2026-05-06T10:00:00Z",
     latestArticleDays: 1,
+    inactiveDays: 1,
     recentArticleCount: 0,
     status: { labelKey: "normal" },
     reasonTooltipKey: null,
@@ -155,13 +163,15 @@ const statusLabels = {
   attention_30d: "Attention",
   stale_90d: "Long-term inactive",
   quiet_no_unread: "Quiet",
+  no_articles: "No articles",
 } satisfies SubscriptionsActionableStatusLabels;
 
 const reasonTooltipLabels = {
-  no_articles: "No fetched articles yet",
+  no_articles_yet: "No fetched articles yet",
   attention_30d: "Latest article is older than 30 days",
   stale_90d: "Latest article is older than 90 days",
   quiet_no_unread: "Latest article is older than 60 days and the feed has no unread items",
+  no_articles: "No article has ever been fetched, and the subscription is more than 90 days old",
 } satisfies Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
 
 function isEveryGroupExpanded(_groupKey?: string) {

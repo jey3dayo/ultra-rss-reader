@@ -143,6 +143,7 @@ pub(crate) async fn add_local_feed_with_provider(
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
 
     {
@@ -237,6 +238,7 @@ where
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
 
     {

@@ -41,6 +41,7 @@ async fn account_parallel_sync_reports_local_feed_warnings_in_requested_account_
                 unread_count: 0,
                 reader_mode: "inherit".to_string(),
                 web_preview_mode: "inherit".to_string(),
+                created_at: None,
             })
             .unwrap();
         feed_repo
@@ -57,6 +58,7 @@ async fn account_parallel_sync_reports_local_feed_warnings_in_requested_account_
                 unread_count: 0,
                 reader_mode: "inherit".to_string(),
                 web_preview_mode: "inherit".to_string(),
+                created_at: None,
             })
             .unwrap();
     }
@@ -124,6 +126,7 @@ async fn local_account_sync_continues_after_one_feed_fails() {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
     let good_feed = Feed {
         id: FeedId::new(),
@@ -138,6 +141,7 @@ async fn local_account_sync_continues_after_one_feed_fails() {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
 
     {
@@ -201,6 +205,7 @@ async fn local_account_sync_propagates_failure_status_persistence_error() {
                 unread_count: 0,
                 reader_mode: "inherit".to_string(),
                 web_preview_mode: "inherit".to_string(),
+                created_at: None,
             })
             .unwrap();
         db_guard
@@ -727,6 +732,7 @@ async fn sync_feed_only_updates_the_selected_local_feed() {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
     let other_feed = Feed {
         id: FeedId::new(),
@@ -741,6 +747,7 @@ async fn sync_feed_only_updates_the_selected_local_feed() {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
 
     {

@@ -19,6 +19,7 @@ const feed: FeedDto = {
   unread_count: 5,
   reader_mode: "inherit",
   web_preview_mode: "inherit",
+  created_at: null,
 };
 
 function createParams(overrides: Partial<SubmitFeedEditsParams> = {}): SubmitFeedEditsParams {

@@ -114,6 +114,7 @@ mod tests {
                         unread_count: 0,
                         reader_mode: "inherit".to_string(),
                         web_preview_mode: "inherit".to_string(),
+                        created_at: None,
                     })
                     .unwrap();
             }

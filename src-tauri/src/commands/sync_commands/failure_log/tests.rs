@@ -186,6 +186,7 @@ async fn sync_entrypoints_log_partial_results_without_account_or_feed_details() 
                     unread_count: 0,
                     reader_mode: "inherit".to_string(),
                     web_preview_mode: "inherit".to_string(),
+                    created_at: None,
                 })
                 .expect("invalid URL feed fixture should save");
         }

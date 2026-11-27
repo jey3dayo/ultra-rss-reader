@@ -6,7 +6,7 @@ import { createDeferred } from "@tests/helpers/deferred";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
-import type { FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
+import type { FeedArticleSummaryDto, FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
 import type { SubscriptionsIndexPageView } from "@/components/subscriptions-index/subscriptions-index-page-view";
 import { __resetFeedRetryStateForTests } from "@/hooks/use-local-feed-sync-statuses";
@@ -34,6 +34,7 @@ function getRequiredHTMLElement(element: Element | null, description: string) {
 let deleteFeedHandler: (() => unknown) | null = null;
 let deleteFeedCalls: string[] = [];
 let feedRows: FeedDto[] = [];
+let extraFeedSummaries: FeedArticleSummaryDto[] = [];
 let documentVisibilityState = "visible";
 
 function setDocumentVisibilityState(visibilityState: DocumentVisibilityState) {
@@ -59,6 +60,7 @@ describe("SubscriptionsIndexPage", () => {
     deleteFeedCalls = [];
     __resetFeedRetryStateForTests();
     setDocumentVisibilityState("visible");
+    extraFeedSummaries = [];
     feedRows = [
       {
         id: "feed-1",
@@ -72,6 +74,7 @@ describe("SubscriptionsIndexPage", () => {
         unread_count: 0,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       },
       {
         id: "feed-2",
@@ -85,6 +88,7 @@ describe("SubscriptionsIndexPage", () => {
         unread_count: 3,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       },
       {
         id: "feed-3",
@@ -98,6 +102,7 @@ describe("SubscriptionsIndexPage", () => {
         unread_count: 1,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       },
     ];
 
@@ -168,6 +173,7 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-1",
               latest_article_at: "2024-01-01T10:00:00Z",
               last_seen_article_at: null,
+              last_seen_article_probe_completed: false,
               starred_count: 0,
               recent_article_count: 0,
             },
@@ -175,6 +181,7 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-2",
               latest_article_at: "2099-04-01T10:00:00Z",
               last_seen_article_at: null,
+              last_seen_article_probe_completed: false,
               starred_count: 1,
               recent_article_count: 0,
             },
@@ -182,9 +189,11 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-3",
               latest_article_at: "2099-03-15T10:00:00Z",
               last_seen_article_at: null,
+              last_seen_article_probe_completed: false,
               starred_count: 0,
               recent_article_count: 0,
             },
+            ...extraFeedSummaries,
           ];
         case "get_feed_integrity_report":
           return {
@@ -770,6 +779,45 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByRole("button", { name: /^(購読解除|unsubscribe_action)$/ })).toBeInTheDocument();
   });
 
+  it("lists a long-subscribed feed with no articles under the stale filter without a day count", async () => {
+    const user = userEvent.setup();
+    feedRows.push({
+      id: "feed-silent",
+      account_id: "acc-1",
+      folder_id: null,
+      remote_id: null,
+      title: "Silent Feed",
+      url: "https://example.com/silent.xml",
+      site_url: "https://example.com/silent",
+      icon_url: null,
+      unread_count: 0,
+      reader_mode: "inherit",
+      web_preview_mode: "inherit",
+      created_at: new Date(Date.now() - 120 * 86_400_000).toISOString(),
+    });
+    extraFeedSummaries = [
+      {
+        feed_id: "feed-silent",
+        latest_article_at: null,
+        last_seen_article_at: null,
+        last_seen_article_probe_completed: false,
+        starred_count: 0,
+        recent_article_count: 0,
+      },
+    ];
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const group = await screen.findByRole("group", { name: "購読の絞り込み" });
+    await user.click(await within(group).findByRole("button", { name: "90日以上未更新2" }));
+    await user.click(await screen.findByRole("button", { name: /Silent Feed/ }));
+
+    const detailPane = await screen.findByTestId("subscriptions-detail-pane");
+    expect(within(detailPane).getAllByText("記事なし").length).toBeGreaterThan(0);
+    expect(detailPane).toHaveTextContent("登録から90日以上たっていますが、記事を1件も取得できていません");
+    expect(detailPane.textContent).not.toMatch(/(?<![0-9])0日/);
+  });
+
   it("shows the review exclusion in the list and detail pane and lets the detail pane remove it", async () => {
     const user = userEvent.setup();
     useSubscriptionReviewStore.getState().keep("acc-1", "feed-2");
@@ -849,6 +897,7 @@ describe("SubscriptionsIndexPage", () => {
         unread_count: 0,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       },
       {
         id: "feed-3",
@@ -862,6 +911,7 @@ describe("SubscriptionsIndexPage", () => {
         unread_count: 0,
         reader_mode: "inherit",
         web_preview_mode: "inherit",
+        created_at: null,
       },
     ];
     setupTauriMocks((cmd) => {
@@ -903,6 +953,7 @@ describe("SubscriptionsIndexPage", () => {
             feed_id: "feed-1",
             latest_article_at: "2024-01-01T10:00:00Z",
             last_seen_article_at: null,
+            last_seen_article_probe_completed: false,
             starred_count: 0,
             recent_article_count: 0,
           },
@@ -910,6 +961,7 @@ describe("SubscriptionsIndexPage", () => {
             feed_id: "feed-3",
             latest_article_at: "2024-06-01T10:00:00Z",
             last_seen_article_at: null,
+            last_seen_article_probe_completed: false,
             starred_count: 0,
             recent_article_count: 0,
           },
@@ -1240,6 +1292,7 @@ describe("SubscriptionsIndexPage", () => {
               unread_count: 1,
               reader_mode: "inherit",
               web_preview_mode: "inherit",
+              created_at: null,
             },
           ];
         case "list_folders":
@@ -1252,6 +1305,7 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-boundary",
               latest_article_at: "2026-01-01T00:00:00Z",
               last_seen_article_at: null,
+              last_seen_article_probe_completed: false,
               starred_count: 1,
               recent_article_count: 0,
             },
@@ -1302,6 +1356,7 @@ describe("SubscriptionsIndexPage", () => {
               unread_count: 1,
               reader_mode: "inherit",
               web_preview_mode: "inherit",
+              created_at: null,
             },
           ];
         case "list_folders":
@@ -1314,6 +1369,7 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-boundary",
               latest_article_at: "2026-01-01T00:00:00Z",
               last_seen_article_at: null,
+              last_seen_article_probe_completed: false,
               starred_count: 1,
               recent_article_count: 0,
             },

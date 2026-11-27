@@ -17,6 +17,7 @@ function makeRow(feedId: string, title: string = feedId): SubscriptionListRow {
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   };
 
   const [row] = buildSubscriptionListRows({

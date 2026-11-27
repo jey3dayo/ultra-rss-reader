@@ -36,6 +36,7 @@ fn delete_missing_greader_subscriptions_removes_only_remote_managed_feeds() {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
     {
         let db_guard = db.lock().unwrap();
@@ -757,6 +758,7 @@ fn resolve_greader_subscription_folder_id_preserves_existing_folder_when_remote_
         unread_count: 0,
         reader_mode: "on".to_string(),
         web_preview_mode: "off".to_string(),
+        created_at: None,
     };
     let folder_remote_id_map = HashMap::new();
 

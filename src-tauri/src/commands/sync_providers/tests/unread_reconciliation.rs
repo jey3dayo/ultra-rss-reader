@@ -399,6 +399,7 @@ async fn reconcile_greader_unread_counts_marks_local_surplus_unread_as_read() {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     };
     let local_articles = [
         Article {

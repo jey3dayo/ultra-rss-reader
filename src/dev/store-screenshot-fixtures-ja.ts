@@ -74,6 +74,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-systems-journal",
@@ -87,6 +88,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-daily-signal-wire",
@@ -100,6 +102,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-north-star-report",
@@ -113,6 +116,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-dev-weekly",
@@ -126,6 +130,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-frontend-notes",
@@ -139,6 +144,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-video-lab",
@@ -152,6 +158,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-indie-dev-cast",
@@ -165,6 +172,7 @@ const feeds = [
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ] satisfies readonly FeedDto[];
 

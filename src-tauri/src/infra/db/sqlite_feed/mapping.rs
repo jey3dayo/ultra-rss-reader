@@ -16,6 +16,7 @@ pub(super) fn row_to_feed(row: &rusqlite::Row) -> rusqlite::Result<Feed> {
         unread_count: normalize_unread_count(row.get::<_, i64>(9)?),
         reader_mode: row.get(10)?,
         web_preview_mode: row.get(11)?,
+        created_at: row.get(12)?,
     })
 }
 

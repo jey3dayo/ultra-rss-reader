@@ -67,6 +67,14 @@ fn migrate_to_v29(conn: &Connection) {
     super::repairs::apply_v29_local_sync_entity_change_times(conn).unwrap();
 }
 
+fn migrate_to_v31(conn: &Connection) {
+    use super::consts::{MIGRATION_V30, MIGRATION_V31};
+
+    migrate_to_v29(conn);
+    conn.execute_batch(MIGRATION_V30).unwrap();
+    conn.execute_batch(MIGRATION_V31).unwrap();
+}
+
 fn normalize_sql(sql: &str) -> String {
     sql.split_whitespace().collect::<Vec<_>>().join(" ")
 }

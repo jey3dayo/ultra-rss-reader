@@ -24,6 +24,7 @@ const feeds: FeedDto[] = [
     unread_count: 1,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-z-1",
@@ -37,6 +38,7 @@ const feeds: FeedDto[] = [
     unread_count: 2,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-a-2",
@@ -50,6 +52,7 @@ const feeds: FeedDto[] = [
     unread_count: 3,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-a-1",
@@ -63,6 +66,7 @@ const feeds: FeedDto[] = [
     unread_count: 4,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-u-2",
@@ -76,6 +80,7 @@ const feeds: FeedDto[] = [
     unread_count: 5,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
   {
     id: "feed-u-1",
@@ -89,6 +94,7 @@ const feeds: FeedDto[] = [
     unread_count: 6,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
+    created_at: null,
   },
 ];
 

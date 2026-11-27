@@ -6,6 +6,7 @@ import {
   hasSubscriptionReviewReason,
   isSubscriptionReviewCandidate,
   resolveLatestKnownArticleAt,
+  resolveSubscriptionReviewInactiveDays,
 } from "@/lib/subscriptions/subscription-review-candidates";
 import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
 import type {
@@ -53,7 +54,7 @@ function rowMatchesSubscriptionSummaryFilter(
   }
 
   if (filterKey === "stale") {
-    return row.status.labelKey === "stale_90d";
+    return row.status.labelKey === "stale_90d" || row.status.labelKey === "no_articles";
   }
 
   if (filterKey === "frequent") {
@@ -139,20 +140,16 @@ function compareSubscriptionRows(
   }
 
   if (sortKey === "stale_days") {
-    if (left.latestArticleDays === null && right.latestArticleDays !== null) {
+    if (left.inactiveDays === null && right.inactiveDays !== null) {
       return 1;
     }
 
-    if (left.latestArticleDays !== null && right.latestArticleDays === null) {
+    if (left.inactiveDays !== null && right.inactiveDays === null) {
       return -1;
     }
 
-    if (
-      left.latestArticleDays !== null &&
-      right.latestArticleDays !== null &&
-      left.latestArticleDays !== right.latestArticleDays
-    ) {
-      return right.latestArticleDays - left.latestArticleDays;
+    if (left.inactiveDays !== null && right.inactiveDays !== null && left.inactiveDays !== right.inactiveDays) {
+      return right.inactiveDays - left.inactiveDays;
     }
 
     const leftTime = getDateInputTimeMs(left.latestArticleAt);
@@ -338,16 +335,16 @@ export function buildSubscriptionListRows({
     const latestArticleAt = resolveLatestKnownArticleAt(feedArticleSummary);
     const recentArticleCount = feedArticleSummary?.recent_article_count ?? 0;
     const folderName = feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null;
-    const status = resolveSubscriptionRowStatus({
-      candidate: candidateMap.get(feed.id),
-    });
+    const candidate = candidateMap.get(feed.id);
+    const status = resolveSubscriptionRowStatus({ candidate });
 
     return {
       feed,
       folderId: folderName === null ? null : feed.folder_id,
       folderName,
       latestArticleAt,
-      latestArticleDays: candidateMap.get(feed.id)?.staleDays ?? null,
+      latestArticleDays: candidate?.staleDays ?? null,
+      inactiveDays: candidate ? resolveSubscriptionReviewInactiveDays(candidate) : null,
       recentArticleCount,
       status,
       reasonTooltipKey: resolveSubscriptionRowReasonTooltipKey({
@@ -369,7 +366,7 @@ export function resolveSubscriptionRowReasonTooltipKey({
     return status.labelKey;
   }
 
-  return latestArticleAt === null ? "no_articles" : null;
+  return latestArticleAt === null ? "no_articles_yet" : null;
 }
 
 export function resolveSubscriptionRowStatus({
@@ -389,5 +386,9 @@ export function resolveSubscriptionRowStatus({
     return { labelKey: "normal" };
   }
 
-  return { labelKey: hasSubscriptionReviewReason(candidate, "stale_90d") ? "stale_90d" : "quiet_no_unread" };
+  if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
+    return { labelKey: "stale_90d" };
+  }
+
+  return { labelKey: hasSubscriptionReviewReason(candidate, "no_articles") ? "no_articles" : "quiet_no_unread" };
 }

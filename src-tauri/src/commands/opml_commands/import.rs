@@ -139,10 +139,15 @@ pub(crate) fn import_opml_in_db(
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
+            created_at: None,
         };
 
         feed_repo.save(&feed).map_err(AppError::from)?;
-        created_feeds.push(FeedDto::from(feed));
+        let saved = feed_repo
+            .find_by_id(&feed.id)
+            .map_err(AppError::from)?
+            .unwrap_or(feed);
+        created_feeds.push(FeedDto::from(saved));
     }
 
     tx.commit().map_err(DomainError::from)?;

@@ -82,6 +82,7 @@ fn feed(id: &str, folder_id: Option<&FolderId>, title: &str) -> Feed {
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
+        created_at: None,
     }
 }
 
@@ -650,6 +651,22 @@ fn import_refreshes_query_statistics_after_creating_feeds() {
         stats_rows > 0,
         "OPML import should refresh planner statistics after writing feeds"
     );
+}
+
+#[test]
+fn import_returns_feeds_with_the_stored_created_at() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Rust Blog".to_string(),
+        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+        html_url: None,
+        folder: None,
+    }];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert!(feeds[0].created_at.is_some());
 }
 
 #[test]

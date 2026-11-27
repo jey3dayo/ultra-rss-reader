@@ -85,6 +85,7 @@ describe("AddFeedDialog", () => {
             unread_count: 0,
             reader_mode: "on",
             web_preview_mode: "off",
+            created_at: null,
           };
         case "update_feed_folder":
           return null;
