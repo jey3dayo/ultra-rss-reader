@@ -36,7 +36,6 @@ export function ArticleMetaView({
   const displayTitle = normalizeArticleDisplayTitle(title, t("article_untitled_fallback"));
   const normalizedAuthor = author?.trim() ?? "";
   const normalizedFeedName = feedName?.trim() ?? "";
-  const showFeedButton = Boolean(normalizedFeedName && onShowFeed);
 
   return (
     <div className="space-y-4">
@@ -54,50 +53,8 @@ export function ArticleMetaView({
       </h1>
       {(normalizedFeedName || siteLink || normalizedAuthor) && (
         <div className="flex flex-wrap items-baseline justify-start gap-x-2.5 gap-y-1 text-left text-[0.95rem] leading-[1.7] text-foreground-soft">
-          {normalizedFeedName ? (
-            siteLink ? (
-              <FeedSiteLink
-                href={siteLink.href}
-                title={normalizedFeedName}
-                onOpen={siteLink.onOpen}
-                dir="auto"
-                className="inline-block min-w-0 max-w-full truncate"
-              >
-                {normalizedFeedName}
-              </FeedSiteLink>
-            ) : (
-              <span className="min-w-0 max-w-full truncate" dir="auto" title={normalizedFeedName}>
-                {normalizedFeedName}
-              </span>
-            )
-          ) : null}
-          {showFeedButton ? (
-            <>
-              <MetaSeparator />
-              <ReaderInlineActionButton
-                variant="feed"
-                onClick={onShowFeed}
-                className="inline-block min-w-0 max-w-full text-left [overflow-wrap:anywhere]"
-                title={t("article_meta_show_feed_title", { feedName: normalizedFeedName })}
-              >
-                {siteLink ? `${siteLink.label} · ` : null}
-                <span className="whitespace-nowrap">{t("article_meta_show_feed")}</span>
-              </ReaderInlineActionButton>
-            </>
-          ) : siteLink ? (
-            <>
-              {normalizedFeedName ? <MetaSeparator /> : null}
-              <FeedSiteLink
-                href={siteLink.href}
-                title={siteLink.title}
-                onOpen={siteLink.onOpen}
-                icon
-                className="inline-flex items-center gap-1"
-              >
-                {siteLink.label}
-              </FeedSiteLink>
-            </>
-          ) : null}
+          <ArticleMetaFeedName feedName={normalizedFeedName} siteLink={siteLink} />
+          <ArticleMetaDomainAction feedName={normalizedFeedName} siteLink={siteLink} onShowFeed={onShowFeed} />
           {normalizedAuthor ? (
             <span className="inline-flex max-w-full min-w-0 items-baseline gap-x-2.5 whitespace-nowrap">
               {normalizedFeedName || siteLink ? <MetaSeparator /> : null}
@@ -109,6 +66,81 @@ export function ArticleMetaView({
         </div>
       )}
     </div>
+  );
+}
+
+type ArticleMetaFeedPartProps = {
+  feedName: string;
+  siteLink?: ArticleMetaSiteLink | null;
+};
+
+function ArticleMetaFeedName({ feedName, siteLink }: ArticleMetaFeedPartProps) {
+  if (!feedName) {
+    return null;
+  }
+
+  if (!siteLink) {
+    return (
+      <span className="min-w-0 max-w-full truncate" dir="auto" title={feedName}>
+        {feedName}
+      </span>
+    );
+  }
+
+  return (
+    <FeedSiteLink
+      href={siteLink.href}
+      title={feedName}
+      onOpen={siteLink.onOpen}
+      dir="auto"
+      className="inline-block min-w-0 max-w-full truncate"
+    >
+      {feedName}
+    </FeedSiteLink>
+  );
+}
+
+function ArticleMetaDomainAction({
+  feedName,
+  siteLink,
+  onShowFeed,
+}: ArticleMetaFeedPartProps & { onShowFeed?: () => void }) {
+  const { t } = useTranslation("reader");
+
+  if (feedName && onShowFeed) {
+    return (
+      <>
+        <MetaSeparator />
+        <ReaderInlineActionButton
+          variant="feed"
+          onClick={onShowFeed}
+          className="inline-block min-w-0 max-w-full text-left [overflow-wrap:anywhere]"
+          title={t("article_meta_show_feed_title", { feedName })}
+        >
+          {siteLink ? `${siteLink.label} · ` : null}
+          <span className="whitespace-nowrap">{t("article_meta_show_feed")}</span>
+        </ReaderInlineActionButton>
+      </>
+    );
+  }
+
+  if (!siteLink) {
+    return null;
+  }
+
+  return (
+    <>
+      {feedName ? <MetaSeparator /> : null}
+      <FeedSiteLink
+        href={siteLink.href}
+        title={siteLink.title}
+        onOpen={siteLink.onOpen}
+        icon
+        className="inline-flex items-center gap-1"
+      >
+        {siteLink.label}
+      </FeedSiteLink>
+    </>
   );
 }
 
