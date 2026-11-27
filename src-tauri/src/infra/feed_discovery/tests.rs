@@ -1058,6 +1058,8 @@ fn test_feed_body_fallback_rejects_html_when_content_type_is_misleading_or_missi
         r#"<html><head><title>Site</title></head><body></body></html>"#,
         r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="https://example.com/"/></rdf:RDF>"#,
         r#"<rdf:RDFExample xmlns="http://purl.org/rss/1.0/"></rdf:RDFExample>"#,
+        r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss"><title>RSS 1.0</title></channel></rdf:RDF> Service unavailable"#,
+        r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss"><title>RSS 1.0</title></channel></rdf:RDF><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss"><title>RSS 1.0</title></channel></rdf:RDF>"#,
         r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss">"#,
         r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rss="http://purl.org/rss/1.0/"><rdf:Description rdf:about="https://example.com/"/></rdf:RDF>"#,
         r#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,

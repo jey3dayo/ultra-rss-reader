@@ -215,6 +215,7 @@ fn is_rss_1_0_document(body: &str) -> bool {
     let mut reader = NsReader::from_str(body);
     let mut depth = 0usize;
     let mut has_channel = false;
+    let mut has_root = false;
     loop {
         let Ok((namespace, event)) = reader.read_resolved_event() else {
             return false;
@@ -227,11 +228,14 @@ fn is_rss_1_0_document(body: &str) -> bool {
                 continue;
             }
             Event::Eof => return has_channel && depth == 0,
+            Event::Text(text) if depth == 0 && !text.trim_ascii().is_empty() => return false,
+            Event::CData(_) if depth == 0 => return false,
             _ => continue,
         };
         let local_name = element.local_name();
         let name = local_name.as_ref();
         match depth {
+            0 if has_root => return false,
             0 if namespace != ResolveResult::Bound(Namespace(RDF_NAMESPACE)) || name != "RDF" => {
                 return false;
             }
@@ -242,6 +246,7 @@ fn is_rss_1_0_document(body: &str) -> bool {
             }
             _ => {}
         }
+        has_root = true;
         if opens_scope {
             depth += 1;
         }
