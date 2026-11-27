@@ -179,9 +179,10 @@ describe("ArticleToolbarView", () => {
     expect(container.firstElementChild).toHaveClass("h-12");
     expect(container.firstElementChild).not.toHaveClass("h-10");
     expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
-    expect(container.firstElementChild).toHaveStyle({
-      backgroundColor: "var(--reader-toolbar-surface)",
-    });
+    expect(container.firstElementChild).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--reader-toolbar-surface)"),
+    );
     expect(container.querySelector("[data-tauri-drag-region]")).not.toBeNull();
 
     const readButton = screen.getByRole("button", { name: "Toggle read" });

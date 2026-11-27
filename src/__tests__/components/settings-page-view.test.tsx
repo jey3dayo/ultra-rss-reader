@@ -39,9 +39,10 @@ describe("SettingsPageView", () => {
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
     );
-    expect(screen.getByTestId("settings-content-header")).toHaveStyle({
-      backgroundColor: "var(--settings-shell-content-header)",
-    });
+    expect(screen.getByTestId("settings-content-header")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--settings-shell-content-header)"),
+    );
     expect(container.querySelector('[data-surface-card="section"]')).toBeNull();
     expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-2.5");
     expect(screen.getByText("Changes apply after restart.")).toHaveClass("mt-1.5");

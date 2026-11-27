@@ -58,6 +58,7 @@ describe("RenameFolderDialog", () => {
     queryClient.setQueryData(key, [folder]);
     render(<RenameFolderDialog folder={folder} onClose={onClose} />, { wrapper });
     const input = screen.getByRole("textbox", { name: "Name" });
+    await waitFor(() => expect(input).toHaveFocus());
     await user.clear(input);
     await user.type(input, "Existing");
     await user.click(screen.getByRole("button", { name: "Save" }));

@@ -145,8 +145,8 @@ describe("AppLayout", () => {
 
     expect(sidebarShell).toHaveClass(MOTION_RESIZE_SURFACE_CLASS_NAME);
     expect(accountShell).toHaveClass(MOTION_RESIZE_SURFACE_CLASS_NAME);
-    expect(getComputedStyle(sidebarShell).transitionDuration).toBe("0ms");
-    expect(getComputedStyle(accountShell).transitionDuration).toBe("0ms");
+    expect(getComputedStyle(sidebarShell).transitionDuration).toBe("0s");
+    expect(getComputedStyle(accountShell).transitionDuration).toBe("0s");
 
     style.remove();
     document.documentElement.removeAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE);

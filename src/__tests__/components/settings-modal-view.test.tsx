@@ -258,16 +258,18 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[4rem]");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
     expect(screen.getByTestId("settings-modal-header")).not.toHaveClass("border-b");
-    expect(screen.getByTestId("settings-modal-header")).toHaveStyle({
-      backgroundColor: "var(--settings-shell-rail)",
-    });
+    expect(screen.getByTestId("settings-modal-header")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--settings-shell-rail)"),
+    );
     expect(screen.getByRole("button", { name: "Close preferences" })).toHaveClass("text-sidebar-foreground/40");
     expect(screen.getByRole("button", { name: "Close preferences" })).toHaveClass(
       "hover:bg-[var(--sidebar-hover-surface)]",
     );
-    expect(screen.getByTestId("settings-nav-shell")).toHaveStyle({
-      backgroundColor: "var(--settings-shell-rail)",
-    });
+    expect(screen.getByTestId("settings-nav-shell")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--settings-shell-rail)"),
+    );
     expect(screen.getByTestId("settings-nav-shell")).toHaveClass("max-h-[18rem]");
     expect(screen.getByTestId("settings-nav-shell")).toHaveClass("sm:h-auto");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("p-3");
@@ -276,9 +278,10 @@ describe("SettingsModalView", () => {
       "border-[var(--settings-shell-section-border)]",
     );
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("shadow-none");
-    expect(screen.getByTestId("settings-accounts-section")).toHaveStyle({
-      backgroundColor: "var(--settings-shell-account-surface)",
-    });
+    expect(screen.getByTestId("settings-accounts-section")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--settings-shell-account-surface)"),
+    );
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("max-h-[15rem]");
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("min-h-0");
     expect(
@@ -317,9 +320,10 @@ describe("SettingsModalView", () => {
       "py-1.5",
       "pr-5",
     );
-    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveStyle({
-      backgroundColor: "var(--settings-shell-account-surface)",
-    });
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--settings-shell-account-surface)"),
+    );
   });
 
   it("hides scrollbars and fades when the panes do not overflow", async () => {
@@ -381,12 +385,14 @@ describe("SettingsModalView", () => {
 
     expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-content-fade-bottom")).toHaveStyle({
-      backgroundImage: "var(--settings-shell-content-fade-reverse)",
-    });
-    expect(screen.getByTestId("settings-content-shell")).toHaveStyle({
-      backgroundColor: "var(--settings-shell-content)",
-    });
+    expect(screen.getByTestId("settings-content-fade-bottom")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-image: var(--settings-shell-content-fade-reverse)"),
+    );
+    expect(screen.getByTestId("settings-content-shell")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--settings-shell-content)"),
+    );
     expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass(
       "bg-dialog-overlay-readable",
       "bg-dialog-scrim-readable",
