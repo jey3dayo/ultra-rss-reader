@@ -1040,6 +1040,7 @@ fn test_feed_body_fallback_accepts_rss_atom_and_xml_when_content_type_is_mislead
         r#"<feed xmlns="http://www.w3.org/2005/Atom"><title>Atom</title></feed>"#,
         r#"<?xml version="1.0"?><rss version="2.0"></rss>"#,
         r#"<?xml version="1.0" encoding="UTF-8"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss"><title>RSS 1.0</title></channel></rdf:RDF>"#,
+        r#"<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="feed.xsl"?><!-- c --><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss"><title>RSS 1.0</title></channel></rdf:RDF>"#,
         r#"
             <?xml version="1.0"?><feed></feed>
         "#,
@@ -1057,6 +1058,7 @@ fn test_feed_body_fallback_rejects_html_when_content_type_is_misleading_or_missi
         r#"<html><head><title>Site</title></head><body></body></html>"#,
         r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="https://example.com/"/></rdf:RDF>"#,
         r#"<rdf:RDFExample xmlns="http://purl.org/rss/1.0/"></rdf:RDFExample>"#,
+        r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss">"#,
         r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rss="http://purl.org/rss/1.0/"><rdf:Description rdf:about="https://example.com/"/></rdf:RDF>"#,
         r#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
         "",

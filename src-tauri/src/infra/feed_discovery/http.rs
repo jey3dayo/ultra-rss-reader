@@ -205,22 +205,16 @@ pub(crate) fn is_feed_body_fallback(body: &str) -> bool {
         .trim_start();
     after_decl.starts_with("<rss")
         || after_decl.starts_with("<feed")
-        || is_rss_1_0_document(after_decl)
+        || is_rss_1_0_document(without_decl)
 }
 
 const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const RSS_1_0_NAMESPACE: &str = "http://purl.org/rss/1.0/";
 
-fn is_rss_1_0_document(after_decl: &str) -> bool {
-    if !after_decl
-        .strip_prefix("<rdf:RDF")
-        .is_some_and(|rest| rest.starts_with(|c: char| c == '>' || c.is_whitespace()))
-    {
-        return false;
-    }
-
-    let mut reader = NsReader::from_str(after_decl);
+fn is_rss_1_0_document(body: &str) -> bool {
+    let mut reader = NsReader::from_str(body);
     let mut depth = 0usize;
+    let mut has_channel = false;
     loop {
         let Ok((namespace, event)) = reader.read_resolved_event() else {
             return false;
@@ -232,7 +226,7 @@ fn is_rss_1_0_document(after_decl: &str) -> bool {
                 depth = depth.saturating_sub(1);
                 continue;
             }
-            Event::Eof => return false,
+            Event::Eof => return has_channel && depth == 0,
             _ => continue,
         };
         let local_name = element.local_name();
@@ -244,7 +238,7 @@ fn is_rss_1_0_document(after_decl: &str) -> bool {
             1 if namespace == ResolveResult::Bound(Namespace(RSS_1_0_NAMESPACE))
                 && name == "channel" =>
             {
-                return true;
+                has_channel = true;
             }
             _ => {}
         }
