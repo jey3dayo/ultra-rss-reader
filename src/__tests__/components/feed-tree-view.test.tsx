@@ -691,7 +691,7 @@ describe("FeedTreeView", () => {
       fireEvent.pointerUp(window, { clientX: 60, clientY: 60, pointerId: 1 });
       expect(screen.queryByTestId("feed-tree-drag-overlay")).not.toBeInTheDocument();
       fireEvent.pointerMove(window, { clientX: 100, clientY: 100, pointerId: 1 });
-      expect(overlay).toHaveStyle({ transform: "translate3d(72px, 72px, 0)" });
+      expect(overlay.style.transform).toBe("translate3d(72px, 72px, 0px)");
 
       expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1" }));
       expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");

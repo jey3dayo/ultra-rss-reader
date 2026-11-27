@@ -1072,7 +1072,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
     });
 
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       window.dispatchEvent(new Event(keyboardEvents.closeBrowserOverlay));
 

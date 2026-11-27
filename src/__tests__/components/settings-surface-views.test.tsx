@@ -60,9 +60,10 @@ describe("Settings surface views", () => {
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
     );
-    expect(screen.getByTestId("settings-content-header")).toHaveStyle({
-      backgroundColor: "var(--settings-shell-content-header)",
-    });
+    expect(screen.getByTestId("settings-content-header")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--settings-shell-content-header)"),
+    );
     expect(screen.getByTestId("settings-page-root")).toHaveClass("flex");
     expect(screen.getByTestId("settings-content-scroll-area")).toHaveClass("h-full");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent("System default");

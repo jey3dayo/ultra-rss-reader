@@ -34,9 +34,10 @@ describe("SettingsContentLayout", () => {
     expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByTestId("settings-content-fade-bottom")).toHaveClass("pointer-events-none");
-    expect(screen.getByTestId("settings-content-fade-bottom")).toHaveStyle({
-      backgroundImage: "var(--settings-shell-content-fade-reverse)",
-    });
+    expect(screen.getByTestId("settings-content-fade-bottom")).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-image: var(--settings-shell-content-fade-reverse)"),
+    );
   });
 
   it("inherits scroll behavior through the shared settings context", () => {

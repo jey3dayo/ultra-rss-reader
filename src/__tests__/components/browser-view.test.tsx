@@ -465,9 +465,10 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(shell).toHaveAttribute("data-open", "true");
     });
-    expect(veil).toHaveStyle({
-      backgroundImage: "var(--browser-overlay-shell-veil)",
-    });
+    expect(veil).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-image: var(--browser-overlay-shell-veil)"),
+    );
     expect(screen.getByTestId("browser-overlay-stage-shell")).toBeInTheDocument();
     expect(screen.getByTestId("browser-overlay-stage-shell")).not.toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME);
     expect(screen.getByTestId("browser-overlay-stage")).not.toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME);

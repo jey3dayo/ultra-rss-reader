@@ -655,9 +655,10 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    expect(detailPane).toHaveStyle({
-      backgroundColor: "var(--subscriptions-detail-surface)",
-    });
+    expect(detailPane).toHaveAttribute(
+      "style",
+      expect.stringContaining("background-color: var(--subscriptions-detail-surface)"),
+    );
     expect(screen.getByRole("region", { name: "購読の詳細" })).toBe(detailPane);
     expect(within(detailPane).getByRole("link", { name: "Example Feed" })).toHaveAttribute(
       "href",
@@ -1281,7 +1282,7 @@ describe("SubscriptionsIndexPage", () => {
   });
 
   it("refreshes stale review labels on visibility return and cleans up the review clock", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
     const clearIntervalSpy = vi.spyOn(window, "clearInterval");
     const removeEventListenerSpy = vi.spyOn(document, "removeEventListener");

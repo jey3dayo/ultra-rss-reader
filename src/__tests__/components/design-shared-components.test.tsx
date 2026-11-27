@@ -68,9 +68,10 @@ describe("Design-themed shared components", () => {
         />,
       );
 
-      expect(screen.getByTestId("workspace-header-body").parentElement).toHaveStyle({
-        backgroundColor: "var(--workspace-header-surface)",
-      });
+      expect(screen.getByTestId("workspace-header-body").parentElement).toHaveAttribute(
+        "style",
+        expect.stringContaining("background-color: var(--workspace-header-surface)"),
+      );
       expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
     } finally {
       restorePlatform();
