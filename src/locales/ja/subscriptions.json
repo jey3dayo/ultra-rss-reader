@@ -38,6 +38,7 @@
   "decision_keep": "見直し対象外にする",
   "unsubscribe_action": "購読解除",
   "decision_kept": "{{title}} を見直し対象外にしました",
+  "decision_kept_separator": "、",
   "decision_undo_keep": "元に戻す",
   "decision_unkeep": "見直し対象外を解除",
   "decision_kept_effect": "90日以上未更新の一覧と、「表示中をすべて選択」の対象から外れています。",

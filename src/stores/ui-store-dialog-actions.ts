@@ -16,6 +16,15 @@ export type UiStoreDialogToastRuntime = {
   scheduleToastDismiss: (data: ToastData, set: UiStoreSet) => void;
 };
 
+function mergeCoalescedToast(current: ToastData | null, incoming: ToastData): ToastData {
+  const coalesce = incoming.coalesce;
+  const isRoutine = !incoming.persistent && incoming.severity !== "warning" && incoming.severity !== "error";
+  if (!coalesce || !isRoutine || current?.coalesce?.key !== coalesce.key) return incoming;
+  const knownIds = new Set(current.coalesce.items.map((item) => item.id));
+  const items = [...current.coalesce.items, ...coalesce.items.filter((item) => !knownIds.has(item.id))];
+  return { ...incoming, ...coalesce.compose(items), coalesce: { ...coalesce, items } };
+}
+
 export function createUiStoreDialogActions(
   set: UiStoreSet,
   toastRuntime: UiStoreDialogToastRuntime,
@@ -25,17 +34,22 @@ export function createUiStoreDialogActions(
     closeAddFeedDialog: () => set({ isAddFeedDialogOpen: false }),
     showToast: (message) => {
       toastRuntime.clearToastDismissTimer();
-      const data: ToastData = typeof message === "string" ? { message } : message;
+      const incoming: ToastData = typeof message === "string" ? { message } : message;
+      let data = incoming;
       let canReplace = true;
       set((state) => {
         const isRoutineToast = !data.persistent && data.severity !== "warning" && data.severity !== "error";
         canReplace = !(state.toastMessage?.variant === "sync-recovery" && isRoutineToast);
+        if (canReplace) data = mergeCoalescedToast(state.toastMessage, incoming);
         return {
           toastMessage: canReplace ? data : state.toastMessage,
           toastAnnouncements:
-            state.toastAnnouncements.at(-1)?.message === data.message
+            state.toastAnnouncements.at(-1)?.message === incoming.message
               ? state.toastAnnouncements
-              : [...state.toastAnnouncements, { id: toastRuntime.nextToastAnnouncementId(), message: data.message }],
+              : [
+                  ...state.toastAnnouncements,
+                  { id: toastRuntime.nextToastAnnouncementId(), message: incoming.message },
+                ],
         };
       });
       if (canReplace) toastRuntime.scheduleToastDismiss(data, set);

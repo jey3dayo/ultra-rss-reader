@@ -38,6 +38,7 @@
   "decision_keep": "Exclude from review",
   "unsubscribe_action": "Unsubscribe",
   "decision_kept": "Excluded {{title}} from review",
+  "decision_kept_separator": ", ",
   "decision_undo_keep": "Undo",
   "decision_unkeep": "Remove review exclusion",
   "decision_kept_effect": "Excluded from the 90+ days without updates list and from \"Select all shown\".",

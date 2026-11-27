@@ -2,7 +2,10 @@ import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { buildSubscriptionActionRail } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import type { ToastCoalesceItem } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
+
+const REVIEW_KEEP_TOAST_KEY = "review-keep";
 
 type UseSubscriptionActionRailParams = {
   selectedRow: SubscriptionListRow | null;
@@ -49,20 +52,21 @@ export function useSubscriptionActionRail({
       keptEffect: t("decision_kept_effect"),
     },
     onKeep: (row) => {
-      const keptFeedId = row.feed.id;
       markSelectedFeedKept();
-      showToast({
-        message: t("decision_kept", { title: row.feed.title }),
+      const compose = (items: ToastCoalesceItem[]) => ({
+        message: t("decision_kept", { title: items.map((item) => item.label).join(t("decision_kept_separator")) }),
         actions: [
           {
             label: t("decision_undo_keep"),
             onClick: () => {
-              unkeepFeed(keptFeedId);
+              for (const item of items) unkeepFeed(item.id);
               clearToast();
             },
           },
         ],
       });
+      const items = [{ id: row.feed.id, label: row.feed.title }];
+      showToast({ ...compose(items), coalesce: { key: REVIEW_KEEP_TOAST_KEY, items, compose } });
     },
     onUnkeep: (row) => unkeepFeed(row.feed.id),
     onEdit: editSelectedFeed,

@@ -113,7 +113,7 @@ export function AppToastView({
               className={toastSeverityIconVariants({ severity })}
             />
           )}
-          <span className="min-w-0 flex-1 break-keep whitespace-normal [overflow-wrap:anywhere]">
+          <span className="max-h-32 min-w-0 flex-1 overflow-y-auto break-keep whitespace-normal [overflow-wrap:anywhere]">
             {messageSegments
               ? messageSegments.map((segment, index) => {
                   const startOffset = segmentOffset;
