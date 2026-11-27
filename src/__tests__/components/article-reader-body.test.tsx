@@ -61,11 +61,10 @@ describe("ArticleReaderBody", () => {
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/1");
   });
 
-  it("opens the feed site link in the external browser on click and middle-click with a host-only tooltip", () => {
+  it("opens the site from the feed name on click and middle-click", () => {
     render(<ArticleReaderBody article={baseArticle} feed={baseFeed} feedName="Tech Blog" hasNextArticle={true} />);
 
-    const link = screen.getByRole("link", { name: /example\.com/ });
-    expect(link).toHaveAttribute("title", "Open in external browser (example.com)");
+    const link = screen.getByRole("link", { name: "Tech Blog" });
 
     fireEvent.click(link);
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledTimes(1);
@@ -74,6 +73,14 @@ describe("ArticleReaderBody", () => {
     fireEvent(link, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledTimes(2);
     expect(openArticleInExternalBrowserMock).toHaveBeenLastCalledWith("https://example.com/blog?token=secret");
+  });
+
+  it("keeps the domain as a host-only site link when there is no feed name", () => {
+    render(<ArticleReaderBody article={baseArticle} feed={baseFeed} hasNextArticle={true} />);
+
+    const link = screen.getByRole("link", { name: /example\.com/ });
+    expect(link).toHaveAttribute("title", "Open in external browser (example.com)");
+    expect(screen.queryByRole("button", { name: /Show feed/ })).not.toBeInTheDocument();
   });
 
   it("lets the reader content expand across the right pane with viewport-responsive padding", () => {

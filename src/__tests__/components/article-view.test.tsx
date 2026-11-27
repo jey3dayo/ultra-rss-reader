@@ -1212,7 +1212,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBeNull();
     });
 
-    const feedButton = screen.getByRole("button", { name: "Tech Blog" });
+    const feedButton = screen.getByRole("button", { name: /Show feed/ });
     feedButton.click();
 
     await waitFor(() => {
