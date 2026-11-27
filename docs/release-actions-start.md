@@ -38,6 +38,10 @@ The starter verifies the checkout, current remote main, versions, changelog,
 and exact-SHA main CI before writing. It creates an annotated tag and an asset-empty
 draft whose body is the reviewed CHANGELOG version section, then explicitly
 dispatches `release.yml` with the tag as its ref.
+
+The dispatched `release.yml` run skips `test:unit:ci` in its quality job because the
+exact-SHA main CI above already ran it; `format:check` and `lint:types` still run there.
+A tag push of `release.yml` runs all three.
 This explicit dispatch is necessary because tag writes made with `GITHUB_TOKEN`
 do not trigger another push workflow.
 

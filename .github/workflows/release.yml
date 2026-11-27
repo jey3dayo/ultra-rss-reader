@@ -176,7 +176,10 @@ jobs:
         run: |
           mise run format:check
           mise run lint:types
-          mise run test:unit:ci
+
+      - name: Run unit tests
+        if: github.event_name != 'workflow_dispatch'
+        run: mise run test:unit:ci
 
   release:
     needs: [preflight, quality]
@@ -231,7 +234,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2.9.2
         with:
           workspaces: src-tauri
-          shared-key: release-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          shared-key: release-${{ runner.os }}
           save-if: ${{ github.event_name == 'push' }}
 
       - run: pnpm install --frozen-lockfile

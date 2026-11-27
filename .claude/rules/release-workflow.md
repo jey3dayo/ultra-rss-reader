@@ -44,7 +44,7 @@ paths:
 - タグ作成前に 5 箇所のバージョンが一致していることを確認する
 - release タグは version / CHANGELOG 変更を含む reviewed commit に作成する。Local CLI は release commit の `HEAD`、Actions は merge 後に CI 成功を確認した exact-main SHA を使う
 - Local CLI の push 前に `git rev-list -n 1 vX.Y.Z` と release commit hash、tag 先の 5 箇所の `X.Y.Z`（MSIX は `X.Y.Z.0`）一致を確認する。Actions starter も同じ version / tag target 契約を検証する
-- Local CLI の push 前に `RELEASE_TAG=vX.Y.Z mise run release:preflight:local` を実行する。Actions は exact-main CI と既存 release workflow の必須ゲートを使い、ローカルで未実行のチェックを実行済みと扱わない
+- Local CLI の push 前に `RELEASE_TAG=vX.Y.Z mise run release:preflight:local` を実行する。Actions は exact-main CI と既存 release workflow の必須ゲートを使い、ローカルで未実行のチェックを実行済みと扱わない。Release の quality ジョブは `workflow_dispatch` では `format:check` と `lint:types` だけを実行し、`test:unit:ci` は exact-main CI が検証済みのためスキップする（tag push では全て実行する）
 - セマンティックバージョニング (semver) に従う
 
 ## 開発フロー（リリースノート自動生成の前提）
