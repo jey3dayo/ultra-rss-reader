@@ -146,18 +146,7 @@ fn is_json_feed_content_type(ct: &str) -> bool {
 }
 
 fn validate_xml_feed_body(body: &str) -> DomainResult<()> {
-    let trimmed = body.trim_start();
-    let without_decl = trimmed
-        .strip_prefix('\u{feff}')
-        .unwrap_or(trimmed)
-        .trim_start();
-    let after_decl = without_decl
-        .strip_prefix("<?xml")
-        .and_then(|rest| rest.find("?>").map(|end| &rest[end + 2..]))
-        .unwrap_or(without_decl)
-        .trim_start();
-
-    if after_decl.starts_with("<rss") || after_decl.starts_with("<feed") {
+    if is_feed_body_fallback(body) {
         Ok(())
     } else {
         Err(invalid_feed_document_error())
@@ -210,5 +199,7 @@ pub(crate) fn is_feed_body_fallback(body: &str) -> bool {
         .and_then(|rest| rest.find("?>").map(|end| &rest[end + 2..]))
         .unwrap_or(without_decl)
         .trim_start();
-    after_decl.starts_with("<rss") || after_decl.starts_with("<feed")
+    after_decl.starts_with("<rss")
+        || after_decl.starts_with("<feed")
+        || after_decl.starts_with("<rdf:RDF")
 }

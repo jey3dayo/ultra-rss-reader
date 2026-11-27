@@ -961,6 +961,10 @@ fn validates_feed_body_before_accepting_xml_or_json_feed_content_types() {
             "application/xml",
         ),
         (
+            r#"<?xml version="1.0" encoding="UTF-8"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss"><title>RSS 1.0</title></channel></rdf:RDF>"#,
+            "application/xml",
+        ),
+        (
             r#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
             "application/feed+json; charset=utf-8",
         ),
@@ -1023,6 +1027,7 @@ fn test_feed_body_fallback_accepts_rss_atom_and_xml_when_content_type_is_mislead
         r#"<rss version="2.0"><channel><title>RSS</title></channel></rss>"#,
         r#"<feed xmlns="http://www.w3.org/2005/Atom"><title>Atom</title></feed>"#,
         r#"<?xml version="1.0"?><rss version="2.0"></rss>"#,
+        r#"<?xml version="1.0" encoding="UTF-8"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/"><channel rdf:about="https://example.com/rss"><title>RSS 1.0</title></channel></rdf:RDF>"#,
         r#"
             <?xml version="1.0"?><feed></feed>
         "#,
