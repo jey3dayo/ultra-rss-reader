@@ -183,10 +183,17 @@ describe("browser preview shortcut bridge contract", () => {
     expect(commandsSource).not.toContain("use crate::menu::MENU_ACTION_EVENT");
 
     // The only remaining emitters must be hardware-input channels that a hosted page
-    // cannot synthesize: Windows AcceleratorKeyPressed and the two macOS NSEvent monitor
-    // branches (Escape plus modifier-bound shortcuts).
+    // cannot synthesize: two Windows AcceleratorKeyPressed branches (the fixed F11 key and
+    // preview shortcuts) and the two macOS NSEvent monitor branches (Escape plus
+    // modifier-bound shortcuts).
     const emitCount = backendSource.split("emit(MENU_ACTION_EVENT").length - 1;
-    expect(emitCount).toBe(3);
+    expect(emitCount).toBe(4);
+    const fullscreenKeyBlock = extractBlock(
+      backendSource,
+      /(if is_fullscreen_toggle_key\([\s\S]*?return Ok\(\(\)\);)/,
+      "Windows AcceleratorKeyPressed F11 branch",
+    );
+    expect(fullscreenKeyBlock).toContain("emit(MENU_ACTION_EVENT, FULLSCREEN_TOGGLE_ACTION)");
     const acceleratorHandlerBlock = extractBlock(
       backendSource,
       /native-accelerator vk=([\s\S]*?)add_AcceleratorKeyPressed/,
