@@ -330,7 +330,7 @@ export function ArticleReaderBody({
                 }
               : undefined
           }
-          onFeedClick={
+          onShowFeed={
             feedName
               ? () => {
                   selectFeedFromCurrentContext(article.feed_id);

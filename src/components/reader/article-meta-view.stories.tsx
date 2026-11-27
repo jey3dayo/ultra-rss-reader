@@ -13,7 +13,7 @@ const meta = {
     publishedLabel: "Mar 25, 2026",
     onTitleClick: fn(),
     onTitleAuxClick: fn(),
-    onFeedClick: fn(),
+    onShowFeed: fn(),
   },
   decorators: [
     (Story) => (
@@ -27,7 +27,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Interactive: Story = {};
+const siteLink = {
+  href: "https://example.com/",
+  label: "example.com",
+  title: "Open in app (example.com)",
+  onOpen: fn(),
+};
+
+export const Interactive: Story = {
+  args: { siteLink },
+};
+
+export const WithoutSiteLink: Story = {};
 
 export const StaticTitle: Story = {
   args: {
@@ -35,7 +46,7 @@ export const StaticTitle: Story = {
     feedName: null,
     onTitleClick: undefined,
     onTitleAuxClick: undefined,
-    onFeedClick: undefined,
+    onShowFeed: undefined,
   },
 };
 
@@ -57,6 +68,6 @@ export const WorstCaseMetaLayout: Story = {
     publishedLabel: "FRIDAY, OCTOBER 30, 2026 AT 10:00 AM",
     onTitleClick: undefined,
     onTitleAuxClick: undefined,
-    onFeedClick: undefined,
+    onShowFeed: undefined,
   },
 };
