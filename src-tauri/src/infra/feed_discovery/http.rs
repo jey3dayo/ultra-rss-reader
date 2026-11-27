@@ -1,6 +1,10 @@
 use std::net::IpAddr;
 use std::sync::Arc;
 
+use quick_xml::events::Event;
+use quick_xml::name::{Namespace, ResolveResult};
+use quick_xml::NsReader;
+
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{is_private_host, validate_user_provided_feed_url};
 use crate::infra::provider::http_defaults;
@@ -204,11 +208,48 @@ pub(crate) fn is_feed_body_fallback(body: &str) -> bool {
         || is_rss_1_0_document(after_decl)
 }
 
+const RDF_NAMESPACE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const RSS_1_0_NAMESPACE: &str = "http://purl.org/rss/1.0/";
 
 fn is_rss_1_0_document(after_decl: &str) -> bool {
-    after_decl
+    if !after_decl
         .strip_prefix("<rdf:RDF")
         .is_some_and(|rest| rest.starts_with(|c: char| c == '>' || c.is_whitespace()))
-        && after_decl.contains(RSS_1_0_NAMESPACE)
+    {
+        return false;
+    }
+
+    let mut reader = NsReader::from_str(after_decl);
+    let mut depth = 0usize;
+    loop {
+        let Ok((namespace, event)) = reader.read_resolved_event() else {
+            return false;
+        };
+        let (element, opens_scope) = match event {
+            Event::Start(element) => (element, true),
+            Event::Empty(element) => (element, false),
+            Event::End(_) => {
+                depth = depth.saturating_sub(1);
+                continue;
+            }
+            Event::Eof => return false,
+            _ => continue,
+        };
+        let local_name = element.local_name();
+        let name = local_name.as_ref();
+        match depth {
+            0 if namespace != ResolveResult::Bound(Namespace(RDF_NAMESPACE)) || name != "RDF" => {
+                return false;
+            }
+            1 if namespace == ResolveResult::Bound(Namespace(RSS_1_0_NAMESPACE))
+                && name == "channel" =>
+            {
+                return true;
+            }
+            _ => {}
+        }
+        if opens_scope {
+            depth += 1;
+        }
+    }
 }
